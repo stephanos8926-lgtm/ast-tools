@@ -1,0 +1,207 @@
+#!/usr/bin/env python3
+"""
+AST Tools CLI — direct terminal access to ast-grep, ast-edit, ast-read, and structural-analysis.
+
+Usage:
+    ast-tools grep <pattern> [path] [--lang <lang>] [--json]
+    ast-tools read <file> [--include-private] [--no-imports]
+    ast-tools edit <file> <operation> [--params '<json>'] [--dry-run]
+    ast-tools analyze <analysis_type> [--symbol <name>] [--file <path>] [--line <n>] [--root <dir>]
+"""
+
+import argparse
+import json
+import subprocess
+import sys
+from pathlib import Path
+
+
+def cmd_grep(args):
+    cmd = ["ast-grep", "--pattern", args.pattern, args.path]
+    if args.lang:
+        cmd.extend(["--lang", args.lang])
+    if args.json:
+        cmd.append("--json")
+
+    proc = subprocess.run(cmd, capture_output=True, text=True)
+    if args.json:
+        try:
+            matches = json.loads(proc.stdout)
+            print(json.dumps(matches, indent=2))
+        except json.JSONDecodeError:
+            print(proc.stdout)
+    else:
+        print(proc.stdout, end="")
+
+
+def cmd_read(args):
+    file_path = Path(args.file)
+    if not file_path.exists():
+        print(json.dumps({"error": f"File not found: {file_path}"}))
+        sys.exit(1)
+
+    source = file_path.read_text()
+    import ast
+    try:
+        tree = ast.parse(source, filename=str(file_path))
+    except SyntaxError as e:
+        print(json.dumps({"error": f"Syntax error: {e}"}))
+        sys.exit(1)
+
+    result = {"file": str(file_path), "language": "python"}
+
+    if not args.no_imports:
+        imports = []
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Import):
+                for alias in node.names:
+                    imports.append({"module": alias.name, "alias": alias.asname, "line": node.lineno})
+            elif isinstance(node, ast.ImportFrom):
+                imports.append({"module": node.module, "names": [a.name for a in node.names], "line": node.lineno})
+        result["imports"] = imports
+
+    classes, functions, variables = [], [], []
+    for node in ast.iter_child_nodes(tree):
+        if isinstance(node, ast.ClassDef):
+            if not args.include_private and node.name.startswith("_"):
+                continue
+            methods = []
+            for item in node.body:
+                if isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                    methods.append({"name": item.name, "line": item.lineno})
+            classes.append({"name": node.name, "line": node.lineno, "methods": methods})
+        elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            if not args.include_private and node.name.startswith("_"):
+                continue
+            functions.append({"name": node.name, "line": node.lineno})
+        elif isinstance(node, ast.Assign):
+            for target in node.targets:
+                if isinstance(target, ast.Name):
+                    variables.append({"name": target.id, "line": node.lineno})
+
+    result["classes"] = classes
+    result["functions"] = functions
+    result["variables"] = variables
+    result["summary"] = {
+        "total_classes": len(classes),
+        "total_functions": len(functions),
+        "total_variables": len(variables),
+        "total_imports": len(result.get("imports", [])),
+    }
+    print(json.dumps(result, indent=2))
+
+
+def cmd_edit(args):
+    from libcst import parse_module, ParserSyntaxError
+
+    file_path = Path(args.file)
+    if not file_path.exists():
+        print(json.dumps({"error": f"File not found: {file_path}"}))
+        sys.exit(1)
+
+    source = file_path.read_text()
+    try:
+        tree = parse_module(source)
+    except ParserSyntaxError as e:
+        print(json.dumps({"error": f"Syntax error: {e}"}))
+        sys.exit(1)
+
+    params = json.loads(args.params) if args.params else {}
+    # Delegate to the MCP server's transform logic via subprocess
+    proc = subprocess.run(
+        [
+            sys.executable, "-c",
+            f"""
+import json, sys
+from pathlib import Path
+sys.path.insert(0, '{Path(__file__).parent.parent / "src"}')
+from ast_tools_server import _tool_ast_edit
+import asyncio
+result = asyncio.run(_tool_ast_edit({{
+    'file': '{file_path}',
+    'operation': '{args.operation}',
+    'params': {json.dumps(params)},
+    'dry_run': {str(args.dry_run).lower()},
+}}))
+print(json.dumps(result, indent=2))
+"""
+        ],
+        capture_output=True, text=True, timeout=30
+    )
+    if proc.returncode != 0:
+        print(json.dumps({"error": proc.stderr or "Edit failed"}))
+        sys.exit(1)
+    print(proc.stdout, end="")
+
+
+def cmd_analyze(args):
+    import jedi
+
+    project = jedi.Project(path=args.root) if args.root else jedi.Project(path=".")
+
+    if args.file:
+        script = jedi.Script(path=args.file, project=project)
+    else:
+        script = jedi.Script("", project=project)
+
+    if args.analysis_type == "references" and args.symbol:
+        refs = script.get_references(line=args.line, path=args.file)
+        result = {"symbol": args.symbol, "references": [
+            {"name": r.name, "line": r.line, "file": str(r.module_path) if r.module_path else None}
+            for r in refs
+        ]}
+    elif args.analysis_type == "dependencies" and args.file:
+        imports = script.get_names(all_scopes=True)
+        deps = [{"name": i.name, "line": i.line} for i in imports if i.type == "module"]
+        result = {"file": args.file, "dependencies": deps, "count": len(deps)}
+    else:
+        result = {"error": f"Analysis '{args.analysis_type}' requires specific arguments"}
+
+    print(json.dumps(result, indent=2))
+
+
+def main():
+    parser = argparse.ArgumentParser(description="AST Tools CLI")
+    sub = parser.add_subparsers(dest="command")
+
+    # grep
+    p_grep = sub.add_parser("grep", help="Structural search")
+    p_grep.add_argument("pattern")
+    p_grep.add_argument("path", nargs="?", default=".")
+    p_grep.add_argument("--lang", default=None)
+    p_grep.add_argument("--json", action="store_true", default=True)
+    p_grep.set_defaults(func=cmd_grep)
+
+    # read
+    p_read = sub.add_parser("read", help="Structural context extraction")
+    p_read.add_argument("file")
+    p_read.add_argument("--include-private", action="store_true")
+    p_read.add_argument("--no-imports", action="store_true")
+    p_read.set_defaults(func=cmd_read)
+
+    # edit
+    p_edit = sub.add_parser("edit", help="Surgical AST edit")
+    p_edit.add_argument("file")
+    p_edit.add_argument("operation")
+    p_edit.add_argument("--params", default=None)
+    p_edit.add_argument("--dry-run", action="store_true")
+    p_edit.set_defaults(func=cmd_edit)
+
+    # analyze
+    p_analyze = sub.add_parser("analyze", help="Structural analysis")
+    p_analyze.add_argument("analysis_type")
+    p_analyze.add_argument("--symbol", default=None)
+    p_analyze.add_argument("--file", default=None)
+    p_analyze.add_argument("--line", type=int, default=None)
+    p_analyze.add_argument("--root", default=None)
+    p_analyze.set_defaults(func=cmd_analyze)
+
+    args = parser.parse_args()
+    if not args.command:
+        parser.print_help()
+        sys.exit(1)
+    args.func(args)
+
+
+if __name__ == "__main__":
+    main()
