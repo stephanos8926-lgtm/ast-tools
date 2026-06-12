@@ -273,16 +273,52 @@ def project_init(cwd: str | Path) -> dict[str, Any]:
     refs_dir = root / "references"
     refs_dir.mkdir(exist_ok=True)
 
-    # Symbol index
-    symbol_index = {}
+    # Symbol index — map every symbol to file:line + collect references
+    symbol_index: dict[str, dict[str, Any]] = {}
     for mod in data.get("modules", []):
         for cls in mod.get("classes", []):
             symbol_index[cls] = {"file": mod["path"], "type": "class"}
         for fn in mod.get("functions", []):
             symbol_index[fn] = {"file": mod["path"], "type": "function"}
 
+    # Dependency graph — import relationships between modules
+    dep_graph: dict[str, list[str]] = {}
+    for py_file in _scan_python_files(root):
+        rel = str(py_file.relative_to(root))
+        deps = []
+        try:
+            source = py_file.read_text(errors="replace")
+            tree = ast.parse(source, filename=str(py_file))
+            for node in ast.walk(tree):
+                if isinstance(node, ast.ImportFrom) and node.module:
+                    # Resolve relative imports to module path
+                    mod_path = node.module.replace(".", "/")
+                    candidate = root / f"{mod_path}.py"
+                    if not candidate.exists():
+                        candidate = root / mod_path / "__init__.py"
+                    if candidate.exists():
+                        deps.append(str(candidate.relative_to(root)))
+                elif isinstance(node, ast.Import):
+                    for alias in node.names:
+                        mod_path = alias.name.replace(".", "/")
+                        candidate = root / f"{mod_path}.py"
+                        if not candidate.exists():
+                            candidate = root / mod_path / "__init__.py"
+                        if candidate.exists():
+                            deps.append(str(candidate.relative_to(root)))
+        except (SyntaxError, OSError):
+            pass
+        dep_graph[rel] = sorted(set(deps))
+
+    # Write references
+    refs_dir = root / "references"
+    refs_dir.mkdir(exist_ok=True)
+
     symbol_file = refs_dir / "symbol_index.json"
     symbol_file.write_text(json.dumps(symbol_index, indent=2) + "\n", encoding="utf-8")
+
+    dep_file = refs_dir / "dependency_graph.json"
+    dep_file.write_text(json.dumps(dep_graph, indent=2) + "\n", encoding="utf-8")
 
     return data
 
