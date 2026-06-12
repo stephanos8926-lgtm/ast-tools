@@ -175,6 +175,25 @@ async def list_tools() -> list[Tool]:
                 "required": ["analysis_type"],
             },
         ),
+        Tool(
+            name="project_info",
+            description=(
+                "Project intelligence — returns a structured manifest of the project "
+                "at the given path. Reads project.json if it exists, or auto-generates "
+                "one by scanning the codebase. Includes: name, version, languages, "
+                "entry points, test framework, module structure, symbol index."
+            ),
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "cwd": {
+                        "type": "string",
+                        "description": "Project root directory. Defaults to current directory.",
+                    },
+                },
+                "required": [],
+            },
+        ),
     ]
 
 
@@ -191,6 +210,8 @@ async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
             result = _tool_ast_read(arguments)
         elif name == "structural_analysis":
             result = _tool_structural_analysis(arguments)
+        elif name == "project_info":
+            result = _tool_project_info(arguments)
         else:
             return [TextContent(type="text", text=json.dumps({"error": f"Unknown tool: {name}"}))]
 
@@ -691,6 +712,18 @@ def _tool_structural_analysis(args: dict[str, Any]) -> dict[str, Any]:
     return {"error": f"Unknown analysis type: {analysis_type}"}
 
 
+# ─── project_info ────────────────────────────────────────────────────────
+
+def _tool_project_info(args: dict[str, Any]) -> dict[str, Any]:
+    """Return project intelligence for the given directory."""
+    cwd = args.get("cwd", ".")
+    try:
+        from project_tools import project_info
+        return project_info(cwd)
+    except Exception as e:
+        return {"error": str(e)}
+
+
 # ─── Main ─────────────────────────────────────────────────────────────────
 
 async def main():
@@ -699,5 +732,9 @@ async def main():
 
 
 if __name__ == "__main__":
-    import asyncio
-    asyncio.run(main())
+    if len(sys.argv) > 1 and sys.argv[1] == "project":
+        from project_tools import cli_main
+        sys.exit(cli_main())
+    else:
+        import asyncio
+        asyncio.run(main())
