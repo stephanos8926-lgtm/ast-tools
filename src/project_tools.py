@@ -956,21 +956,54 @@ def cli_main() -> int:
     """CLI dispatch for project commands."""
     import argparse
 
-    parser = argparse.ArgumentParser(description="AST Tools — Project Intelligence")
-    sub = parser.add_subparsers(dest="command")
+    parser = argparse.ArgumentParser(
+        prog="ast-tools",
+        description="AST Tools — Project Intelligence & Structural Code Analysis",
+        epilog="Run 'ast-tools <command> --help' for more info on a specific command.",
+    )
+    parser.add_argument(
+        "--version",
+        action="version",
+        version="ast-tools 0.1.0",
+        help="Show the version and exit.",
+    )
+    sub = parser.add_subparsers(dest="command", help="Available commands")
 
-    p_init = sub.add_parser("project-init", help="Generate project.json + references")
-    p_init.add_argument("cwd", nargs="?", default=".", help="Project root directory")
+    p_init = sub.add_parser(
+        "project-init",
+        help="Generate project.json + references for a codebase",
+        description="Scan a Python codebase and generate a project.json manifest file along with reference indices (symbol index, dependency graph, file hashes).",
+    )
+    p_init.add_argument("cwd", nargs="?", default=".", help="Project root directory (default: current directory)")
 
-    p_update = sub.add_parser("project-update", help="Refresh project.json and indices")
-    p_update.add_argument("cwd", nargs="?", default=".", help="Project root directory")
+    p_update = sub.add_parser(
+        "project-update",
+        help="Refresh project.json and indices",
+        description="Re-scan the codebase and regenerate project.json and all reference files. This is a full refresh — same as project-init.",
+    )
+    p_update.add_argument("cwd", nargs="?", default=".", help="Project root directory (default: current directory)")
 
-    p_verify = sub.add_parser("project-verify", help="Verify project.json is up to date")
-    p_verify.add_argument("cwd", nargs="?", default=".", help="Project root directory")
-    p_verify.add_argument("--quiet", "-q", action="store_true", help="Suppress output")
+    p_verify = sub.add_parser(
+        "project-verify",
+        help="Verify project.json is up to date",
+        description="Compare the generated project.json against the committed one and report any differences. Exit code 0 = up to date, 1 = stale or missing.",
+    )
+    p_verify.add_argument("cwd", nargs="?", default=".", help="Project root directory (default: current directory)")
+    p_verify.add_argument("--quiet", "-q", action="store_true", help="Suppress output, only set exit code")
 
-    p_info = sub.add_parser("project-info", help="Print project.json (read or generate)")
-    p_info.add_argument("cwd", nargs="?", default=".", help="Project root directory")
+    p_info = sub.add_parser(
+        "project-info",
+        help="Print project.json (read existing or generate)",
+        description="Read and display the project.json manifest. If no manifest exists, auto-generate one by scanning the codebase.",
+    )
+    p_info.add_argument("cwd", nargs="?", default=".", help="Project root directory (default: current directory)")
+
+    p_summary = sub.add_parser(
+        "project-summary",
+        help="Print a compact project summary (<500 tokens)",
+        description="Return a compact project summary optimized for LLM context. Includes: name, version, languages, module count, symbol count, entry points, test framework, and top modules.",
+    )
+    p_summary.add_argument("cwd", nargs="?", default=".", help="Project root directory (default: current directory)")
 
     args = parser.parse_args()
 
@@ -991,6 +1024,10 @@ def cli_main() -> int:
     elif args.command == "project-info":
         data = project_info(args.cwd)
         print(json.dumps(data, indent=2, default=str))
+        return 0
+    elif args.command == "project-summary":
+        data = project_info_summary(args.cwd)
+        print(json.dumps(data, default=str))
         return 0
     else:
         parser.print_help()

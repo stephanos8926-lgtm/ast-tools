@@ -320,12 +320,12 @@ async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
         elif name == "impact_analysis":
             result = await anyio.to_thread.run_sync(_tool_impact_analysis, arguments)
         else:
-            return [TextContent(type="text", text=json.dumps({"error": f"Unknown tool: {name}"}))]
+            return [TextContent(type="text", text=json.dumps({"error": f"Unknown tool: {name}", "error_code": "NOT_FOUND", "tools": "unknown"}))]
 
         return [TextContent(type="text", text=json.dumps(result, indent=2, default=str))]
     except Exception as e:
         logger.exception("Tool %s failed", name)
-        return [TextContent(type="text", text=json.dumps({"error": str(e)}))]
+        return [TextContent(type="text", text=json.dumps({"error": str(e), "error_code": "INTERNAL", "tool": name}))]
 
 
 # ─── ast_grep ─────────────────────────────────────────────────────────────
@@ -348,12 +348,12 @@ def _tool_ast_grep(args: dict[str, Any]) -> dict[str, Any]:
     try:
         proc = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
     except FileNotFoundError:
-        return {"error": "ast-grep CLI not found. Install: cargo install ast-grep"}
+        return {"error": "ast-grep CLI not found. Install: cargo install ast-grep", "error_code": "NOT_FOUND", "tool": "ast_grep"}
     except subprocess.TimeoutExpired:
-        return {"error": "ast-grep timed out after 30s"}
+        return {"error": "ast-grep timed out after 30s", "error_code": "TIMEOUT", "tool": "ast_grep"}
 
     if proc.returncode != 0 and not proc.stdout:
-        return {"error": proc.stderr.strip() or "ast-grep returned no output", "matches": []}
+        return {"error": proc.stderr.strip() or "ast-grep returned no output", "matches": [], "error_code": "PARSE_ERROR", "tool": "ast_grep"}
 
     if json_output:
         try:
@@ -429,24 +429,24 @@ def _tool_ast_edit(args: dict[str, Any]) -> dict[str, Any]:
     dry_run = args.get("dry_run", False)
 
     if not file_path.exists():
-        return {"error": f"File not found: {file_path}"}
+        return {"error": f"File not found: {file_path}", "error_code": "NOT_FOUND", "tool": "ast_edit"}
 
     source = file_path.read_text()
     try:
         tree = cst.parse_module(source)
     except cst.ParserSyntaxError as e:
-        return {"error": f"Syntax error in {file_path}: {e}"}
+        return {"error": f"Syntax error in {file_path}: {e}", "error_code": "PARSE_ERROR", "tool": "ast_edit"}
 
     transformer = _build_transformer(operation, params)
     if transformer is None:
-        return {"error": f"Unknown operation: {operation}"}
+        return {"error": f"Unknown operation: {operation}", "error_code": "INVALID_INPUT", "tool": "ast_edit"}
 
     import libcst.metadata as cst_meta
     wrapper = cst.MetadataWrapper(tree)
     try:
         new_tree = wrapper.visit(transformer)
     except Exception as e:
-        return {"error": f"Transformation failed: {e}"}
+        return {"error": f"Transformation failed: {e}", "error_code": "INTERNAL", "tool": "ast_edit"}
 
     new_source = new_tree.code
 
@@ -578,19 +578,37 @@ def _build_transformer(operation: str, params: dict):
 
 # ─── ast_read ─────────────────────────────────────────────────────────────
 
+def _extract_all_names(tree: ast.Module) -> list[str] | None:
+    """Extract the list of names from an __all__ assignment if it exists.
+
+    Handles: __all__ = ["Foo", "bar"]
+    Returns the list of names, or None if __all__ is not defined.
+    """
+    for node in ast.iter_child_nodes(tree):
+        if isinstance(node, ast.Assign):
+            for target in node.targets:
+                if isinstance(target, ast.Name) and target.id == "__all__":
+                    if (isinstance(node.value, ast.List)
+                            and all(isinstance(e, ast.Constant) and isinstance(e.value, str)
+                                   for e in node.value.elts)):
+                        return [e.value for e in node.value.elts
+                                if isinstance(e, ast.Constant) and isinstance(e.value, str)]
+    return None
+
+
 def _tool_ast_read(args: dict[str, Any]) -> dict[str, Any]:
     file_path = Path(args["file"]).resolve()
     include_private = args.get("include_private", False)
     include_imports = args.get("include_imports", True)
 
     if not file_path.exists():
-        return {"error": f"File not found: {file_path}"}
+        return {"error": f"File not found: {file_path}", "error_code": "NOT_FOUND", "tool": "ast_read"}
 
     source = file_path.read_text()
     try:
         tree = ast.parse(source, filename=str(file_path))
     except SyntaxError as e:
-        return {"error": f"Syntax error: {e}"}
+        return {"error": f"Syntax error: {e}", "error_code": "PARSE_ERROR", "tool": "ast_read"}
 
     result: dict[str, Any] = {
         "file": str(file_path),
@@ -611,10 +629,18 @@ def _tool_ast_read(args: dict[str, Any]) -> dict[str, Any]:
                 imports.append({
                     "module": node.module,
                     "names": [a.name for a in node.names],
-                    "alias": {a.name: a.asname for a in node.names if a.asname},
+                    "aliases": {a.name: a.asname for a in node.names if a.asname},
                     "line": node.lineno,
                 })
         result["imports"] = imports
+
+    # Check for __all__ export list
+    all_names = _extract_all_names(tree)
+    filtered_by_all = all_names is not None
+    if filtered_by_all:
+        all_set = set(all_names)
+    else:
+        all_set = set()
 
     classes = []
     functions = []
@@ -623,6 +649,8 @@ def _tool_ast_read(args: dict[str, Any]) -> dict[str, Any]:
     for node in ast.iter_child_nodes(tree):
         if isinstance(node, ast.ClassDef):
             if not include_private and node.name.startswith("_"):
+                continue
+            if filtered_by_all and node.name not in all_set:
                 continue
             methods = []
             for item in node.body:
@@ -650,6 +678,8 @@ def _tool_ast_read(args: dict[str, Any]) -> dict[str, Any]:
         elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
             if not include_private and node.name.startswith("_"):
                 continue
+            if filtered_by_all and node.name not in all_set:
+                continue
             sig = _get_function_signature(node)
             functions.append({
                 "name": node.name,
@@ -662,7 +692,11 @@ def _tool_ast_read(args: dict[str, Any]) -> dict[str, Any]:
         elif isinstance(node, ast.Assign):
             for target in node.targets:
                 if isinstance(target, ast.Name):
+                    if target.id == "__all__":
+                        continue  # Skip __all__ assignment itself
                     if not include_private and target.id.startswith("_"):
+                        continue
+                    if filtered_by_all and target.id not in all_set:
                         continue
                     variables.append({
                         "name": target.id,
@@ -673,6 +707,7 @@ def _tool_ast_read(args: dict[str, Any]) -> dict[str, Any]:
     result["classes"] = classes
     result["functions"] = functions
     result["variables"] = variables
+    result["filtered_by__all__"] = filtered_by_all
     result["summary"] = {
         "total_classes": len(classes),
         "total_functions": len(functions),
@@ -925,9 +960,9 @@ def _tool_structural_analysis(args: dict[str, Any]) -> dict[str, Any]:
     project_root = args.get("project_root", ".")
 
     if not file_path:
-        return {"error": f"{analysis_type} analysis requires 'file'"}
+        return {"error": f"{analysis_type} analysis requires 'file'", "error_code": "INVALID_INPUT", "tool": "structural_analysis"}
     if not symbol and analysis_type in ("callers", "callees", "type_hierarchy", "references"):
-        return {"error": f"{analysis_type} analysis requires 'symbol'"}
+        return {"error": f"{analysis_type} analysis requires 'symbol'", "error_code": "INVALID_INPUT", "tool": "structural_analysis"}
 
     # ── AST-based analyses (replacing broken jedi) ──
 
@@ -982,7 +1017,7 @@ def _tool_structural_analysis(args: dict[str, Any]) -> dict[str, Any]:
                     target = d
                     break
             if not target:
-                return {"error": f"Class '{symbol}' not found"}
+                return {"error": f"Class '{symbol}' not found", "error_code": "NOT_FOUND", "tool": "structural_analysis"}
             goto_results = target.goto()
             hierarchy = []
             for g in goto_results:
@@ -994,7 +1029,7 @@ def _tool_structural_analysis(args: dict[str, Any]) -> dict[str, Any]:
                 })
             return {"analysis": "type_hierarchy", "symbol": symbol, "hierarchy": hierarchy}
         except Exception as e:
-            return {"error": str(e)}
+            return {"error": str(e), "error_code": "INTERNAL", "tool": "structural_analysis"}
 
     elif analysis_type == "dependencies":
         script = jedi.Script(path=file_path, project=project)
@@ -1009,9 +1044,9 @@ def _tool_structural_analysis(args: dict[str, Any]) -> dict[str, Any]:
                     })
             return {"analysis": "dependencies", "file": file_path, "dependencies": deps, "count": len(deps)}
         except Exception as e:
-            return {"error": str(e)}
+            return {"error": str(e), "error_code": "INTERNAL", "tool": "structural_analysis"}
 
-    return {"error": f"Unknown analysis type: {analysis_type}"}
+    return {"error": f"Unknown analysis type: {analysis_type}", "error_code": "INVALID_INPUT", "tool": "structural_analysis"}
 
 
 # ─── project_info ────────────────────────────────────────────────────────
@@ -1031,7 +1066,7 @@ def _tool_project_info(args: dict[str, Any]) -> dict[str, Any]:
             return project_info(cwd)
         return project_info_summary(cwd)
     except Exception as e:
-        return {"error": str(e)}
+        return {"error": str(e), "error_code": "INTERNAL", "tool": "project_info"}
 
 
 # ─── codebase_summary ─────────────────────────────────────────────────────
@@ -1050,7 +1085,7 @@ def _tool_codebase_summary(args: dict[str, Any]) -> dict[str, Any]:
         from project_tools import project_info_summary, find_project_root
         summary = project_info_summary(cwd)
     except Exception as e:
-        return {"error": str(e)}
+        return {"error": str(e), "error_code": "INTERNAL", "tool": "codebase_summary"}
 
     root = find_project_root(cwd)
     # Build directory tree (2 levels deep)
@@ -1152,12 +1187,12 @@ def _tool_find_references(args: dict[str, Any]) -> dict[str, Any]:
     limit = int(args.get("limit", 100))
 
     if not symbol:
-        return {"error": "symbol is required"}
+        return {"error": "symbol is required", "error_code": "INVALID_INPUT", "tool": "find_references"}
 
     try:
         refs = _ast_find_references(symbol, cwd)
     except Exception as e:
-        return {"error": str(e)}
+        return {"error": str(e), "error_code": "INTERNAL", "tool": "find_references"}
 
     # Filter to specific file if requested
     if file_filter:
