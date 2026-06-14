@@ -2,21 +2,27 @@
 """
 AST Tools MCP Server — structural code analysis and editing tools.
 
-Exposes 4 tools:
+Exposes 8 tools:
   ast_grep    — Structural search (via ast-grep CLI)
   ast_edit    — Surgical AST-based modification (via libcst)
   ast_read    — Structural context extraction (via ast module)
   structural_analysis — Call graphs, type hierarchies, symbol references (via jedi)
+  project_info — Project intelligence (project.json manifest)
+  codebase_summary — High-level architecture overview (<500 tokens)
+  find_references — Cross-file symbol usage search
+  impact_analysis — What breaks if you change a file or symbol
 """
 
 import ast
 import json
 import logging
+import os
 import subprocess
 import sys
 from pathlib import Path
 from typing import Any
 
+import anyio
 import libcst as cst
 from mcp.server import Server
 from mcp.server.stdio import stdio_server
@@ -60,6 +66,18 @@ async def list_tools() -> list[Tool]:
                     "json_output": {
                         "type": "boolean",
                         "description": "Return results as JSON with file, line, column, text. Default: true.",
+                    },
+                    "limit": {
+                        "type": "integer",
+                        "description": "Max number of matches to return. Default: 50, max: 500.",
+                    },
+                    "count_only": {
+                        "type": "boolean",
+                        "description": "If true, return only the count (no match data). Default: false.",
+                    },
+                    "top_level": {
+                        "type": "boolean",
+                        "description": "If true, only match top-level function/class definitions (not methods inside classes). Default: false.",
                     },
                 },
                 "required": ["pattern"],
@@ -190,8 +208,91 @@ async def list_tools() -> list[Tool]:
                         "type": "string",
                         "description": "Project root directory. Defaults to current directory.",
                     },
+                    "full": {
+                        "type": "boolean",
+                        "description": "If true, return the complete JSON manifest. Default: false (summary mode, <500 tokens).",
+                    },
+                    "diff": {
+                        "type": "boolean",
+                        "description": "If true, include added/removed/modified symbols since last scan. Default: false.",
+                    },
                 },
                 "required": [],
+            },
+        ),
+        Tool(
+            name="codebase_summary",
+            description=(
+                "High-level architecture overview of a codebase. "
+                "Returns a compact markdown-like summary with: project name, languages, "
+                "module count, symbol count, entry points, test framework, "
+                "top modules, and dependency hotspots. "
+                "Optimized for LLM context — under 500 tokens."
+            ),
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "cwd": {
+                        "type": "string",
+                        "description": "Project root directory. Defaults to current directory.",
+                    },
+                },
+                "required": [],
+            },
+        ),
+        Tool(
+            name="find_references",
+            description=(
+                "Find all references to a symbol across the codebase. "
+                "Searches all Python files for ast.Name nodes matching the symbol. "
+                "Returns file, line, column, and context for each occurrence. "
+                "Groups results by file, sorted by line number."
+            ),
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "symbol": {
+                        "type": "string",
+                        "description": "Symbol name to search for (function, class, or variable name).",
+                    },
+                    "cwd": {
+                        "type": "string",
+                        "description": "Project root directory. Defaults to current directory.",
+                    },
+                    "file": {
+                        "type": "string",
+                        "description": "Optional: narrow search to a specific file.",
+                    },
+                    "limit": {
+                        "type": "integer",
+                        "description": "Max results to return. Default: 100.",
+                    },
+                },
+                "required": ["symbol"],
+            },
+        ),
+        Tool(
+            name="impact_analysis",
+            description=(
+                "Analyze the impact of changing a file or symbol. "
+                "Returns: direct dependents (files that import/call the target), "
+                "transitive dependents (files that depend on dependents), "
+                "test files that exercise the target, "
+                "and risk assessment (low/medium/high based on fan-out)."
+            ),
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "target": {
+                        "type": "string",
+                        "description": "File path or symbol name to analyze.",
+                    },
+                    "cwd": {
+                        "type": "string",
+                        "description": "Project root directory. Defaults to current directory.",
+                    },
+                },
+                "required": ["target"],
             },
         ),
     ]
@@ -203,15 +304,21 @@ async def list_tools() -> list[Tool]:
 async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
     try:
         if name == "ast_grep":
-            result = _tool_ast_grep(arguments)
+            result = await anyio.to_thread.run_sync(_tool_ast_grep, arguments)
         elif name == "ast_edit":
-            result = _tool_ast_edit(arguments)
+            result = await anyio.to_thread.run_sync(_tool_ast_edit, arguments)
         elif name == "ast_read":
-            result = _tool_ast_read(arguments)
+            result = await anyio.to_thread.run_sync(_tool_ast_read, arguments)
         elif name == "structural_analysis":
-            result = _tool_structural_analysis(arguments)
+            result = await anyio.to_thread.run_sync(_tool_structural_analysis, arguments)
         elif name == "project_info":
-            result = _tool_project_info(arguments)
+            result = await anyio.to_thread.run_sync(_tool_project_info, arguments)
+        elif name == "codebase_summary":
+            result = await anyio.to_thread.run_sync(_tool_codebase_summary, arguments)
+        elif name == "find_references":
+            result = await anyio.to_thread.run_sync(_tool_find_references, arguments)
+        elif name == "impact_analysis":
+            result = await anyio.to_thread.run_sync(_tool_impact_analysis, arguments)
         else:
             return [TextContent(type="text", text=json.dumps({"error": f"Unknown tool: {name}"}))]
 
@@ -228,6 +335,9 @@ def _tool_ast_grep(args: dict[str, Any]) -> dict[str, Any]:
     path = args.get("path", ".")
     lang = args.get("lang")
     json_output = args.get("json_output", True)
+    limit = min(int(args.get("limit", 50)), 500)
+    count_only = args.get("count_only", False)
+    top_level = args.get("top_level", False)
 
     cmd = ["ast-grep", "--pattern", pattern, path]
     if lang:
@@ -250,20 +360,64 @@ def _tool_ast_grep(args: dict[str, Any]) -> dict[str, Any]:
             matches = json.loads(proc.stdout)
         except json.JSONDecodeError:
             matches = []
-        return {
-            "matches": matches,
-            "count": len(matches),
-            "pattern": pattern,
-            "path": path,
-        }
     else:
         lines = [l for l in proc.stdout.strip().splitlines() if l]
+        matches = lines
+
+    # Handle top_level filtering
+    if top_level:
+        matches = _filter_top_level(matches, pattern)
+
+    total_matches = len(matches)
+
+    # Count-only mode: return just the count
+    if count_only:
         return {
-            "matches": lines,
-            "count": len(lines),
+            "count": total_matches,
             "pattern": pattern,
             "path": path,
+            "top_level": top_level,
         }
+
+    # Apply limit
+    truncated = total_matches > limit
+    if truncated:
+        matches = matches[:limit]
+
+    result: dict[str, Any] = {
+        "matches": matches,
+        "count": len(matches),
+        "pattern": pattern,
+        "path": path,
+    }
+    if truncated:
+        result["truncated"] = True
+        result["total_matches"] = total_matches
+    return result
+
+
+def _filter_top_level(matches: list, pattern: str) -> list:
+    """Filter matches to only top-level function/class definitions.
+
+    Uses the column offset from ast-grep's range data: top-level definitions
+    start at column 0, while methods inside classes are indented (column > 0).
+    """
+    top_level_matches = []
+    for match in matches:
+        if isinstance(match, dict):
+            # JSON match: check column offset from range.start
+            col = match.get("range", {}).get("start", {}).get("column", None)
+            if col is not None:
+                if col == 0:
+                    top_level_matches.append(match)
+            else:
+                # No column info — include by default
+                top_level_matches.append(match)
+        elif isinstance(match, str):
+            # Plain text mode: check if first non-whitespace char is at position 0
+            if match and not match[0].isspace():
+                top_level_matches.append(match)
+    return top_level_matches
 
 
 # ─── ast_edit ─────────────────────────────────────────────────────────────
@@ -488,7 +642,7 @@ def _tool_ast_read(args: dict[str, Any]) -> dict[str, Any]:
                 "name": node.name,
                 "line": node.lineno,
                 "end_line": node.end_lineno,
-                "bases": [ast.dump(b) for b in node.bases],
+                "bases": [_annotation_to_str(b) for b in node.bases],
                 "docstring": ast.get_docstring(node),
                 "methods": methods,
                 "decorators": [ast.dump(d) for d in node.decorator_list],
@@ -529,6 +683,44 @@ def _tool_ast_read(args: dict[str, Any]) -> dict[str, Any]:
     return result
 
 
+def _annotation_to_str(node: ast.expr | None) -> str:
+    """Convert an AST annotation node to a human-readable type string.
+
+    Handles:
+      ast.Name(id='str')                    -> "str"
+      ast.Name(id='int')                    -> "int"
+      ast.Constant(value=None)             -> "None"
+      ast.Subscript(value=Name('list'), slice=Name('str')) -> "list[str]"
+      ast.BinOp(left, op=BitOr(), right)   -> "X | Y"
+      ast.Attribute(value=Name('pathlib'), attr='Path') -> "pathlib.Path"
+    Fallback: ast.dump truncated to 80 chars.
+    """
+    if node is None:
+        return ""
+    if isinstance(node, ast.Name):
+        return node.id
+    if isinstance(node, ast.Constant):
+        return repr(node.value)
+    if isinstance(node, ast.Attribute):
+        value_str = _annotation_to_str(node.value)
+        return f"{value_str}.{node.attr}" if value_str else node.attr
+    if isinstance(node, ast.Subscript):
+        value_str = _annotation_to_str(node.value)
+        slice_str = _annotation_to_str(node.slice)
+        return f"{value_str}[{slice_str}]"
+    if isinstance(node, ast.BinOp) and isinstance(node.op, ast.BitOr):
+        left_str = _annotation_to_str(node.left)
+        right_str = _annotation_to_str(node.right)
+        return f"{left_str} | {right_str}"
+    if isinstance(node, ast.Tuple):
+        # Handle multi-element subscripts like Dict[str, int]
+        elements = [_annotation_to_str(e) for e in node.elts]
+        return ", ".join(elements)
+    # Fallback: truncated ast.dump
+    dumped = ast.dump(node)
+    return dumped if len(dumped) <= 80 else dumped[:77] + "..."
+
+
 def _get_function_signature(node: ast.FunctionDef | ast.AsyncFunctionDef) -> str:
     """Extract a human-readable function signature."""
     args = node.args
@@ -538,40 +730,237 @@ def _get_function_signature(node: ast.FunctionDef | ast.AsyncFunctionDef) -> str
     for arg in args.args:
         name = arg.arg
         if arg.annotation:
-            name += f": {ast.dump(arg.annotation)}"
+            name += f": {_annotation_to_str(arg.annotation)}"
         parts.append(name)
 
     # *args
     if args.vararg:
-        parts.append(f"*{args.vararg.arg}")
+        vname = f"*{args.vararg.arg}"
+        if args.vararg.annotation:
+            vname += f": {_annotation_to_str(args.vararg.annotation)}"
+        parts.append(vname)
 
     # Keyword-only
     for arg in args.kwonlyargs:
         name = arg.arg
         if arg.annotation:
-            name += f": {ast.dump(arg.annotation)}"
+            name += f": {_annotation_to_str(arg.annotation)}"
         parts.append(name)
 
     # **kwargs
     if args.kwarg:
-        parts.append(f"**{args.kwarg.arg}")
+        kname = f"**{args.kwarg.arg}"
+        if args.kwarg.annotation:
+            kname += f": {_annotation_to_str(args.kwarg.annotation)}"
+        parts.append(kname)
 
     sig = f"({', '.join(parts)})"
     if node.returns:
-        sig += f" -> {ast.dump(node.returns)}"
+        sig += f" -> {_annotation_to_str(node.returns)}"
     return sig
 
 
 # ─── structural_analysis ─────────────────────────────────────────────────
 
-def _tool_structural_analysis(args: dict[str, Any]) -> dict[str, Any]:
-    import jedi
+def _find_python_files(project_root: str) -> list[Path]:
+    """Find all Python files under project_root, skipping common non-project dirs."""
+    skip_dirs = {
+        ".git", "__pycache__", ".venv", "venv", "node_modules",
+        ".tox", ".eggs", "build", "dist", ".mypy_cache", ".pytest_cache",
+        ".idea", ".vscode", "site-packages",
+    }
+    root = Path(project_root)
+    results = []
+    for dirpath, dirnames, filenames in os.walk(root):
+        dirnames[:] = [d for d in dirnames if d not in skip_dirs and not d.startswith(".")]
+        for fn in filenames:
+            if fn.endswith(".py"):
+                results.append(Path(dirpath) / fn)
+    return results
 
+
+def _ast_find_references(symbol: str, project_root: str) -> list[dict]:
+    """Find all references to `symbol` across the project using AST.
+
+    Walks all Python files, finds ast.Name nodes where node.id == symbol.
+    Returns list of {file, line, col, context} grouped by file, sorted by line.
+    """
+    results = []
+    for py_file in _find_python_files(project_root):
+        try:
+            source = py_file.read_text(encoding="utf-8", errors="replace")
+            lines = source.splitlines()
+            tree = ast.parse(source, filename=str(py_file))
+        except (SyntaxError, OSError):
+            continue
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Name) and node.id == symbol:
+                line_num = node.lineno
+                col = node.col_offset
+                context = lines[line_num - 1] if 0 < line_num <= len(lines) else ""
+                results.append({
+                    "file": str(py_file.relative_to(project_root)),
+                    "line": line_num,
+                    "col": col,
+                    "context": context.strip(),
+                })
+    # Sort by file then line
+    results.sort(key=lambda r: (r["file"], r["line"]))
+    return results
+
+
+def _ast_find_callers(symbol: str, project_root: str) -> list[dict]:
+    """Find all functions/methods in the project that call `symbol`.
+
+    For each Python file, walks the AST looking for ast.Call nodes where
+    the function name matches `symbol`. Returns the enclosing function/class name.
+    """
+    callers = []
+    for py_file in _find_python_files(project_root):
+        try:
+            source = py_file.read_text(encoding="utf-8", errors="replace")
+            tree = ast.parse(source, filename=str(py_file))
+        except (SyntaxError, OSError):
+            continue
+
+        # Walk all nodes, tracking the current enclosing function/class
+        def _walk_calls(node, enclosing_name=None):
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                enclosing_name = node.name
+            elif isinstance(node, ast.ClassDef):
+                enclosing_name = node.name
+
+            for child in ast.iter_child_nodes(node):
+                if isinstance(child, ast.Call):
+                    # Check if the call target matches the symbol
+                    if isinstance(child.func, ast.Name) and child.func.id == symbol:
+                        if enclosing_name and enclosing_name != symbol:
+                            callers.append({
+                                "name": enclosing_name,
+                                "line": child.lineno,
+                                "file": str(py_file.relative_to(project_root)),
+                                "context": source.splitlines()[child.lineno - 1].strip()
+                                if 0 < child.lineno <= len(source.splitlines()) else "",
+                            })
+                    elif isinstance(child.func, ast.Attribute) and child.func.attr == symbol:
+                        # Method call like obj.symbol(...)
+                        if enclosing_name and enclosing_name != symbol:
+                            callers.append({
+                                "name": enclosing_name,
+                                "line": child.lineno,
+                                "file": str(py_file.relative_to(project_root)),
+                                "context": source.splitlines()[child.lineno - 1].strip()
+                                if 0 < child.lineno <= len(source.splitlines()) else "",
+                            })
+                _walk_calls(child, enclosing_name)
+
+        _walk_calls(tree)
+
+    # Deduplicate (same caller name + line)
+    seen = set()
+    unique = []
+    for c in callers:
+        key = (c["name"], c["line"], c["file"])
+        if key not in seen:
+            seen.add(key)
+            unique.append(c)
+    unique.sort(key=lambda c: (c["file"], c["line"]))
+    return unique
+
+
+def _ast_find_callees(symbol: str, file_path: str, project_root: str) -> list[dict]:
+    """Find all calls made within the function/class `symbol` in `file_path`.
+
+    Parses the file, finds the target function/class, walks its body for ast.Call nodes.
+    """
+    try:
+        source = Path(file_path).read_text(encoding="utf-8", errors="replace")
+        tree = ast.parse(source, filename=file_path)
+    except (SyntaxError, OSError) as e:
+        return []
+
+    callees = []
+
+    # Find the target node
+    target_node = None
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            if node.name == symbol:
+                target_node = node
+                break
+
+    if not target_node:
+        return []
+
+    # Walk the target node's body for calls
+    for node in ast.walk(target_node):
+        if isinstance(node, ast.Call):
+            name = None
+            if isinstance(node.func, ast.Name):
+                name = node.func.id
+            elif isinstance(node.func, ast.Attribute):
+                name = node.func.attr
+            if name and name != symbol:
+                callees.append({
+                    "name": name,
+                    "line": node.lineno,
+                })
+
+    # Deduplicate
+    seen = set()
+    unique = []
+    for c in callees:
+        key = (c["name"], c["line"])
+        if key not in seen:
+            seen.add(key)
+            unique.append(c)
+    unique.sort(key=lambda c: c["line"])
+    return unique
+
+
+def _tool_structural_analysis(args: dict[str, Any]) -> dict[str, Any]:
     analysis_type = args["analysis_type"]
     symbol = args.get("symbol")
     file_path = args.get("file")
-    line = args.get("line")
-    project_root = args.get("project_root")
+    project_root = args.get("project_root", ".")
+
+    if not file_path:
+        return {"error": f"{analysis_type} analysis requires 'file'"}
+    if not symbol and analysis_type in ("callers", "callees", "type_hierarchy", "references"):
+        return {"error": f"{analysis_type} analysis requires 'symbol'"}
+
+    # ── AST-based analyses (replacing broken jedi) ──
+
+    if analysis_type == "references":
+        refs = _ast_find_references(symbol, project_root)
+        return {
+            "analysis": "references",
+            "symbol": symbol,
+            "references": refs,
+            "count": len(refs),
+        }
+
+    if analysis_type == "callers":
+        callers = _ast_find_callers(symbol, project_root)
+        return {
+            "analysis": "callers",
+            "symbol": symbol,
+            "callers": callers,
+            "count": len(callers),
+        }
+
+    if analysis_type == "callees":
+        callees = _ast_find_callees(symbol, file_path, project_root)
+        return {
+            "analysis": "callees",
+            "symbol": symbol,
+            "callees": callees,
+            "count": len(callees),
+        }
+
+    # ── jedi-based analyses (type_hierarchy, dependencies — leave as-is) ──
+
+    import jedi
 
     if project_root:
         project = jedi.Project(path=project_root)
@@ -580,75 +969,12 @@ def _tool_structural_analysis(args: dict[str, Any]) -> dict[str, Any]:
     else:
         project = jedi.Project(path=".")
 
-    if analysis_type == "callers":
-        if not file_path or not symbol:
-            return {"error": "callers analysis requires 'file' and 'symbol'"}
-        script = jedi.Script(path=file_path, project=project)
-        try:
-            definitions = script.get_names(all_scopes=True)
-            target = None
-            for d in definitions:
-                if d.name == symbol:
-                    target = d
-                    break
-            if not target:
-                return {"error": f"Symbol '{symbol}' not found in {file_path}"}
-            usages = target.goto()
-            callers = []
-            for ref in script.get_names(all_scopes=True):
-                if ref.type == "function" or ref.type == "class":
-                    # Check if this function calls our target
-                    sub_script = jedi.Script(
-                        path=file_path, project=project
-                    )
-                    for sub_ref in sub_script.get_names(all_scopes=True):
-                        if sub_ref.name == symbol and sub_ref != target:
-                            callers.append({
-                                "name": ref.name,
-                                "line": ref.line,
-                                "type": ref.type,
-                            })
-            return {"analysis": "callers", "symbol": symbol, "callers": callers}
-        except Exception as e:
-            return {"error": str(e)}
-
-    elif analysis_type == "callees":
-        if not file_path or not symbol:
-            return {"error": "callees analysis requires 'file' and 'symbol'"}
-        script = jedi.Script(path=file_path, project=project)
-        try:
-            definitions = script.get_names(all_scopes=True)
-            target = None
-            for d in definitions:
-                if d.name == symbol:
-                    target = d
-                    break
-            if not target:
-                return {"error": f"Symbol '{symbol}' not found in {file_path}"}
-            # Get the function body and find calls within it
-            goto_results = target.goto()
-            callees = []
-            for g in goto_results:
-                if g.type in ("function", "class"):
-                    callees.append({
-                        "name": g.name,
-                        "line": g.line,
-                        "type": g.type,
-                        "file": str(g.module_path) if g.module_path else None,
-                    })
-            return {"analysis": "callees", "symbol": symbol, "callees": callees}
-        except Exception as e:
-            return {"error": str(e)}
-
-    elif analysis_type == "type_hierarchy":
-        if not symbol:
-            return {"error": "type_hierarchy analysis requires 'symbol'"}
+    if analysis_type == "type_hierarchy":
         if file_path:
             script = jedi.Script(path=file_path, project=project)
         else:
             script = jedi.Script("", project=project)
         try:
-            # Find the class and its bases
             defs = script.get_names(all_scopes=True)
             target = None
             for d in defs:
@@ -657,7 +983,6 @@ def _tool_structural_analysis(args: dict[str, Any]) -> dict[str, Any]:
                     break
             if not target:
                 return {"error": f"Class '{symbol}' not found"}
-            # Get inheritance info
             goto_results = target.goto()
             hierarchy = []
             for g in goto_results:
@@ -671,30 +996,7 @@ def _tool_structural_analysis(args: dict[str, Any]) -> dict[str, Any]:
         except Exception as e:
             return {"error": str(e)}
 
-    elif analysis_type == "references":
-        if not symbol:
-            return {"error": "references analysis requires 'symbol'"}
-        if file_path:
-            script = jedi.Script(path=file_path, project=project)
-        else:
-            script = jedi.Script("", project=project)
-        try:
-            refs = script.get_references(line=line)
-            references = []
-            for ref in refs:
-                references.append({
-                    "name": ref.name,
-                    "line": ref.line,
-                    "column": ref.column,
-                    "file": str(ref.module_path) if ref.module_path else None,
-                })
-            return {"analysis": "references", "symbol": symbol, "references": references, "count": len(references)}
-        except Exception as e:
-            return {"error": str(e)}
-
     elif analysis_type == "dependencies":
-        if not file_path:
-            return {"error": "dependencies analysis requires 'file'"}
         script = jedi.Script(path=file_path, project=project)
         try:
             imports = script.get_names(all_scopes=True)
@@ -717,11 +1019,351 @@ def _tool_structural_analysis(args: dict[str, Any]) -> dict[str, Any]:
 def _tool_project_info(args: dict[str, Any]) -> dict[str, Any]:
     """Return project intelligence for the given directory."""
     cwd = args.get("cwd", ".")
+    full = args.get("full", False)
+    diff = args.get("diff", False)
+
     try:
-        from project_tools import project_info
-        return project_info(cwd)
+        from project_tools import project_info, project_info_summary, generate_project_json
+
+        if diff:
+            return generate_project_json(cwd, diff=True)
+        if full:
+            return project_info(cwd)
+        return project_info_summary(cwd)
     except Exception as e:
         return {"error": str(e)}
+
+
+# ─── codebase_summary ─────────────────────────────────────────────────────
+
+def _tool_codebase_summary(args: dict[str, Any]) -> dict[str, Any]:
+    """High-level architecture overview of a codebase.
+
+    Returns a compact summary with: project name, languages, module count,
+    symbol count, entry points, test framework, directory tree,
+    top imported modules, and test-to-source mapping.
+    Optimized for LLM context — under 500 tokens.
+    """
+    cwd = args.get("cwd", ".")
+
+    try:
+        from project_tools import project_info_summary, find_project_root
+        summary = project_info_summary(cwd)
+    except Exception as e:
+        return {"error": str(e)}
+
+    root = find_project_root(cwd)
+    # Build directory tree (2 levels deep)
+    skip_dirs = {
+        ".git", "__pycache__", ".venv", "venv", "node_modules",
+        ".tox", ".eggs", "build", "dist", ".mypy_cache", ".pytest_cache",
+        ".idea", ".vscode", "site-packages", "references",
+    }
+    tree = []
+    try:
+        for dirpath, dirnames, filenames in os.walk(root):
+            depth = len(Path(dirpath).relative_to(root).parts)
+            if depth > 2:
+                dirnames.clear()
+                continue
+            dirnames[:] = sorted(d for d in dirnames if d not in skip_dirs and not d.startswith("."))
+            rel = str(Path(dirpath).relative_to(root))
+            if depth <= 2:
+                for fn in sorted(filenames):
+                    if not fn.startswith(".") and not fn.endswith((".pyc", ".pyo")):
+                        if rel != ".":
+                            tree.append(f"{rel}/{fn}")
+                        else:
+                            tree.append(fn)
+    except OSError:
+        pass
+
+    # Top imported modules from dependency_graph.json
+    top_imports: list[str] = []
+    dep_file = root / "references" / "dependency_graph.json"
+    if dep_file.exists():
+        try:
+            dep_graph = json.loads(dep_file.read_text(encoding="utf-8"))
+            import_counts: dict[str, int] = {}
+            for _src, targets in dep_graph.items():
+                for t in targets:
+                    top_imports_key = t.rsplit("/", 1)[-1] if "/" in t else t
+                    top_imports_key = top_imports_key.replace(".py", "")
+                    import_counts[top_imports_key] = import_counts.get(top_imports_key, 0) + 1
+            sorted_imports = sorted(import_counts.items(), key=lambda x: -x[1])
+            top_imports = [name for name, _count in sorted_imports[:10]]
+        except (json.JSONDecodeError, OSError):
+            pass
+
+    # Test-to-source mapping
+    test_mapping: dict[str, list[str]] = {}
+    try:
+        for py_file in _find_python_files(str(root)):
+            rel = str(py_file.relative_to(root))
+            if "test" in py_file.name.lower() or "tests" in py_file.parts:
+                try:
+                    source = py_file.read_text(encoding="utf-8", errors="replace")
+                    tree_ast = ast.parse(source, filename=str(py_file))
+                    for node in ast.walk(tree_ast):
+                        if isinstance(node, ast.ImportFrom) and node.module:
+                            test_mapping.setdefault(rel, []).append(node.module)
+                        elif isinstance(node, ast.Import):
+                            for alias in node.names:
+                                test_mapping.setdefault(rel, []).append(alias.name)
+                except (SyntaxError, OSError):
+                    pass
+        # Deduplicate
+        for k in test_mapping:
+            test_mapping[k] = sorted(set(test_mapping[k]))
+    except Exception:
+        pass
+
+    result = dict(summary)
+    # Compact tree: group by directory, count files per dir
+    tree_dirs: dict[str, int] = {}
+    for entry in tree[:50]:
+        parts = entry.split("/")
+        if len(parts) > 1:
+            tree_dirs[parts[0]] = tree_dirs.get(parts[0], 0) + 1
+        else:
+            tree_dirs["."] = tree_dirs.get(".", 0) + 1
+    compact_tree = {f"{k}": v for k, v in sorted(tree_dirs.items())}
+    result["tree"] = compact_tree
+    if top_imports:
+        result["top_imports"] = top_imports[:5]
+    # Skip test_mapping by default — too large. Keep only first 5 entries.
+    if test_mapping:
+        trimmed_tests = {k: v[:3] for k, v in list(test_mapping.items())[:5]}
+        result["test_mapping"] = trimmed_tests
+    return result
+
+
+# ─── find_references ──────────────────────────────────────────────────────
+
+def _tool_find_references(args: dict[str, Any]) -> dict[str, Any]:
+    """Find all references to a symbol across the codebase.
+
+    Searches all Python files for ast.Name nodes matching the symbol.
+    Returns file, line, column, and context for each occurrence.
+    """
+    symbol = args["symbol"]
+    cwd = args.get("cwd", ".")
+    file_filter = args.get("file")
+    limit = int(args.get("limit", 100))
+
+    if not symbol:
+        return {"error": "symbol is required"}
+
+    try:
+        refs = _ast_find_references(symbol, cwd)
+    except Exception as e:
+        return {"error": str(e)}
+
+    # Filter to specific file if requested
+    if file_filter:
+        file_filter_path = str(Path(file_filter).resolve())
+        filtered = []
+        for ref in refs:
+            ref_full = str(Path(cwd) / ref["file"])
+            if ref_full == file_filter_path or ref["file"] == file_filter:
+                filtered.append(ref)
+        refs = filtered
+
+    total = len(refs)
+    truncated = total > limit
+    if truncated:
+        refs = refs[:limit]
+
+    return {
+        "symbol": symbol,
+        "references": refs,
+        "count": len(refs),
+        "truncated": truncated,
+        "total": total,
+    }
+
+
+# ─── impact_analysis ──────────────────────────────────────────────────────
+
+def _is_test_file(file_path: str) -> bool:
+    """Check if a file path looks like a test file."""
+    name = file_path.lower()
+    return (
+        "test" in name.split("/")[-1].split("\\")[-1]
+        or "tests" in name.split("/")
+        or "tests" in name.split("\\")
+    )
+
+
+def _file_to_module(file_path: str, root: Path) -> str:
+    """Convert an absolute file path to a relative module path for dep graph lookup."""
+    try:
+        rel = Path(file_path).relative_to(root)
+        return str(rel)
+    except ValueError:
+        return file_path
+
+
+def _build_reverse_deps(dep_graph: dict[str, list[str]]) -> dict[str, list[str]]:
+    """Invert a forward dependency graph to get reverse dependencies."""
+    reverse: dict[str, list[str]] = {}
+    for module, deps in dep_graph.items():
+        for dep in deps:
+            reverse.setdefault(dep, []).append(module)
+    return reverse
+
+
+def _get_transitive_deps(
+    target: str,
+    reverse_deps: dict[str, list[str]],
+    max_depth: int = 10,
+) -> list[str]:
+    """Get all transitive dependents of target (BFS), excluding target itself."""
+    visited: set[str] = set()
+    queue = list(reverse_deps.get(target, []))
+    for item in queue:
+        visited.add(item)
+    depth = 0
+    while queue and depth < max_depth:
+        next_queue: list[str] = []
+        for current in queue:
+            for dep in reverse_deps.get(current, []):
+                if dep not in visited:
+                    visited.add(dep)
+                    next_queue.append(dep)
+        queue = next_queue
+        depth += 1
+    return sorted(visited)
+
+
+def _classify_risk(fan_out: int) -> str:
+    """Classify risk based on number of direct dependents."""
+    if fan_out >= 10:
+        return "high"
+    if fan_out >= 3:
+        return "medium"
+    return "low"
+
+
+def _tool_impact_analysis(args: dict[str, Any]) -> dict[str, Any]:
+    """Analyze the impact of changing a file or symbol.
+
+    Returns direct dependents, transitive dependents, test files affected,
+    risk assessment, and (for symbol targets) callers.
+    """
+    target = args["target"]
+    cwd = args.get("cwd", ".")
+
+    from project_tools import find_project_root  # local import to avoid circular deps
+
+    root = find_project_root(cwd)
+
+    result: dict[str, Any] = {
+        "target": target,
+        "direct_dependents": [],
+        "transitive_dependents": [],
+        "test_files": [],
+        "risk": "low",
+        "fan_out": 0,
+    }
+
+    # Determine if target is a file path or a symbol name
+    # If it ends with .py or resolves to an existing file, treat as file
+    # Otherwise, treat as symbol name
+    target_path = Path(target)
+    is_file = False
+    if target_path.exists() and str(target).endswith(".py"):
+        is_file = True
+        target_rel = _file_to_module(str(target_path.resolve()), root)
+    elif (root / target).exists() and (root / target).is_file():
+        is_file = True
+        target_rel = str(Path(target))
+    else:
+        # Check if it exists relative to cwd
+        cwd_path = Path(cwd) / target
+        if cwd_path.exists() and str(target).endswith(".py"):
+            is_file = True
+            target_rel = _file_to_module(str(cwd_path.resolve()), root)
+
+    if is_file:
+        # ── File/module target: use dependency graph ──
+
+        # Read dependency_graph.json if it exists
+        dep_file = root / "references" / "dependency_graph.json"
+        dep_graph: dict[str, list[str]] = {}
+        if dep_file.exists():
+            try:
+                dep_graph = json.loads(dep_file.read_text(encoding="utf-8"))
+            except (json.JSONDecodeError, OSError):
+                dep_graph = {}
+
+        # If no dep_graph, build one from filesystem (basic scan)
+        if not dep_graph:
+            from project_tools import project_init
+            try:
+                project_init(str(root))
+                if dep_file.exists():
+                    dep_graph = json.loads(dep_file.read_text(encoding="utf-8"))
+            except Exception:
+                # Fallback: empty graph, only use AST-based caller detection
+                dep_graph = {}
+
+        reverse_deps = _build_reverse_deps(dep_graph)
+
+        # Find direct dependents of the target module
+        # Try several key formats: relative path, with/without .py, etc.
+        lookup_keys = [
+            target_rel,
+            target_rel.replace("\\", "/"),
+        ]
+        # Also try without __init__.py for package dirs
+        direct: list[str] = []
+        for key in lookup_keys:
+            direct.extend(reverse_deps.get(key, []))
+
+        # Deduplicate
+        direct = sorted(set(direct))
+        result["direct_dependents"] = direct
+
+        # Transitive dependents
+        all_transitive: list[str] = []
+        for d in direct:
+            transitive = _get_transitive_deps(d, reverse_deps)
+            all_transitive.extend(transitive)
+        # Also from target itself
+        all_transitive.extend(_get_transitive_deps(target_rel, reverse_deps))
+        # Remove direct from transitive, and deduplicate
+        transitive_only = sorted(set(all_transitive) - set(direct))
+        result["transitive_dependents"] = transitive_only
+
+        # Fan-out = direct dependents count
+        fan_out = len(direct)
+        result["fan_out"] = fan_out
+        result["risk"] = _classify_risk(fan_out)
+
+        # Identify test files among dependents
+        all_affected = set(direct) | set(transitive_only)
+        test_files = sorted(f for f in all_affected if _is_test_file(f))
+        result["test_files"] = test_files
+
+    else:
+        # ── Symbol target: use AST-based caller search ──
+        callers = _ast_find_callers(str(target), str(root))
+
+        caller_files = sorted(set(c["file"] for c in callers))
+        result["direct_dependents"] = caller_files
+        result["callers"] = callers
+        result["fan_out"] = len(caller_files)
+        result["risk"] = _classify_risk(len(caller_files))
+
+        # Test files among callers
+        test_files = sorted(f for f in caller_files if _is_test_file(f))
+        result["test_files"] = test_files
+
+        # For symbols, transitive deps are not computed via dep graph
+        result["transitive_dependents"] = []
+
+    return result
 
 
 # ─── Main ─────────────────────────────────────────────────────────────────
