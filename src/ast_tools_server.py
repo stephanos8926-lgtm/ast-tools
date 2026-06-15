@@ -2,7 +2,7 @@
 """
 AST Tools MCP Server — structural code analysis and editing tools.
 
-Exposes 8 tools:
+Exposes 9 tools:
   ast_grep    — Structural search (via ast-grep CLI)
   ast_edit    — Surgical AST-based modification (via libcst)
   ast_read    — Structural context extraction (via ast module)
@@ -11,6 +11,7 @@ Exposes 8 tools:
   codebase_summary — High-level architecture overview (<500 tokens)
   find_references — Cross-file symbol usage search
   impact_analysis — What breaks if you change a file or symbol
+  module_imports — Module-level import analysis (fan-in / fan-out)
 """
 
 import ast
@@ -295,6 +296,34 @@ async def list_tools() -> list[Tool]:
                 "required": ["target"],
             },
         ),
+        Tool(
+            name="module_imports",
+            description=(
+                "Module-level import analysis — shows fan-in (what imports FROM this module) "
+                "and fan-out (what this module imports FROM). "
+                "Use BEFORE refactoring to understand dependencies and avoid circular imports. "
+                "Returns: fan_in (modules that import from target), fan_out (modules target imports from), "
+                "circular_deps (modules with mutual imports), and detailed import_lines."
+            ),
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "module": {
+                        "type": "string",
+                        "description": "Module path like 'nexusagent.core.worker' or file path like 'src/nexusagent/core/worker.py'.",
+                    },
+                    "cwd": {
+                        "type": "string",
+                        "description": "Project root directory. Defaults to current directory.",
+                    },
+                    "max_files": {
+                        "type": "integer",
+                        "description": "Max files to scan. Default: 500.",
+                    },
+                },
+                "required": ["module"],
+            },
+        ),
     ]
 
 
@@ -319,6 +348,8 @@ async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
             result = await anyio.to_thread.run_sync(_tool_find_references, arguments)
         elif name == "impact_analysis":
             result = await anyio.to_thread.run_sync(_tool_impact_analysis, arguments)
+        elif name == "module_imports":
+            result = await anyio.to_thread.run_sync(_tool_module_imports, arguments)
         else:
             return [TextContent(type="text", text=json.dumps({"error": f"Unknown tool: {name}", "error_code": "NOT_FOUND", "tools": "unknown"}))]
 
@@ -1399,6 +1430,181 @@ def _tool_impact_analysis(args: dict[str, Any]) -> dict[str, Any]:
         result["transitive_dependents"] = []
 
     return result
+
+
+# ─── module_imports ────────────────────────────────────────────────────────
+
+def _tool_module_imports(args: dict[str, Any]) -> dict[str, Any]:
+    """Analyze module-level imports — fan-in and fan-out.
+
+    Given a module path, finds:
+    - fan_in: modules that import FROM the target
+    - fan_out: modules that the target imports FROM
+    - circular_deps: modules with mutual imports (A imports B, B imports A)
+    - import_lines: specific import statements with file/line context
+    """
+    module = args["module"]
+    cwd = args.get("cwd", ".")
+    max_files = int(args.get("max_files", 500))
+
+    from project_tools import find_project_root  # local import to avoid circular deps
+    root = find_project_root(cwd)
+
+    # Resolve module path to file path
+    # Accept both dotted paths (nexusagent.core.worker) and file paths
+    if module.endswith(".py") or "/" in module or "\\" in module:
+        # It's a file path
+        target_path = Path(module)
+        if not target_path.is_absolute():
+            target_path = Path(cwd) / module
+        target_path = target_path.resolve()
+    else:
+        # It's a dotted module path like "nexusagent.core.worker"
+        # Try to find the corresponding file
+        parts = module.split(".")
+        # Try as a package (nexusagent/core/worker/__init__.py)
+        pkg_path = root / Path(*parts) / "__init__.py"
+        if pkg_path.exists():
+            target_path = pkg_path
+        else:
+            # Try as a module file (nexusagent/core/worker.py)
+            mod_path = root / Path(*parts[:-1]) / (parts[-1] + ".py")
+            if mod_path.exists():
+                target_path = mod_path
+            else:
+                return {
+                    "error": f"Module '{module}' not found in {root}",
+                    "error_code": "NOT_FOUND",
+                }
+
+    target_str = str(target_path)
+    target_rel = str(target_path.relative_to(root)) if target_path.is_relative_to(root) else target_str
+
+    # Normalize: strip .py and __init__ for matching
+    def _normalize_module_path(path_str: str) -> str:
+        """Convert file path to dotted module path for matching."""
+        p = path_str.replace("\\", "/")
+        if p.endswith("/__init__.py"):
+            p = p[: -len("/__init__.py")]
+        elif p.endswith(".py"):
+            p = p[:-3]
+        return p.replace("/", ".")
+
+    target_module = _normalize_module_path(target_rel)
+
+    # Scan all Python files for imports
+    fan_in: list[dict] = []  # modules that import FROM target
+    fan_out: list[dict] = []  # modules that target imports from
+    import_lines: list[dict] = []
+
+    # First pass: find what the target module imports (fan_out)
+    if target_path.exists():
+        try:
+            source = target_path.read_text(encoding="utf-8", errors="replace")
+            tree = ast.parse(source, filename=target_str)
+        except (SyntaxError, OSError):
+            tree = None
+
+        if tree:
+            for node in ast.walk(tree):
+                if isinstance(node, ast.Import):
+                    for alias in node.names:
+                        mod_name = alias.name
+                        fan_out.append({
+                            "module": mod_name,
+                            "line": node.lineno,
+                            "type": "import",
+                            "name": alias.asname or alias.name,
+                        })
+                        import_lines.append({
+                            "file": target_rel,
+                            "line": node.lineno,
+                            "statement": f"import {mod_name}" + (f" as {alias.asname}" if alias.asname else ""),
+                            "direction": "out",
+                        })
+                elif isinstance(node, ast.ImportFrom):
+                    mod_name = node.module or ""
+                    names = [a.name for a in node.names]
+                    fan_out.append({
+                        "module": mod_name,
+                        "line": node.lineno,
+                        "type": "from",
+                        "names": names,
+                    })
+                    import_lines.append({
+                        "file": target_rel,
+                        "line": node.lineno,
+                        "statement": f"from {mod_name} import {', '.join(names)}",
+                        "direction": "out",
+                    })
+
+    # Second pass: find what imports FROM the target (fan_in)
+    for py_file in _find_python_files(str(root), max_files=max_files):
+        if str(py_file) == target_str:
+            continue  # skip self
+
+        try:
+            source = py_file.read_text(encoding="utf-8", errors="replace")
+            tree = ast.parse(source, filename=str(py_file))
+        except (SyntaxError, OSError):
+            continue
+
+        file_rel = str(py_file.relative_to(root)) if py_file.is_relative_to(root) else str(py_file)
+        file_module = _normalize_module_path(file_rel)
+
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Import):
+                for alias in node.names:
+                    # Check if the imported module matches target
+                    imported = alias.name
+                    if imported == target_module or imported.startswith(target_module + "."):
+                        fan_in.append({
+                            "file": file_rel,
+                            "line": node.lineno,
+                            "module": file_module,
+                            "name": alias.asname or alias.name,
+                            "type": "import",
+                        })
+                        import_lines.append({
+                            "file": file_rel,
+                            "line": node.lineno,
+                            "statement": f"import {imported}" + (f" as {alias.asname}" if alias.asname else ""),
+                            "direction": "in",
+                        })
+            elif isinstance(node, ast.ImportFrom):
+                mod_name = node.module or ""
+                # Check if the from-module matches target
+                if mod_name == target_module or mod_name.startswith(target_module + "."):
+                    names = [a.name for a in node.names]
+                    fan_in.append({
+                        "file": file_rel,
+                        "line": node.lineno,
+                        "module": file_module,
+                        "names": names,
+                        "type": "from",
+                    })
+                    import_lines.append({
+                        "file": file_rel,
+                        "line": node.lineno,
+                        "statement": f"from {mod_name} import {', '.join(names)}",
+                        "direction": "in",
+                    })
+
+    # Detect circular deps: modules that appear in both fan_in and fan_out
+    fan_out_modules = {m["module"] for m in fan_out}
+    fan_in_modules = {m["module"] for m in fan_in}
+    circular_deps = sorted(fan_out_modules & fan_in_modules)
+
+    return {
+        "target": target_module,
+        "target_file": target_rel,
+        "fan_in_count": len(fan_in),
+        "fan_out_count": len(fan_out),
+        "fan_in": fan_in,
+        "fan_out": fan_out,
+        "circular_deps": circular_deps,
+        "import_lines": import_lines,
+    }
 
 
 # ─── Main ─────────────────────────────────────────────────────────────────
