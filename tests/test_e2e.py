@@ -367,18 +367,22 @@ class TestMCPServer:
         assert server is not None
 
     def test_list_tools(self):
-        """Server lists all 8 tools."""
+        """Server lists all 11 tools."""
         from ast_tools_server import list_tools
         tools = asyncio.run(list_tools())
         tool_names = [t.name for t in tools]
         assert "ast_grep" in tool_names
         assert "ast_edit" in tool_names
         assert "ast_read" in tool_names
+        assert "ast_generate_stub" in tool_names
+        assert "ast_refactor_extract_interface" in tool_names
         assert "structural_analysis" in tool_names
         assert "codebase_summary" in tool_names
         assert "find_references" in tool_names
         assert "impact_analysis" in tool_names
-        assert len(tools) == 8
+        assert "module_imports" in tool_names
+        assert "project_info" in tool_names
+        assert len(tools) == 11
 
     def test_call_tool_ast_grep(self, test_project):
         """Call ast_grep through the MCP server interface."""

@@ -2,10 +2,12 @@
 """
 AST Tools MCP Server — structural code analysis and editing tools.
 
-Exposes 9 tools:
+Exposes 11 tools:
   ast_grep    — Structural search (via ast-grep CLI)
   ast_edit    — Surgical AST-based modification (via libcst)
   ast_read    — Structural context extraction (via ast module)
+  ast_generate_stub — Generate .pyi stubs or interfaces (via ast)
+  ast_refactor_extract_interface — Extract interface to ABC/Protocol (via libcst)
   structural_analysis — Call graphs, type hierarchies, symbol references (via jedi)
   project_info — Project intelligence (project.json manifest)
   codebase_summary — High-level architecture overview (<500 tokens)
@@ -23,11 +25,26 @@ import sys
 from pathlib import Path
 from typing import Any
 
+from interface_extractor import _tool_ast_refactor_extract_interface
+
 import anyio
 import libcst as cst
 from mcp.server import Server
 from mcp.server.stdio import stdio_server
 from mcp.types import TextContent, Tool
+
+from ast_tools.utils import (
+    _annotation_to_str,
+    _extract_all_names,
+    _get_function_signature,
+    build_reverse_deps,
+    classify_risk,
+    file_to_module,
+    filter_top_level,
+    find_python_files,
+    get_transitive_deps,
+    is_test_file,
+)
 
 logging.basicConfig(level=logging.WARNING, stream=sys.stderr)
 logger = logging.getLogger(__name__)
@@ -147,8 +164,101 @@ async def list_tools() -> list[Tool]:
                         "type": "boolean",
                         "description": "Include import statements. Default: true.",
                     },
+                    "filter_by_type": {
+                        "type": "array",
+                        "description": "Filter results to only include specific AST node types. Valid values: 'ClassDef', 'FunctionDef', 'AsyncFunctionDef', 'Assign', 'Import', 'ImportFrom'. Default: include all.",
+                        "items": {
+                            "type": "string",
+                            "enum": ["ClassDef", "FunctionDef", "AsyncFunctionDef", "Assign", "Import", "ImportFrom"]
+                        },
+                    },
                 },
                 "required": ["file"],
+            },
+        ),
+        Tool(
+            name="ast_generate_stub",
+            description=(
+                "Generate a .pyi stub file (type hints only) or interface file from a Python source file. "
+                "Extracts function/method signatures, class definitions, and docstrings while omitting "
+                "implementation details. Useful for creating API documentation, interface definitions, "
+                "or type stubs for static analysis."
+            ),
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "file": {
+                        "type": "string",
+                        "description": "Path to the source file.",
+                    },
+                    "include_private": {
+                        "type": "boolean",
+                        "description": "Include private members (prefixed with _). Default: false.",
+                    },
+                    "include_docstrings": {
+                        "type": "boolean",
+                        "description": "Include docstrings in the stub. Default: true.",
+                    },
+                    "output_format": {
+                        "type": "string",
+                        "description": "Output format: 'stub' for .pyi stub file, 'interface' for interface-only summary. Default: 'stub'.",
+                        "enum": ["stub", "interface"],
+                    },
+                },
+                "required": ["file"],
+            },
+        ),
+        Tool(
+            name="ast_refactor_extract_interface",
+            description=(
+                "Extract a public interface from a class and create an Abstract Base Class (ABC) or Protocol. "
+                "Analyzes the target class, identifies its public methods and properties, generates a new "
+                "interface file (ABC or Protocol), and modifies the original class to inherit from/implement "
+                "the new interface. Useful for enforcing architectural boundaries, enabling dependency inversion, "
+                "and preparing for component-based refactoring."
+            ),
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "file": {
+                        "type": "string",
+                        "description": "Path to the source file containing the class.",
+                    },
+                    "class_name": {
+                        "type": "string",
+                        "description": "Name of the class to extract interface from.",
+                    },
+                    "interface_name": {
+                        "type": "string",
+                        "description": "Name for the new interface (e.g., 'IMyClass' or 'MyClassProtocol'). Default: 'I' + class_name.",
+                    },
+                    "interface_type": {
+                        "type": "string",
+                        "description": "Type of interface to generate: 'abc' for Abstract Base Class with abstractmethods, 'protocol' for typing.Protocol. Default: 'abc'.",
+                        "enum": ["abc", "protocol"],
+                    },
+                    "output_file": {
+                        "type": "string",
+                        "description": "Path for the new interface file. Default: same directory as source with interface_name.py.",
+                    },
+                    "include_properties": {
+                        "type": "boolean",
+                        "description": "Include @property methods in the interface. Default: true.",
+                    },
+                    "include_classmethods": {
+                        "type": "boolean",
+                        "description": "Include @classmethod methods in the interface. Default: true.",
+                    },
+                    "include_staticmethods": {
+                        "type": "boolean",
+                        "description": "Include @staticmethod methods in the interface. Default: true.",
+                    },
+                    "dry_run": {
+                        "type": "boolean",
+                        "description": "If true, return the generated files without writing. Default: false.",
+                    },
+                },
+                "required": ["file", "class_name"],
             },
         ),
         Tool(
@@ -338,6 +448,10 @@ async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
             result = await anyio.to_thread.run_sync(_tool_ast_edit, arguments)
         elif name == "ast_read":
             result = await anyio.to_thread.run_sync(_tool_ast_read, arguments)
+        elif name == "ast_generate_stub":
+            result = await anyio.to_thread.run_sync(_tool_ast_generate_stub, arguments)
+        elif name == "ast_refactor_extract_interface":
+            result = await anyio.to_thread.run_sync(_tool_ast_refactor_extract_interface, arguments)
         elif name == "structural_analysis":
             result = await anyio.to_thread.run_sync(_tool_structural_analysis, arguments)
         elif name == "project_info":
@@ -427,28 +541,9 @@ def _tool_ast_grep(args: dict[str, Any]) -> dict[str, Any]:
     return result
 
 
-def _filter_top_level(matches: list, pattern: str) -> list:
-    """Filter matches to only top-level function/class definitions.
+# ─── ast_grep ─────────────────────────────────────────────────────────────
 
-    Uses the column offset from ast-grep's range data: top-level definitions
-    start at column 0, while methods inside classes are indented (column > 0).
-    """
-    top_level_matches = []
-    for match in matches:
-        if isinstance(match, dict):
-            # JSON match: check column offset from range.start
-            col = match.get("range", {}).get("start", {}).get("column", None)
-            if col is not None:
-                if col == 0:
-                    top_level_matches.append(match)
-            else:
-                # No column info — include by default
-                top_level_matches.append(match)
-        elif isinstance(match, str):
-            # Plain text mode: check if first non-whitespace char is at position 0
-            if match and not match[0].isspace():
-                top_level_matches.append(match)
-    return top_level_matches
+# Replaced with import from utils: find_python_files, is_test_file, file_to_module
 
 
 # ─── ast_edit ─────────────────────────────────────────────────────────────
@@ -631,6 +726,7 @@ def _tool_ast_read(args: dict[str, Any]) -> dict[str, Any]:
     file_path = Path(args["file"]).resolve()
     include_private = args.get("include_private", False)
     include_imports = args.get("include_imports", True)
+    filter_by_type = args.get("filter_by_type", None)
 
     if not file_path.exists():
         return {"error": f"File not found: {file_path}", "error_code": "NOT_FOUND", "tool": "ast_read"}
@@ -646,7 +742,13 @@ def _tool_ast_read(args: dict[str, Any]) -> dict[str, Any]:
         "language": "python",
     }
 
-    if include_imports:
+    # Helper to check if a type should be included
+    def _should_include(node_type: str) -> bool:
+        if filter_by_type is None:
+            return True
+        return node_type in filter_by_type
+
+    if include_imports and _should_include("Import"):
         imports = []
         for node in ast.walk(tree):
             if isinstance(node, ast.Import):
@@ -656,7 +758,7 @@ def _tool_ast_read(args: dict[str, Any]) -> dict[str, Any]:
                         "alias": alias.asname,
                         "line": node.lineno,
                     })
-            elif isinstance(node, ast.ImportFrom):
+            elif isinstance(node, ast.ImportFrom) and _should_include("ImportFrom"):
                 imports.append({
                     "module": node.module,
                     "names": [a.name for a in node.names],
@@ -678,7 +780,7 @@ def _tool_ast_read(args: dict[str, Any]) -> dict[str, Any]:
     variables = []
 
     for node in ast.iter_child_nodes(tree):
-        if isinstance(node, ast.ClassDef):
+        if isinstance(node, ast.ClassDef) and _should_include("ClassDef"):
             if not include_private and node.name.startswith("_"):
                 continue
             if filtered_by_all and node.name not in all_set:
@@ -707,20 +809,22 @@ def _tool_ast_read(args: dict[str, Any]) -> dict[str, Any]:
                 "decorators": [ast.dump(d) for d in node.decorator_list],
             })
         elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
-            if not include_private and node.name.startswith("_"):
-                continue
-            if filtered_by_all and node.name not in all_set:
-                continue
-            sig = _get_function_signature(node)
-            functions.append({
-                "name": node.name,
-                "signature": sig,
-                "line": node.lineno,
-                "end_line": node.end_lineno,
-                "docstring": ast.get_docstring(node),
-                "decorators": [ast.dump(d) for d in node.decorator_list],
-            })
-        elif isinstance(node, ast.Assign):
+            node_type = "FunctionDef" if isinstance(node, ast.FunctionDef) else "AsyncFunctionDef"
+            if _should_include(node_type):
+                if not include_private and node.name.startswith("_"):
+                    continue
+                if filtered_by_all and node.name not in all_set:
+                    continue
+                sig = _get_function_signature(node)
+                functions.append({
+                    "name": node.name,
+                    "signature": sig,
+                    "line": node.lineno,
+                    "end_line": node.end_lineno,
+                    "docstring": ast.get_docstring(node),
+                    "decorators": [ast.dump(d) for d in node.decorator_list],
+                })
+        elif isinstance(node, ast.Assign) and _should_include("Assign"):
             for target in node.targets:
                 if isinstance(target, ast.Name):
                     if target.id == "__all__":
@@ -735,9 +839,12 @@ def _tool_ast_read(args: dict[str, Any]) -> dict[str, Any]:
                         "value_preview": ast.dump(node.value)[:100],
                     })
 
-    result["classes"] = classes
-    result["functions"] = functions
-    result["variables"] = variables
+    if _should_include("ClassDef"):
+        result["classes"] = classes
+    if _should_include("FunctionDef") or _should_include("AsyncFunctionDef"):
+        result["functions"] = functions
+    if _should_include("Assign"):
+        result["variables"] = variables
     result["filtered_by__all__"] = filtered_by_all
     result["summary"] = {
         "total_classes": len(classes),
@@ -747,6 +854,184 @@ def _tool_ast_read(args: dict[str, Any]) -> dict[str, Any]:
     }
 
     return result
+
+
+def _tool_ast_generate_stub(args: dict[str, Any]) -> dict[str, Any]:
+    """Generate a .pyi stub file or interface summary from a Python source file."""
+    file_path = Path(args["file"]).resolve()
+    include_private = args.get("include_private", False)
+    include_docstrings = args.get("include_docstrings", True)
+    output_format = args.get("output_format", "stub")
+
+    if not file_path.exists():
+        return {"error": f"File not found: {file_path}", "error_code": "NOT_FOUND", "tool": "ast_generate_stub"}
+
+    source = file_path.read_text()
+    try:
+        tree = ast.parse(source, filename=str(file_path))
+    except SyntaxError as e:
+        return {"error": f"Syntax error: {e}", "error_code": "PARSE_ERROR", "tool": "ast_generate_stub"}
+
+    # Extract __all__ if present
+    all_names = _extract_all_names(tree)
+    filtered_by_all = all_names is not None
+    if filtered_by_all:
+        all_set = set(all_names)
+    else:
+        all_set = set()
+
+    lines = []
+
+    def add_line(line: str = ""):
+        lines.append(line)
+
+    # Add module docstring if present and requested
+    if include_docstrings:
+        module_doc = ast.get_docstring(tree)
+        if module_doc:
+            add_line(f'"""{module_doc}"""')
+            add_line("")
+
+    # Collect imports
+    imports = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                if alias.asname:
+                    imports.append(f"import {alias.name} as {alias.asname}")
+                else:
+                    imports.append(f"import {alias.name}")
+        elif isinstance(node, ast.ImportFrom):
+            module = node.module or ""
+            names = ", ".join(a.name + (f" as {a.asname}" if a.asname else "") for a in node.names)
+            if node.level > 0:
+                imports.append(f"from {'.' * node.level}{module} import {names}")
+            else:
+                imports.append(f"from {module} import {names}")
+
+    # Filter imports if needed
+    if filtered_by_all:
+        # Keep all imports for stubs (they may be needed for type references)
+        pass
+
+    for imp in imports:
+        add_line(imp)
+    if imports:
+        add_line("")
+
+    # Process top-level nodes
+    for node in ast.iter_child_nodes(tree):
+        if isinstance(node, ast.ClassDef):
+            if not include_private and node.name.startswith("_"):
+                continue
+            if filtered_by_all and node.name not in all_set:
+                continue
+            _generate_class_stub(node, add_line, include_private, include_docstrings, filtered_by_all, all_set)
+            add_line("")
+        elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            if not include_private and node.name.startswith("_"):
+                continue
+            if filtered_by_all and node.name not in all_set:
+                continue
+            _generate_function_stub(node, add_line, include_docstrings)
+            add_line("")
+        elif isinstance(node, ast.Assign):
+            # Only include if it's a type annotation or __all__
+            for target in node.targets:
+                if isinstance(target, ast.Name):
+                    if target.id == "__all__":
+                        continue
+                    if not include_private and target.id.startswith("_"):
+                        continue
+                    if filtered_by_all and target.id not in all_set:
+                        continue
+                    if node.annotation:
+                        add_line(f"{target.id}: {_annotation_to_str(node.annotation)}")
+                    add_line("")
+
+    stub_content = "\n".join(lines).rstrip() + "\n"
+
+    if output_format == "interface":
+        # For interface mode, just return the extracted symbols without full stub formatting
+        return {
+            "file": str(file_path),
+            "format": "interface",
+            "stub": stub_content,
+        }
+
+    return {
+        "file": str(file_path),
+        "format": "stub",
+        "stub": stub_content,
+    }
+
+
+def _generate_class_stub(
+    node: ast.ClassDef,
+    add_line: callable,
+    include_private: bool,
+    include_docstrings: bool,
+    filtered_by_all: bool,
+    all_set: set,
+    indent: int = 0,
+):
+    """Generate stub for a class definition."""
+    prefix = "    " * indent
+    bases = ", ".join(_annotation_to_str(b) for b in node.bases)
+    if bases:
+        add_line(f"{prefix}class {node.name}({bases}):")
+    else:
+        add_line(f"{prefix}class {node.name}:")
+
+    if include_docstrings:
+        doc = ast.get_docstring(node)
+        if doc:
+            add_line(f'{prefix}    """{doc}"""')
+
+    has_body = False
+    for item in node.body:
+        if isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            if not include_private and item.name.startswith("_"):
+                continue
+            if filtered_by_all and item.name not in all_set:
+                continue
+            _generate_function_stub(item, lambda l: add_line(prefix + "    " + l), include_docstrings)
+            has_body = True
+        elif isinstance(item, ast.AnnAssign) and isinstance(item.target, ast.Name):
+            # Type annotated attribute
+            if not include_private and item.target.id.startswith("_"):
+                continue
+            if filtered_by_all and item.target.id not in all_set:
+                continue
+            ann = _annotation_to_str(item.annotation)
+            add_line(f"{prefix}    {item.target.id}: {ann}")
+            has_body = True
+
+    if not has_body:
+        add_line(f"{prefix}    ...")
+
+
+def _generate_function_stub(
+    node: ast.FunctionDef | ast.AsyncFunctionDef,
+    add_line: callable,
+    include_docstrings: bool,
+):
+    """Generate stub for a function/method definition."""
+    async_str = "async " if isinstance(node, ast.AsyncFunctionDef) else ""
+    sig = _get_function_signature(node)
+    add_line(f"{async_str}def {node.name}{sig}")
+
+    if include_docstrings:
+        doc = ast.get_docstring(node)
+        if doc:
+            # Indent docstring
+            for i, doc_line in enumerate(doc.splitlines()):
+                if i == 0:
+                    add_line(f'    """{doc_line}')
+                else:
+                    add_line(f"    {doc_line}")
+            add_line('    """')
+    add_line("    ...")
 
 
 def _annotation_to_str(node: ast.expr | None) -> str:
@@ -828,21 +1113,58 @@ def _get_function_signature(node: ast.FunctionDef | ast.AsyncFunctionDef) -> str
 
 # ─── structural_analysis ─────────────────────────────────────────────────
 
-def _find_python_files(project_root: str) -> list[Path]:
-    """Find all Python files under project_root, skipping common non-project dirs."""
-    skip_dirs = {
-        ".git", "__pycache__", ".venv", "venv", "node_modules",
-        ".tox", ".eggs", "build", "dist", ".mypy_cache", ".pytest_cache",
-        ".idea", ".vscode", "site-packages",
-    }
-    root = Path(project_root)
-    results = []
-    for dirpath, dirnames, filenames in os.walk(root):
-        dirnames[:] = [d for d in dirnames if d not in skip_dirs and not d.startswith(".")]
-        for fn in filenames:
-            if fn.endswith(".py"):
-                results.append(Path(dirpath) / fn)
-    return results
+# Backward-compat wrappers calling imported utils
+
+
+def _find_python_files(project_root: str, max_files: int | None = None) -> list[Path]:
+    """Wrapper calling find_python_files from utils."""
+    return find_python_files(project_root, max_files=max_files)
+
+
+def _is_test_file(file_path: str) -> bool:
+    """Wrapper calling is_test_file from utils."""
+    return is_test_file(file_path)
+
+
+def _file_to_module(file_path: str, root: Path) -> str:
+    """Wrapper calling file_to_module from utils."""
+    return file_to_module(file_path, root)
+
+
+def _build_reverse_deps(dep_graph: dict[str, list[str]]) -> dict[str, list[str]]:
+    """Wrapper calling build_reverse_deps from utils."""
+    return build_reverse_deps(dep_graph)
+
+
+def _get_transitive_deps(
+    target: str,
+    reverse_deps: dict[str, list[str]],
+    max_depth: int = 10,
+) -> list[str]:
+    """Wrapper - utils version is simpler, this keeps old BFS logic."""
+    # Keep the existing BFS logic here since it's more complex than the simple version
+    from collections import deque
+    
+    visited: set[str] = set()
+    queue = deque(reverse_deps.get(target, []))
+    for item in queue:
+        visited.add(item)
+    depth = 0
+    while queue and depth < max_depth:
+        next_queue: deque[str] = deque()
+        for current in queue:
+            for dep in reverse_deps.get(current, []):
+                if dep not in visited:
+                    visited.add(dep)
+                    next_queue.append(dep)
+        queue = next_queue
+        depth += 1
+    return sorted(visited)
+
+
+def _classify_risk(fan_out: int) -> str:
+    """Wrapper calling classify_risk from utils."""
+    return classify_risk(fan_out)
 
 
 def _ast_find_references(symbol: str, project_root: str) -> list[dict]:
@@ -1251,64 +1573,7 @@ def _tool_find_references(args: dict[str, Any]) -> dict[str, Any]:
 
 # ─── impact_analysis ──────────────────────────────────────────────────────
 
-def _is_test_file(file_path: str) -> bool:
-    """Check if a file path looks like a test file."""
-    name = file_path.lower()
-    return (
-        "test" in name.split("/")[-1].split("\\")[-1]
-        or "tests" in name.split("/")
-        or "tests" in name.split("\\")
-    )
-
-
-def _file_to_module(file_path: str, root: Path) -> str:
-    """Convert an absolute file path to a relative module path for dep graph lookup."""
-    try:
-        rel = Path(file_path).relative_to(root)
-        return str(rel)
-    except ValueError:
-        return file_path
-
-
-def _build_reverse_deps(dep_graph: dict[str, list[str]]) -> dict[str, list[str]]:
-    """Invert a forward dependency graph to get reverse dependencies."""
-    reverse: dict[str, list[str]] = {}
-    for module, deps in dep_graph.items():
-        for dep in deps:
-            reverse.setdefault(dep, []).append(module)
-    return reverse
-
-
-def _get_transitive_deps(
-    target: str,
-    reverse_deps: dict[str, list[str]],
-    max_depth: int = 10,
-) -> list[str]:
-    """Get all transitive dependents of target (BFS), excluding target itself."""
-    visited: set[str] = set()
-    queue = list(reverse_deps.get(target, []))
-    for item in queue:
-        visited.add(item)
-    depth = 0
-    while queue and depth < max_depth:
-        next_queue: list[str] = []
-        for current in queue:
-            for dep in reverse_deps.get(current, []):
-                if dep not in visited:
-                    visited.add(dep)
-                    next_queue.append(dep)
-        queue = next_queue
-        depth += 1
-    return sorted(visited)
-
-
-def _classify_risk(fan_out: int) -> str:
-    """Classify risk based on number of direct dependents."""
-    if fan_out >= 10:
-        return "high"
-    if fan_out >= 3:
-        return "medium"
-    return "low"
+# Helper functions moved to ast_tools.utils - wrappers defined earlier in this file
 
 
 def _tool_impact_analysis(args: dict[str, Any]) -> dict[str, Any]:
