@@ -30,6 +30,10 @@ from .ast_edit import _tool_ast_edit
 from .ast_read import _tool_ast_read
 from .codebase_summary import _tool_codebase_summary
 from .project_info import _tool_project_info
+from .structural_analysis import _tool_structural_analysis
+from .find_references import _tool_find_references
+from .impact_analysis import _tool_impact_analysis
+from .module_imports import _tool_module_imports
 
 register_tool("ast_generate_stub", _tool_ast_generate_stub)
 register_tool("ast_refactor_extract_interface", _tool_ast_refactor_extract_interface)
@@ -38,3 +42,7 @@ register_tool("ast_edit", _tool_ast_edit)
 register_tool("ast_read", _tool_ast_read)
 register_tool("codebase_summary", _tool_codebase_summary)
 register_tool("project_info", _tool_project_info)
+register_tool("structural_analysis", _tool_structural_analysis)
+register_tool("find_references", _tool_find_references)
+register_tool("impact_analysis", _tool_impact_analysis)
+register_tool("module_imports", _tool_module_imports)
