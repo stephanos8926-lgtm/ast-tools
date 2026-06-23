@@ -681,7 +681,7 @@ class TestFindReferences:
                 "mypkg/core.py": "class Foo:\n    pass\n",
                 "mypkg/main.py": "from mypkg.core import Foo\n\ndef main():\n    f = Foo()\n",
             })
-            from ast_tools_server import _tool_find_references
+            from ast_tools.tools.find_references import _tool_find_references
             result = _tool_find_references({"symbol": "Foo", "cwd": str(root)})
             assert "error" not in result
             assert result["count"] > 0
@@ -697,7 +697,7 @@ class TestFindReferences:
                 "mypkg/main.py": "from mypkg.core import Foo\n\ndef main():\n    f = Foo()\n",
                 "mypkg/other.py": "from mypkg.core import Foo\n",
             })
-            from ast_tools_server import _tool_find_references
+            from ast_tools.tools.find_references import _tool_find_references
             result = _tool_find_references({
                 "symbol": "Foo",
                 "cwd": str(root),
@@ -714,7 +714,7 @@ class TestFindReferences:
                 "mypkg/core.py": "class Foo:\n    pass\n",
                 "mypkg/main.py": "from mypkg.core import Foo\nf1 = Foo()\nf2 = Foo()\nf3 = Foo()\n",
             })
-            from ast_tools_server import _tool_find_references
+            from ast_tools.tools.find_references import _tool_find_references
             result = _tool_find_references({
                 "symbol": "Foo",
                 "cwd": str(root),
@@ -730,7 +730,7 @@ class TestFindReferences:
             root = _make_project(tmp, layout="flat", files={
                 "mypkg/core.py": "class Foo:\n    pass\n",
             })
-            from ast_tools_server import _tool_find_references
+            from ast_tools.tools.find_references import _tool_find_references
             result = _tool_find_references({
                 "symbol": "NonExistentSymbol",
                 "cwd": str(root),
@@ -759,7 +759,7 @@ class TestImpactAnalysis:
         """impact_analysis should return a dict."""
         with tempfile.TemporaryDirectory() as tmp:
             root = self._make_dep_project(tmp)
-            from ast_tools_server import _tool_impact_analysis
+            from ast_tools.tools.impact_analysis import _tool_impact_analysis
             result = _tool_impact_analysis({
                 "target": "mypkg/core.py",
                 "cwd": str(root),
@@ -770,7 +770,7 @@ class TestImpactAnalysis:
         """Should find direct dependents of a module."""
         with tempfile.TemporaryDirectory() as tmp:
             root = self._make_dep_project(tmp)
-            from ast_tools_server import _tool_impact_analysis
+            from ast_tools.tools.impact_analysis import _tool_impact_analysis
             result = _tool_impact_analysis({
                 "target": "mypkg/core.py",
                 "cwd": str(root),
@@ -783,7 +783,7 @@ class TestImpactAnalysis:
         """Should find transitive dependents (dependents of dependents)."""
         with tempfile.TemporaryDirectory() as tmp:
             root = self._make_dep_project(tmp)
-            from ast_tools_server import _tool_impact_analysis
+            from ast_tools.tools.impact_analysis import _tool_impact_analysis
             result = _tool_impact_analysis({
                 "target": "mypkg/core.py",
                 "cwd": str(root),
@@ -797,7 +797,7 @@ class TestImpactAnalysis:
         """Risk should be 'low' for 0-2 direct dependents."""
         with tempfile.TemporaryDirectory() as tmp:
             root = self._make_dep_project(tmp)
-            from ast_tools_server import _tool_impact_analysis
+            from ast_tools.tools.impact_analysis import _tool_impact_analysis
             result = _tool_impact_analysis({
                 "target": "mypkg/core.py",
                 "cwd": str(root),
@@ -817,7 +817,7 @@ class TestImpactAnalysis:
                 files[f"mypkg/user_{i}.py"] = f"from mypkg.core import Foo\n\ndef func_{i}():\n    pass\n"
             files["tests/test_core.py"] = "from mypkg.core import Foo\n\ndef test_foo():\n    pass\n"
             root = _make_project(tmp, layout="flat", files=files)
-            from ast_tools_server import _tool_impact_analysis
+            from ast_tools.tools.impact_analysis import _tool_impact_analysis
             result = _tool_impact_analysis({
                 "target": "mypkg/core.py",
                 "cwd": str(root),
@@ -835,7 +835,7 @@ class TestImpactAnalysis:
             for i in range(12):
                 files[f"mypkg/user_{i}.py"] = f"from mypkg.core import Foo\n\ndef func_{i}():\n    pass\n"
             root = _make_project(tmp, layout="flat", files=files)
-            from ast_tools_server import _tool_impact_analysis
+            from ast_tools.tools.impact_analysis import _tool_impact_analysis
             result = _tool_impact_analysis({
                 "target": "mypkg/core.py",
                 "cwd": str(root),
@@ -847,7 +847,7 @@ class TestImpactAnalysis:
         """Should identify test files that reference the target."""
         with tempfile.TemporaryDirectory() as tmp:
             root = self._make_dep_project(tmp)
-            from ast_tools_server import _tool_impact_analysis
+            from ast_tools.tools.impact_analysis import _tool_impact_analysis
             result = _tool_impact_analysis({
                 "target": "mypkg/core.py",
                 "cwd": str(root),
@@ -863,7 +863,7 @@ class TestImpactAnalysis:
                 "mypkg/core.py": "def helper():\n    pass\n",
                 "mypkg/main.py": "from mypkg.core import helper\n\ndef main():\n    helper()\n",
             })
-            from ast_tools_server import _tool_impact_analysis
+            from ast_tools.tools.impact_analysis import _tool_impact_analysis
             result = _tool_impact_analysis({
                 "target": "helper",
                 "cwd": str(root),
@@ -881,7 +881,7 @@ class TestImpactAnalysis:
                 "mypkg/core.py": "class Foo:\n    pass\n",
                 "mypkg/other.py": "class Bar:\n    pass\n",
             })
-            from ast_tools_server import _tool_impact_analysis
+            from ast_tools.tools.impact_analysis import _tool_impact_analysis
             result = _tool_impact_analysis({
                 "target": "mypkg/core.py",
                 "cwd": str(root),
@@ -895,7 +895,7 @@ class TestImpactAnalysis:
         """Should include fan_out count."""
         with tempfile.TemporaryDirectory() as tmp:
             root = self._make_dep_project(tmp)
-            from ast_tools_server import _tool_impact_analysis
+            from ast_tools.tools.impact_analysis import _tool_impact_analysis
             result = _tool_impact_analysis({
                 "target": "mypkg/core.py",
                 "cwd": str(root),

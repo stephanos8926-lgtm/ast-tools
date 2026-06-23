@@ -6,7 +6,12 @@ from typing import Any
 
 import jedi
 
-from ast_tools.utils.file_utils import find_python_files
+from ast_tools.utils.file_utils import find_python_files, is_test_file, file_to_module
+
+
+def _find_python_files(project_root: str, max_files: int | None = None) -> list[Path]:
+    """Find all Python files in a project."""
+    return find_python_files(project_root, max_files)
 
 
 def _ast_find_references(symbol: str, project_root: str) -> list[dict]:
