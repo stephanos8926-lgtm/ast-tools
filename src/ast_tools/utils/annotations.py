@@ -83,32 +83,16 @@ def _get_function_signature(node: ast.FunctionDef | ast.AsyncFunctionDef) -> str
 
 
 def _extract_all_names(tree: ast.Module) -> list[str] | None:
-    """Extract all top-level names (imports, functions, classes, assignments)."""
-    try:
-        names = []
-        for node in tree.body:
-            if isinstance(node, ast.ClassDef):
-                names.append(node.name)
-            elif isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef):
-                names.append(node.name)
-            elif isinstance(node, ast.Import):
-                for alias in node.names:
-                    base = alias.name.split(".")[0]
-                    names.append(f"{base}=module")
-            elif isinstance(node, ast.ImportFrom):
-                if node.module:
-                    base = node.module.split(".")[0]
-                    names.append(f"{base}=module")
-                for alias in node.names:
-                    names.append(alias.name)
-            elif isinstance(node, ast.Assign):
-                for target in node.targets:
-                    if isinstance(target, ast.Name):
-                        names.append(f"{target.id}=var")
-                    elif isinstance(target, ast.Tuple | ast.List):
-                        for elt in target.elts:
-                            if isinstance(elt, ast.Name):
-                                names.append(f"{elt.id}=var")
-        return names
-    except Exception:
-        return None
+    """Extract names from __all__ if present, otherwise return None."""
+    all_names = None
+    for node in tree.body:
+        if isinstance(node, ast.Assign):
+            for target in node.targets:
+                if isinstance(target, ast.Name) and target.id == "__all__":
+                    if isinstance(node.value, ast.List | ast.Tuple):
+                        all_names = []
+                        for elt in node.value.elts:
+                            if isinstance(elt, ast.Constant):
+                                all_names.append(elt.value)
+                    break
+    return all_names

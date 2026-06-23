@@ -13,12 +13,10 @@ import pytest
 # Add src to path for direct function testing
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from ast_tools_server import (
-    _tool_ast_grep,
-    _tool_ast_read,
-    _tool_ast_edit,
-    _tool_structural_analysis,
-)
+from ast_tools.tools.ast_grep import _tool_ast_grep
+from ast_tools.tools.ast_read import _tool_ast_read
+from ast_tools.tools.ast_edit import _tool_ast_edit
+from ast_tools_server import _tool_structural_analysis
 from tests.conftest import create_test_project
 
 
