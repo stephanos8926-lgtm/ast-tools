@@ -23,10 +23,12 @@ def list_tool_names() -> list[str]:
 
 
 # Import and register all tools
+from .ast_generate_stub import _tool_ast_generate_stub
+from .ast_refactor_extract_interface import _tool_ast_refactor_extract_interface
 from .codebase_summary import _tool_codebase_summary
 from .project_info import _tool_project_info
-from .ast_refactor_extract_interface import _tool_ast_refactor_extract_interface
 
+register_tool("ast_generate_stub", _tool_ast_generate_stub)
+register_tool("ast_refactor_extract_interface", _tool_ast_refactor_extract_interface)
 register_tool("codebase_summary", _tool_codebase_summary)
 register_tool("project_info", _tool_project_info)
-register_tool("ast_refactor_extract_interface", _tool_ast_refactor_extract_interface)
