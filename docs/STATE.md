@@ -30,7 +30,7 @@
 
 ### 📋 NEXT STEPS
 
-**Phase 2: Extract Simple Tools** (not started)
+**Phase 2: Extract Simple Tools** (ready to start)
 - Extract `codebase_summary`, `project_info`, `ast_generate_stub` to `src/ast_tools/tools/`
 
 **Phase 3: Extract Core Tools** (not started)
@@ -43,11 +43,10 @@
 - Refactor server initialization
 - Add integration tests for modular architecture
 
-### 📝 COMMITS TO MAKE
+### 📝 COMMITS MADE
 
-1. `feat: install ast-grep CLI dependency`
-2. `refactor: extract utility functions to ast_tools.utils package`
-3. `test: all 32 e2e tests passing with modular architecture`
+1. `refactor: extract utility functions to ast_tools.utils package`
+2. `fix: align classify_risk thresholds with original implementation`
 
 ### 🔧 KEY DECISIONS
 

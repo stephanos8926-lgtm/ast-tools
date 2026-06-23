@@ -609,21 +609,21 @@ class TestCodebaseSummary:
 
     def test_returns_dict(self):
         """codebase_summary should return a dict."""
+        from ast_tools.tools import _tool_codebase_summary
         with tempfile.TemporaryDirectory() as tmp:
             root = _make_project(tmp, layout="flat", files={
                 "mypkg/core.py": "class Foo:\n    pass\n",
             })
-            from ast_tools_server import _tool_codebase_summary
             result = _tool_codebase_summary({"cwd": str(root)})
             assert isinstance(result, dict)
 
     def test_has_required_keys(self):
         """codebase_summary should have name, languages, module_count, symbol_count."""
+        from ast_tools.tools import _tool_codebase_summary
         with tempfile.TemporaryDirectory() as tmp:
             root = _make_project(tmp, layout="flat", files={
                 "mypkg/core.py": "class Foo:\n    pass\n",
             })
-            from ast_tools_server import _tool_codebase_summary
             result = _tool_codebase_summary({"cwd": str(root)})
             assert "name" in result
             assert "languages" in result
@@ -634,23 +634,23 @@ class TestCodebaseSummary:
 
     def test_under_2000_bytes(self):
         """codebase_summary JSON should be under 2000 bytes."""
+        from ast_tools.tools import _tool_codebase_summary
         with tempfile.TemporaryDirectory() as tmp:
             root = _make_project(tmp, layout="flat", files={
                 "mypkg/core.py": "class Foo:\n    pass\n",
                 "mypkg/main.py": "def main():\n    pass\n",
             })
-            from ast_tools_server import _tool_codebase_summary
             result = _tool_codebase_summary({"cwd": str(root)})
             json_str = json.dumps(result)
             assert len(json_str) < 2000, f"Summary too large: {len(json_str)} bytes"
 
     def test_includes_tree(self):
         """codebase_summary should include a directory tree."""
+        from ast_tools.tools import _tool_codebase_summary
         with tempfile.TemporaryDirectory() as tmp:
             root = _make_project(tmp, layout="flat", files={
                 "mypkg/core.py": "class Foo:\n    pass\n",
             })
-            from ast_tools_server import _tool_codebase_summary
             result = _tool_codebase_summary({"cwd": str(root)})
             assert "tree" in result
             assert isinstance(result["tree"], dict)
@@ -658,12 +658,12 @@ class TestCodebaseSummary:
 
     def test_includes_test_mapping(self):
         """codebase_summary should include test-to-source mapping."""
+        from ast_tools.tools import _tool_codebase_summary
         with tempfile.TemporaryDirectory() as tmp:
             root = _make_project(tmp, layout="flat", files={
                 "mypkg/core.py": "class Foo:\n    pass\n",
                 "tests/test_core.py": "from mypkg.core import Foo\n\ndef test_foo():\n    pass\n",
             })
-            from ast_tools_server import _tool_codebase_summary
             result = _tool_codebase_summary({"cwd": str(root)})
             assert "test_mapping" in result
             assert isinstance(result["test_mapping"], dict)

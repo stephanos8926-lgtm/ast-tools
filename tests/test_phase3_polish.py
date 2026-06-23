@@ -18,11 +18,15 @@ from ast_tools_server import (
     _tool_ast_grep,
     _tool_ast_read,
     _tool_structural_analysis,
-    _tool_project_info,
-    _tool_codebase_summary,
     _tool_find_references,
     _tool_impact_analysis,
     call_tool,
+)
+
+# Import extracted tools from package
+from ast_tools.tools import (
+    _tool_project_info,
+    _tool_codebase_summary,
 )
 
 

@@ -25,14 +25,13 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from interface_extractor import _tool_ast_refactor_extract_interface
-
 import anyio
 import libcst as cst
 from mcp.server import Server
 from mcp.server.stdio import stdio_server
 from mcp.types import TextContent, Tool
 
+from ast_tools.tools import TOOL_REGISTRY, get_tool_handler, list_tool_names
 from ast_tools.utils import (
     _annotation_to_str,
     _extract_all_names,
@@ -442,7 +441,11 @@ async def list_tools() -> list[Tool]:
 @server.call_tool()
 async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
     try:
-        if name == "ast_grep":
+        # Check if tool is in registry (extracted tools)
+        if name in TOOL_REGISTRY:
+            handler = get_tool_handler(name)
+            result = await anyio.to_thread.run_sync(handler, arguments)
+        elif name == "ast_grep":
             result = await anyio.to_thread.run_sync(_tool_ast_grep, arguments)
         elif name == "ast_edit":
             result = await anyio.to_thread.run_sync(_tool_ast_edit, arguments)
@@ -450,14 +453,8 @@ async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
             result = await anyio.to_thread.run_sync(_tool_ast_read, arguments)
         elif name == "ast_generate_stub":
             result = await anyio.to_thread.run_sync(_tool_ast_generate_stub, arguments)
-        elif name == "ast_refactor_extract_interface":
-            result = await anyio.to_thread.run_sync(_tool_ast_refactor_extract_interface, arguments)
         elif name == "structural_analysis":
             result = await anyio.to_thread.run_sync(_tool_structural_analysis, arguments)
-        elif name == "project_info":
-            result = await anyio.to_thread.run_sync(_tool_project_info, arguments)
-        elif name == "codebase_summary":
-            result = await anyio.to_thread.run_sync(_tool_codebase_summary, arguments)
         elif name == "find_references":
             result = await anyio.to_thread.run_sync(_tool_find_references, arguments)
         elif name == "impact_analysis":
@@ -466,7 +463,7 @@ async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
             result = await anyio.to_thread.run_sync(_tool_module_imports, arguments)
         else:
             return [TextContent(type="text", text=json.dumps({"error": f"Unknown tool: {name}", "error_code": "NOT_FOUND", "tools": "unknown"}))]
-
+        
         return [TextContent(type="text", text=json.dumps(result, indent=2, default=str))]
     except Exception as e:
         logger.exception("Tool %s failed", name)
@@ -1400,130 +1397,6 @@ def _tool_structural_analysis(args: dict[str, Any]) -> dict[str, Any]:
             return {"error": str(e), "error_code": "INTERNAL", "tool": "structural_analysis"}
 
     return {"error": f"Unknown analysis type: {analysis_type}", "error_code": "INVALID_INPUT", "tool": "structural_analysis"}
-
-
-# ─── project_info ────────────────────────────────────────────────────────
-
-def _tool_project_info(args: dict[str, Any]) -> dict[str, Any]:
-    """Return project intelligence for the given directory."""
-    cwd = args.get("cwd", ".")
-    full = args.get("full", False)
-    diff = args.get("diff", False)
-
-    try:
-        from project_tools import project_info, project_info_summary, generate_project_json
-
-        if diff:
-            return generate_project_json(cwd, diff=True)
-        if full:
-            return project_info(cwd)
-        return project_info_summary(cwd)
-    except Exception as e:
-        return {"error": str(e), "error_code": "INTERNAL", "tool": "project_info"}
-
-
-# ─── codebase_summary ─────────────────────────────────────────────────────
-
-def _tool_codebase_summary(args: dict[str, Any]) -> dict[str, Any]:
-    """High-level architecture overview of a codebase.
-
-    Returns a compact summary with: project name, languages, module count,
-    symbol count, entry points, test framework, directory tree,
-    top imported modules, and test-to-source mapping.
-    Optimized for LLM context — under 500 tokens.
-    """
-    cwd = args.get("cwd", ".")
-
-    try:
-        from project_tools import project_info_summary, find_project_root
-        summary = project_info_summary(cwd)
-    except Exception as e:
-        return {"error": str(e), "error_code": "INTERNAL", "tool": "codebase_summary"}
-
-    root = find_project_root(cwd)
-    # Build directory tree (2 levels deep)
-    skip_dirs = {
-        ".git", "__pycache__", ".venv", "venv", "node_modules",
-        ".tox", ".eggs", "build", "dist", ".mypy_cache", ".pytest_cache",
-        ".idea", ".vscode", "site-packages", "references",
-    }
-    tree = []
-    try:
-        for dirpath, dirnames, filenames in os.walk(root):
-            depth = len(Path(dirpath).relative_to(root).parts)
-            if depth > 2:
-                dirnames.clear()
-                continue
-            dirnames[:] = sorted(d for d in dirnames if d not in skip_dirs and not d.startswith("."))
-            rel = str(Path(dirpath).relative_to(root))
-            if depth <= 2:
-                for fn in sorted(filenames):
-                    if not fn.startswith(".") and not fn.endswith((".pyc", ".pyo")):
-                        if rel != ".":
-                            tree.append(f"{rel}/{fn}")
-                        else:
-                            tree.append(fn)
-    except OSError:
-        pass
-
-    # Top imported modules from dependency_graph.json
-    top_imports: list[str] = []
-    dep_file = root / "references" / "dependency_graph.json"
-    if dep_file.exists():
-        try:
-            dep_graph = json.loads(dep_file.read_text(encoding="utf-8"))
-            import_counts: dict[str, int] = {}
-            for _src, targets in dep_graph.items():
-                for t in targets:
-                    top_imports_key = t.rsplit("/", 1)[-1] if "/" in t else t
-                    top_imports_key = top_imports_key.replace(".py", "")
-                    import_counts[top_imports_key] = import_counts.get(top_imports_key, 0) + 1
-            sorted_imports = sorted(import_counts.items(), key=lambda x: -x[1])
-            top_imports = [name for name, _count in sorted_imports[:10]]
-        except (json.JSONDecodeError, OSError):
-            pass
-
-    # Test-to-source mapping
-    test_mapping: dict[str, list[str]] = {}
-    try:
-        for py_file in _find_python_files(str(root)):
-            rel = str(py_file.relative_to(root))
-            if "test" in py_file.name.lower() or "tests" in py_file.parts:
-                try:
-                    source = py_file.read_text(encoding="utf-8", errors="replace")
-                    tree_ast = ast.parse(source, filename=str(py_file))
-                    for node in ast.walk(tree_ast):
-                        if isinstance(node, ast.ImportFrom) and node.module:
-                            test_mapping.setdefault(rel, []).append(node.module)
-                        elif isinstance(node, ast.Import):
-                            for alias in node.names:
-                                test_mapping.setdefault(rel, []).append(alias.name)
-                except (SyntaxError, OSError):
-                    pass
-        # Deduplicate
-        for k in test_mapping:
-            test_mapping[k] = sorted(set(test_mapping[k]))
-    except Exception:
-        pass
-
-    result = dict(summary)
-    # Compact tree: group by directory, count files per dir
-    tree_dirs: dict[str, int] = {}
-    for entry in tree[:50]:
-        parts = entry.split("/")
-        if len(parts) > 1:
-            tree_dirs[parts[0]] = tree_dirs.get(parts[0], 0) + 1
-        else:
-            tree_dirs["."] = tree_dirs.get(".", 0) + 1
-    compact_tree = {f"{k}": v for k, v in sorted(tree_dirs.items())}
-    result["tree"] = compact_tree
-    if top_imports:
-        result["top_imports"] = top_imports[:5]
-    # Skip test_mapping by default — too large. Keep only first 5 entries.
-    if test_mapping:
-        trimmed_tests = {k: v[:3] for k, v in list(test_mapping.items())[:5]}
-        result["test_mapping"] = trimmed_tests
-    return result
 
 
 # ─── find_references ──────────────────────────────────────────────────────
