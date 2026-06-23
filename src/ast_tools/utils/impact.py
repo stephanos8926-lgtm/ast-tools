@@ -36,9 +36,15 @@ def get_transitive_deps(
 
 
 def classify_risk(fan_out: int) -> str:
-    """Classify risk level based on fan-out count."""
-    if fan_out < 5:
-        return "low"
-    if fan_out < 15:
+    """Classify risk based on number of direct dependents.
+    
+    Thresholds matching original implementation:
+    - >= 10: high
+    - >= 3: medium
+    - < 3: low
+    """
+    if fan_out >= 10:
+        return "high"
+    if fan_out >= 3:
         return "medium"
-    return "high"
+    return "low"
