@@ -87,3 +87,7 @@ register_tool("curator_status", _tool_curator_status)
 
 # Register LSP tools
 register_lsp_tools(TOOL_REGISTRY)
+
+# Register context injection tools
+from .context_tools import register_tools as register_context_tools
+register_context_tools(register_tool)

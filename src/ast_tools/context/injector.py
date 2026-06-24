@@ -218,7 +218,20 @@ class ContextInjector:
         symbol_norm = symbol_emb / (np.linalg.norm(symbol_emb) + 1e-10)
         similarity = float(np.dot(query_norm, symbol_norm))
         return (similarity + 1.0) / 2.0
-    
+
+    # Wrapper methods for test compatibility
+    def _calculate_recency_score(self, last_indexed: datetime) -> float:
+        return calculate_recency_score(last_indexed)
+
+    def _calculate_usage_score(self, ref_count: int, max_refs: int = 100) -> float:
+        return calculate_usage_score(ref_count, max_refs)
+
+    def _calculate_kind_boost(self, kind: str) -> float:
+        return calculate_kind_boost(kind)
+
+    def _calculate_proximity_score(self, symbol_file: str, current_file: Optional[str] = None) -> float:
+        return calculate_proximity_score(symbol_file, current_file)
+
     def estimate_symbol_tokens(self, symbol: Any) -> int:
         """Estimate token count for a symbol.
         

@@ -12,5 +12,5 @@ __all__ = [
     "InjectionHistory",
     "MarkdownFormatter",
     "count_tokens",
-    # "ContextInjector",  # Will add after implementation
+    "ContextInjector",
 ]

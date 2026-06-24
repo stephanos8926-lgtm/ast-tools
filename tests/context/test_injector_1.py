@@ -75,14 +75,14 @@ class TestRelevanceScoring:
     def test_proximity_score(self):
         """Test file proximity scoring."""
         with tempfile.TemporaryDirectory() as tmpdir:
-            injector = ContextInjector(Path(tmpdir), current_file="/home/project/src/main.py")
+            injector = ContextInjector(Path(tmpdir))
             
             # Same file
-            score = injector._calculate_proximity_score("/home/project/src/main.py")
+            score = injector._calculate_proximity_score("/home/project/src/main.py", "/home/project/src/main.py")
             assert score == 1.0
             
             # Different file
-            score = injector._calculate_proximity_score("/home/project/src/other.py")
+            score = injector._calculate_proximity_score("/home/project/src/other.py", "/home/project/src/main.py")
             assert 0.0 <= score < 1.0
     
     def test_combined_relevance_score(self):
