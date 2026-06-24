@@ -34,6 +34,11 @@ from .structural_analysis import _tool_structural_analysis
 from .find_references import _tool_find_references
 from .impact_analysis import _tool_impact_analysis
 from .module_imports import _tool_module_imports
+from .search_symbols import _tool_search_symbols
+from .find_symbol_definition import _tool_find_symbol_definition
+from .list_symbols import _tool_list_symbols
+from .index_status import _tool_index_status
+from .refresh_index import _tool_refresh_index
 
 register_tool("ast_generate_stub", _tool_ast_generate_stub)
 register_tool("ast_refactor_extract_interface", _tool_ast_refactor_extract_interface)
@@ -46,3 +51,8 @@ register_tool("structural_analysis", _tool_structural_analysis)
 register_tool("find_references", _tool_find_references)
 register_tool("impact_analysis", _tool_impact_analysis)
 register_tool("module_imports", _tool_module_imports)
+register_tool("search_symbols", _tool_search_symbols)
+register_tool("find_symbol_definition", _tool_find_symbol_definition)
+register_tool("list_symbols", _tool_list_symbols)
+register_tool("index_status", _tool_index_status)
+register_tool("refresh_index", _tool_refresh_index)

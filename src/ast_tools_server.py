@@ -2,7 +2,7 @@
 """
 AST Tools MCP Server — structural code analysis and editing tools.
 
-Exposes 11 tools:
+Exposes 16 tools:
   ast_grep    — Structural search (via ast-grep CLI)
   ast_edit    — Surgical AST-based modification (via libcst)
   ast_read    — Structural context extraction (via ast module)
@@ -14,6 +14,11 @@ Exposes 11 tools:
   find_references — Cross-file symbol usage search
   impact_analysis — What breaks if you change a file or symbol
   module_imports — Module-level import analysis (fan-in / fan-out)
+  search_symbols — FTS5 full-text search of indexed symbols
+  find_symbol_definition — Find symbol by qualified name
+  list_symbols — List symbols in a file
+  index_status — Get index statistics
+  refresh_index — Index a project (incremental, with content hashing)
 """
 
 import json
@@ -414,6 +419,106 @@ async def list_tools() -> list[Tool]:
                     },
                 },
                 "required": ["module"],
+            },
+        ),
+        Tool(
+            name="search_symbols",
+            description=(
+                "Search indexed symbols using full-text search (FTS5). "
+                "Supports keywords, phrases, and boolean operators (OR, AND, NOT). "
+                "Requires index to be initialized via refresh_index first."
+            ),
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "query": {
+                        "type": "string",
+                        "description": "Search query (FTS5 syntax: keywords, phrases, OR/AND/NOT)",
+                    },
+                    "kind_filter": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "Optional symbol kinds to filter (function, class, method, variable, import, constant)",
+                    },
+                    "limit": {
+                        "type": "integer",
+                        "default": 50,
+                        "description": "Maximum results to return",
+                    },
+                },
+                "required": ["query"],
+            },
+        ),
+        Tool(
+            name="find_symbol_definition",
+            description=(
+                "Find a symbol definition by its qualified name. "
+                "Returns symbol details including file location, line numbers, signature, and docstring. "
+                "Requires index to be initialized via refresh_index first."
+            ),
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "qualified_name": {
+                        "type": "string",
+                        "description": "Fully qualified symbol name (e.g., 'module.Class.method')",
+                    },
+                },
+                "required": ["qualified_name"],
+            },
+        ),
+        Tool(
+            name="list_symbols",
+            description=(
+                "List all symbols in a specific file. "
+                "Returns symbols with name, kind, line numbers, and signatures. "
+                "Requires index to be initialized via refresh_index first."
+            ),
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "file_path": {
+                        "type": "string",
+                        "description": "Path to the source file",
+                    },
+                },
+                "required": ["file_path"],
+            },
+        ),
+        Tool(
+            name="index_status",
+            description=(
+                "Get statistics about the semantic index. "
+                "Returns: indexed_files, total_symbols, total_edges, last_update, symbols_by_kind. "
+                "Use to check if indexing is complete and up to date."
+            ),
+            inputSchema={
+                "type": "object",
+                "properties": {},
+            },
+        ),
+        Tool(
+            name="refresh_index",
+            description=(
+                "Refresh the semantic index for a project. "
+                "Scans all Python files, extracts symbols and edges, updates the database. "
+                "Uses content hashing to skip unchanged files (incremental indexing). "
+                "Use force=True to re-index everything."
+            ),
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "project_path": {
+                        "type": "string",
+                        "description": "Path to the project root",
+                    },
+                    "force": {
+                        "type": "boolean",
+                        "default": False,
+                        "description": "If True, re-index all files even if unchanged",
+                    },
+                },
+                "required": ["project_path"],
             },
         ),
     ]

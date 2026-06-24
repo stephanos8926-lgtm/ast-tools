@@ -1,0 +1,169 @@
+# ast-tools
+
+Structural code analysis and editing MCP server for Python, JavaScript, TypeScript, Rust, Go, Java, C, and C++.
+
+## Overview
+
+**ast-tools** provides 11 production-ready tools for structural code operations:
+
+| Tool | Purpose |
+|------|---------|
+| `ast_grep` | Structural code search via AST patterns |
+| `ast_edit` | Surgical AST-based edits (libcst) |
+| `ast_read` | Extract API surface from files |
+| `ast_generate_stub` | Generate .pyi type stubs |
+| `ast_refactor_extract_interface` | Extract ABC/Protocol from class |
+| `structural_analysis` | Call graphs, type hierarchies, refs, deps |
+| `project_info` | Project manifest (project.json) |
+| `codebase_summary` | High-level architecture overview |
+| `find_references` | Find all symbol usages across codebase |
+| `impact_analysis` | Change impact + risk assessment |
+| `module_imports` | Module-level fan-in/fan-out import analysis |
+
+## Installation
+
+```bash
+cd ~/Workspaces/ast-tools
+pip install -e .
+```
+
+## Usage
+
+### As MCP Server (Hermes Agent)
+
+Add to `~/.hermes/config.yaml`:
+
+```yaml
+mcp_servers:
+  ast-tools:
+    command: ["python3", "-m", "ast_tools_server"]
+    cwd: "/home/sysop/Workspaces/ast-tools"
+```
+
+### Command Line
+
+```bash
+# Project overview
+python3 -m ast_tools_server project-info
+
+# Codebase summary
+python3 -m ast_tools_server codebase-summary
+
+# Find references
+python3 -m ast_tools_server find-references symbol_name
+
+# Impact analysis
+python3 -m ast_tools_server impact-analysis src/module.py
+```
+
+### Python API
+
+```python
+from ast_tools.tools.ast_grep import _tool_ast_grep
+from ast_tools.tools.ast_read import _tool_ast_read
+from ast_tools.tools.impact_analysis import _tool_impact_analysis
+
+# Search for all function definitions
+result = _tool_ast_grep({
+    "pattern": "def $FUNC($$$ARGS)",
+    "path": "src/",
+    "lang": "python"
+})
+
+# Extract API surface
+result = _tool_ast_read({
+    "file": "src/core/agent.py",
+    "include_private": True
+})
+
+# Analyze change impact
+result = _tool_impact_analysis({
+    "target": "src/core/worker.py"
+})
+```
+
+## Development
+
+### Run Tests
+
+```bash
+python3 -m pytest           # All tests
+python3 -m pytest -v        # Verbose
+python3 -m pytest tests/test_e2e.py  # Specific file
+```
+
+### Linting
+
+```bash
+ruff check src/ tests/
+ruff format src/ tests/
+```
+
+### Project Structure
+
+```
+ast-tools/
+├── src/
+│   ├── ast_tools_server.py          # MCP server (445 lines)
+│   ├── ast_tools/
+│   │   ├── tools/                   # 11 tool implementations
+│   │   │   ├── __init__.py          # Registry
+│   │   │   ├── ast_grep.py
+│   │   │   ├── ast_edit.py
+│   │   │   ├── ast_read.py
+│   │   │   ├── structural_analysis.py
+│   │   │   ├── find_references.py
+│   │   │   ├── impact_analysis.py
+│   │   │   ├── module_imports.py
+│   │   │   ├── ast_generate_stub.py
+│   │   │   ├── ast_refactor_extract_interface.py
+│   │   │   ├── project_info.py
+│   │   │   └── codebase_summary.py
+│   │   └── utils/
+│   │       ├── file_utils.py
+│   │       └── impact.py
+│   └── project_tools.py
+├── tests/
+│   ├── conftest.py
+│   ├── test_e2e.py
+│   ├── test_phase3_polish.py
+│   └── test_project_tools.py
+├── docs/
+│   ├── PROJECT_STATE.md
+│   ├── PHASE_SUMMARIES.md
+│   └── REFACTORING_JOURNAL.md
+└── pyproject.toml
+```
+
+## Test Coverage
+
+**114 tests** — all passing ✅
+
+- `test_e2e.py`: 32 tests (E2E tool + CLI)
+- `test_phase3_polish.py`: 17 tests (error codes, CLI polish)
+- `test_project_tools.py`: 65 tests (project info, impact analysis)
+
+## Architecture
+
+### Design Principles
+
+1. **Registry Pattern** — Tools self-register via `@register_tool()`
+2. **Thin Server** — Server only defines schemas + dispatches
+3. **Extracted Tools** — All logic in `src/ast_tools/tools/`
+4. **Shared Utils** — Common helpers in `src/ast_tools/utils/`
+
+### Adding a Tool
+
+1. Create `src/ast_tools/tools/new_tool.py`
+2. Implement with `@register_tool("new_tool")`
+3. Add schema to `server.list_tools()`
+4. Write tests
+5. Run `python3 -m pytest`
+
+## License
+
+MIT — RapidWebs Enterprise, LLC
+
+## Contact
+
+Steven Albert Page <steven@rapidwebs.io>

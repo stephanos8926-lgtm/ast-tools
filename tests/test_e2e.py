@@ -380,7 +380,13 @@ class TestMCPServer:
         assert "impact_analysis" in tool_names
         assert "module_imports" in tool_names
         assert "project_info" in tool_names
-        assert len(tools) == 11
+        # Phase 1 semantic tools added: search_symbols, find_symbol_definition, list_symbols, index_status, refresh_index
+        assert "search_symbols" in tool_names
+        assert "find_symbol_definition" in tool_names
+        assert "list_symbols" in tool_names
+        assert "index_status" in tool_names
+        assert "refresh_index" in tool_names
+        assert len(tools) == 16
 
     def test_call_tool_ast_grep(self, test_project):
         """Call ast_grep through the MCP server interface."""
