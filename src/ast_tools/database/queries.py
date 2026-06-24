@@ -498,14 +498,21 @@ def insert_file_cache_entry(
     entry = None
 ) -> None:
     """Insert a file cache entry (alias for update_file_cache).
-    
+
     Compatibility wrapper for tests that expect this function name.
     Can be called with either (conn, file_path, file_hash) or (conn, entry).
     """
+    # Handle positional entry argument (common test pattern: insert_file_cache_entry(conn, entry))
+    if file_path is not None and file_hash is None and entry is None:
+        # Check if file_path is actually a FileCache entry object
+        if hasattr(file_path, 'file_path') and hasattr(file_path, 'content_hash'):
+            entry = file_path
+            file_path = None
+    
     if entry is not None:
         # Called with entry object
         file_path = entry.file_path
-        file_hash = entry.file_hash
+        file_hash = entry.content_hash
     update_file_cache(conn, file_path, file_hash, 0)
 
 
