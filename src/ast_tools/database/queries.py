@@ -10,7 +10,8 @@ from datetime import datetime
 import logging
 
 from .connection import retry_on_locked
-from ..types import Symbol, Edge, SymbolKind
+from ..types import Symbol
+from ..embeddings import generate_embedding, insert_embedding, insert_embeddings_batch
 
 logger = logging.getLogger(__name__)
 
@@ -42,7 +43,7 @@ def search_symbols(
         [{'id': '...', 'name': 'query_db', ...}, ...]
     """
     # Build FTS5 query
-    fts_query = f"SELECT rowid FROM symbols_fts WHERE symbols_fts MATCH ? LIMIT ?"
+    fts_query = "SELECT rowid FROM symbols_fts WHERE symbols_fts MATCH ? LIMIT ?"
     fts_params: List[Any] = [query, limit]
     
     # Get matching rowids from FTS5
@@ -355,6 +356,88 @@ def insert_edges_batch(
 
 
 # ──────────────────────────────────────────────────────────────────────────────
+# Embedding Operations (Phase 2)
+# ──────────────────────────────────────────────────────────────────────────────
+
+
+@retry_on_locked()
+def insert_symbol_embedding(
+    conn: sqlite3.Connection,
+    symbol_id: str,
+    text: str
+) -> List[float]:
+    """Generate and insert embedding for a symbol.
+    
+    Args:
+        conn: SQLite connection
+        symbol_id: Symbol ID
+        text: Text to embed (signature + docstring)
+    
+    Returns:
+        Generated embedding vector
+    """
+    embedding = generate_embedding(text)
+    insert_embedding(conn, symbol_id, embedding)
+    return embedding
+
+
+@retry_on_locked()
+def insert_symbol_embeddings_batch(
+    conn: sqlite3.Connection,
+    symbols: List[Symbol]
+) -> int:
+    """Generate and insert embeddings for multiple symbols.
+    
+    Args:
+        conn: SQLite connection
+        symbols: List of Symbol dataclass instances with signature/docstring
+    
+    Returns:
+        Number of embeddings inserted
+    
+    Note:
+        Only inserts embeddings for symbols that have signature or docstring.
+        Uses batch processing for efficiency.
+    """
+    if not symbols:
+        return 0
+    
+    # Filter symbols with embeddable text
+    symbol_texts = []
+    for sym in symbols:
+        text = f"{sym.signature or ''} {sym.docstring or ''}".strip()
+        if text:
+            symbol_texts.append((sym.id, text))
+    
+    if not symbol_texts:
+        return 0
+    
+    # Generate embeddings
+    texts = [t for _, t in symbol_texts]
+    embeddings = generate_embeddings(texts)
+    
+    # Insert
+    data = [(sid, emb) for (sid, _), emb in zip(symbol_texts, embeddings)]
+    insert_embeddings_batch(conn, data)
+    
+    return len(data)
+
+
+@retry_on_locked()
+def generate_embeddings(texts: List[str]) -> List[List[float]]:
+    """Generate embeddings for multiple texts.
+    
+    Args:
+        texts: List of texts to embed
+    
+    Returns:
+        List of embedding vectors
+    """
+    from ..embeddings import generate_batch_embeddings
+    return generate_batch_embeddings(texts)
+
+
+# ──────────────────────────────────────────────────────────────────────────────
 # File Cache Operations
 # ──────────────────────────────────────────────────────────────────────────────
 
@@ -465,25 +548,6 @@ def get_index_stats(conn: sqlite3.Connection) -> dict:
     stats['last_update'] = row['last']
     
     return stats
-
-
-@retry_on_locked()
-def count_symbols_by_kind(conn: sqlite3.Connection) -> List[sqlite3.Row]:
-    """Get symbol counts grouped by kind.
-    
-    Args:
-        conn: SQLite connection
-    
-    Returns:
-        List of (kind, count) rows
-    """
-    query = """
-        SELECT kind, COUNT(*) as count
-        FROM symbols
-        GROUP BY kind
-        ORDER BY count DESC
-    """
-    return conn.execute(query).fetchall()
 
 
 # ──────────────────────────────────────────────────────────────────────────────

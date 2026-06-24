@@ -10,15 +10,14 @@ All schema changes must be versioned and migratable.
 """
 
 import sqlite3
-from pathlib import Path
-from typing import List, Tuple, Callable
+from typing import Callable
 from datetime import datetime
 import logging
 
 logger = logging.getLogger(__name__)
 
 # Current schema version - increment when making breaking changes
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 3  # Phase 2: Added vector embeddings (symbols_vec) + embedding_hash for incremental
 
 # Initial schema (v1)
 INITIAL_SCHEMA = """
@@ -65,6 +64,7 @@ CREATE TABLE IF NOT EXISTS edges (
 CREATE TABLE IF NOT EXISTS file_cache (
     file_path TEXT PRIMARY KEY,
     content_hash TEXT NOT NULL,
+    embedding_hash TEXT,  -- Hash of docstring+signature for embedding invalidation
     last_indexed INTEGER NOT NULL,
     symbol_count INTEGER DEFAULT 0
 );
@@ -95,6 +95,14 @@ CREATE TRIGGER IF NOT EXISTS symbols_au AFTER UPDATE ON symbols BEGIN
     INSERT INTO symbols_fts(rowid, name, signature, docstring)
     VALUES (NEW.rowid, NEW.name, NEW.signature, NEW.docstring);
 END;
+
+-- Vector embeddings for semantic search (Phase 2)
+CREATE VIRTUAL TABLE IF NOT EXISTS symbols_vec USING vec0(
+    symbol_id TEXT PRIMARY KEY,
+    embedding FLOAT[384]
+);
+
+-- Vector embeddings for semantic search (Phase 2, schema v2)
 """
 
 
@@ -221,16 +229,36 @@ def migrate(conn: sqlite3.Connection, target_version: int = SCHEMA_VERSION) -> N
 def migrate_v1_to_v2(conn: sqlite3.Connection):
     """Migration from schema v1 to v2.
     
-    Reserved for future schema changes. Example changes might include:
-    - Adding new symbol kinds (decorator, context_manager, etc.)
-    - Adding new edge types (assigns, raises, yields)
-    - Adding embedding columns for vector search
-    - Adding performance indexes
+    Adds vector embeddings support for semantic search:
+    - symbols_vec virtual table (sqlite-vec extension)
+    - 384-dimensional embeddings for BGE-small model
     """
-    # Example: Add new symbol kind to CHECK constraint
-    # conn.execute("ALTER TABLE symbols ADD COLUMN decorator_name TEXT")
-    logger.info("Migration v1→v2: No changes yet (stub)")
-    pass
+    # Create symbols_vec virtual table for vector similarity search
+    conn.execute("""
+        CREATE VIRTUAL TABLE IF NOT EXISTS symbols_vec USING vec0(
+            symbol_id TEXT PRIMARY KEY,
+            embedding FLOAT[384]
+        )
+    """)
+    logger.info("Migration v1→v2: Added symbols_vec virtual table for vector embeddings")
+
+
+@register_migration(3)
+def migrate_v2_to_v3(conn: sqlite3.Connection):
+    """Migration from schema v2 to v3.
+    
+    Adds embedding_hash column to file_cache for incremental embedding invalidation.
+    """
+    # Check if column already exists
+    row = conn.execute("""
+        SELECT COUNT(*) FROM pragma_table_info('file_cache') WHERE name='embedding_hash'
+    """).fetchone()
+    
+    if row[0] == 0:
+        conn.execute("ALTER TABLE file_cache ADD COLUMN embedding_hash TEXT")
+        logger.info("Migration v2→v3: Added embedding_hash column to file_cache")
+    else:
+        logger.info("Migration v2→v3: embedding_hash column already exists")
 
 
 def get_migration_sql() -> str:

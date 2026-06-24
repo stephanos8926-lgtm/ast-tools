@@ -11,11 +11,11 @@ Handles errors gracefully:
 """
 
 import ast
-from pathlib import Path
 from typing import List, Tuple, Optional, Set
 import logging
 
 from ..types import Symbol, Edge, SymbolKind, EdgeKind
+from ..embeddings import generate_embedding
 
 logger = logging.getLogger(__name__)
 
@@ -137,6 +137,13 @@ class SymbolExtractor(ast.NodeVisitor):
         """Visit function definition."""
         try:
             qualified_name = self._add_to_scope(node.name)
+            signature = self._get_signature(node)
+            docstring = self._get_docstring(node)
+            
+            # Generate embedding text (signature + docstring)
+            embedding_text = f"{signature or ''} {docstring or ''}".strip()
+            embedding = generate_embedding(embedding_text) if embedding_text else None
+            
             symbol = Symbol(
                 id=self._make_id(qualified_name),
                 name=node.name,
@@ -145,8 +152,9 @@ class SymbolExtractor(ast.NodeVisitor):
                 file_path=self.file_path,
                 start_line=node.lineno,
                 end_line=node.end_lineno or node.lineno,
-                signature=self._get_signature(node),
-                docstring=self._get_docstring(node),
+                signature=signature,
+                docstring=docstring,
+                embedding=embedding,
             )
             self.symbols.append(symbol)
             
@@ -169,6 +177,12 @@ class SymbolExtractor(ast.NodeVisitor):
         """Visit class definition."""
         try:
             qualified_name = self._add_to_scope(node.name)
+            docstring = self._get_docstring(node)
+            
+            # Generate embedding text (class name + docstring)
+            embedding_text = f"class {node.name} {docstring or ''}".strip()
+            embedding = generate_embedding(embedding_text) if embedding_text else None
+            
             symbol = Symbol(
                 id=self._make_id(qualified_name),
                 name=node.name,
@@ -177,7 +191,8 @@ class SymbolExtractor(ast.NodeVisitor):
                 file_path=self.file_path,
                 start_line=node.lineno,
                 end_line=node.end_lineno or node.lineno,
-                docstring=self._get_docstring(node),
+                docstring=docstring,
+                embedding=embedding,
             )
             self.symbols.append(symbol)
             

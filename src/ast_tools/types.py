@@ -4,8 +4,8 @@ This module contains dataclasses and type aliases used across indexer, database,
 and tools packages. Centralizing types here prevents circular imports.
 """
 
-from dataclasses import dataclass, field
-from typing import Optional, List, Tuple, Literal
+from dataclasses import dataclass
+from typing import Optional, List, Tuple
 from enum import Enum
 
 
@@ -50,6 +50,7 @@ class Symbol:
         docstring: Docstring content if present
         is_public: True if symbol doesn't start with underscore
         content_hash: SHA256 hash of file content at index time
+        embedding: 384-dim vector embedding for semantic search (optional)
     """
     id: str
     name: str
@@ -62,6 +63,7 @@ class Symbol:
     docstring: Optional[str] = None
     is_public: bool = True
     content_hash: str = ""
+    embedding: Optional[List[float]] = None  # Phase 2: vector embedding
     
     def __post_init__(self):
         """Validate and normalize kind field."""

@@ -14,5 +14,6 @@ __all__ = [
     "Parser",
     "SymbolExtractor",
     "extract_symbols",
+    "parse_file",
     "ASTCache",
 ]
