@@ -279,15 +279,15 @@ def log_audit_event(
     
     cursor = conn.execute("""
         INSERT INTO audit_log 
-        (timestamp, user_id, action, resource, details, result)
+        (timestamp, user_id, action, target_id, ip_address, details)
         VALUES (?, ?, ?, ?, ?, ?)
     """, (
         int(datetime.now().timestamp()),
         user,
         action,
         resource,
-        json.dumps(safe_details),
-        result
+        None,  # ip_address
+        json.dumps(safe_details)
     ))
     
     row_id = cursor.lastrowid

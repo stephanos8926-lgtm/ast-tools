@@ -12,12 +12,17 @@ Usage:
     python3 src/ast_tools/benchmarks/phase9_benchmark.py
 """
 
+import sys
 import sqlite3
 import time
 import random
 import statistics
 import logging
 from pathlib import Path
+from typing import Optional
+
+# Add src to path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -25,18 +30,23 @@ logger = logging.getLogger(__name__)
 
 def generate_test_data(conn: sqlite3.Connection, num_symbols: int = 1000):
     """Generate test symbols and edges for benchmarking."""
+    import hashlib
+    import time
     logger.info(f"Generating {num_symbols} test symbols...")
     
     # Create symbols
     symbols = []
     for i in range(num_symbols):
         symbol_id = f"test_{i:05d}"
-        symbols.append((symbol_id, f"func_{i}", f"module{i}.func_{i}", "function", f"file{i}.py"))
+        content = f"def func_{i}(): pass"
+        content_hash = hashlib.sha256(content.encode()).hexdigest()[:32]
+        symbols.append((symbol_id, f"func_{i}", f"module{i}.func_{i}", "function", f"file{i}.py", 
+                       1, 10, f"def func_{i}():", "A test function", 1, content_hash, int(time.time()), "python"))
     
     with conn:
         conn.executemany("""
-            INSERT OR IGNORE INTO symbols (id, name, qualified_name, kind, file_path)
-            VALUES (?, ?, ?, ?, ?)
+            INSERT OR IGNORE INTO symbols (id, name, qualified_name, kind, file_path, start_line, end_line, signature, docstring, is_public, content_hash, indexed_at, lang)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, symbols)
     
     logger.info(f"Generated {num_symbols} symbols")
@@ -50,12 +60,12 @@ def generate_test_data(conn: sqlite3.Connection, num_symbols: int = 1000):
         targets = random.sample(range(num_symbols), min(num_calls, num_symbols - 1))
         for j in targets:
             if i != j:  # No self-calls
-                edges.append((f"test_{i:05d}", f"test_{j:05d}", "calls"))
+                edges.append((f"test_{i:05d}", f"test_{j:05d}", f"func_{j}", "calls"))
     
     with conn:
         conn.executemany("""
-            INSERT OR IGNORE INTO edges (source_id, target_id, edge_type)
-            VALUES (?, ?, ?)
+            INSERT OR IGNORE INTO edges (source_id, target_id, target_name, edge_type)
+            VALUES (?, ?, ?, ?)
         """, edges)
     
     logger.info(f"Generated {len(edges)} edges")
@@ -64,7 +74,7 @@ def generate_test_data(conn: sqlite3.Connection, num_symbols: int = 1000):
 
 def benchmark_dependency_metrics(conn: sqlite3.Connection) -> dict:
     """Benchmark dependency metrics computation."""
-    from src.ast_tools.indexer.dependency_metrics import DependencyMetricsCalculator
+    from ast_tools.indexer.dependency_metrics import DependencyMetricsCalculator
     
     logger.info("Benchmarking dependency metrics...")
     calc = DependencyMetricsCalculator()
@@ -91,7 +101,7 @@ def benchmark_dependency_metrics(conn: sqlite3.Connection) -> dict:
 def benchmark_knn_build(num_items: int = 500, dim: int = 384) -> dict:
     """Benchmark KNN graph build time."""
     try:
-        from src.ast_tools.indexer.knn_builder import KNNGraphBuilder
+        from ast_tools.indexer.knn_builder import KNNGraphBuilder
     except ImportError:
         logger.warning("hnswlib not available - skipping KNN benchmark")
         return {"status": "skipped", "reason": "hnswlib not installed"}
@@ -126,7 +136,7 @@ def benchmark_knn_build(num_items: int = 500, dim: int = 384) -> dict:
 
 def benchmark_audit_log_writes(conn: sqlite3.Connection, num_writes: int = 1000) -> dict:
     """Benchmark audit log write throughput."""
-    from src.ast_tools.utils.secret_sanitizer import log_audit_event
+    from ast_tools.utils.secret_sanitizer import log_audit_event
     
     logger.info(f"Benchmarking audit log writes ({num_writes} writes)...")
     
@@ -188,31 +198,19 @@ def benchmark_index_effectiveness(conn: sqlite3.Connection) -> dict:
     return results
 
 
-def run_benchmarks(db_path: str = ":memory:", cleanup: bool = True):
-    """Run all benchmarks."""
-    import tempfile
-    import os
-    
-    # Use temp file for realistic I/O
-    if db_path == ":memory:":
-        fd, db_path = tempfile.mkstemp(suffix=".db")
-        os.close(fd)
-        cleanup = True
+def run_benchmarks():
+    """Run all benchmarks using the default database location."""
+    from ast_tools.database.connection import get_connection
     
     logger.info("="*60)
     logger.info("Phase 9 Performance Benchmarks")
     logger.info("="*60)
     
-    conn = sqlite3.connect(db_path)
+    # Get connection (loads sqlite-vec, inits schema, runs migrations automatically)
+    conn = get_connection()
     results = {}
     
     try:
-        # Setup schema
-        logger.info("Setting up schema...")
-        from src.ast_tools.database.schema import init_db, get_db_connection
-        from src.ast_tools.database.migrations import run_migrations
-        init_db(db_path)
-        run_migrations(db_path)
         logger.info("Schema initialized")
         
         # Generate test data
@@ -241,8 +239,6 @@ def run_benchmarks(db_path: str = ":memory:", cleanup: bool = True):
     
     finally:
         conn.close()
-        if cleanup and os.path.exists(db_path):
-            os.unlink(db_path)
 
 
 if __name__ == "__main__":
