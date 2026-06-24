@@ -25,6 +25,7 @@ class EdgeKind(str, Enum):
     IMPORTS = "imports"
     INHERITS = "inherits"
     INSTANTIATES = "instantiates"
+    IMPLEMENTS = "implements"  # Phase 9: Interface/protocol implementation
 
 
 class ResolutionState(int, Enum):
@@ -51,6 +52,7 @@ class Symbol:
         is_public: True if symbol doesn't start with underscore
         content_hash: SHA256 hash of file content at index time
         embedding: 384-dim vector embedding for semantic search (optional)
+        lang: Programming language code (python, rust, go, typescript, etc.)
     """
     id: str
     name: str
@@ -64,6 +66,7 @@ class Symbol:
     is_public: bool = True
     content_hash: str = ""
     embedding: Optional[List[float]] = None  # Phase 2: vector embedding
+    lang: str = "python"  # Programming language
     
     def __post_init__(self):
         """Validate and normalize kind field."""
@@ -85,12 +88,14 @@ class Edge:
         target_id: ID of target symbol if resolved
         edge_type: Type of relationship
         resolution_state: Whether target has been resolved
+        metadata: Optional JSON metadata (Phase 9: edge context)
     """
     source_id: str
     target_name: str
     edge_type: EdgeKind | str
     target_id: Optional[str] = None
     resolution_state: ResolutionState | int = ResolutionState.UNRESOLVED
+    metadata: Optional[dict] = None  # Phase 9: additional context
     
     def __post_init__(self):
         """Validate and normalize edge_type and resolution_state."""

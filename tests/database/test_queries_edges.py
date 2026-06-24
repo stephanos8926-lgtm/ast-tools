@@ -13,7 +13,7 @@ from ast_tools.database.queries import (
     find_references,
     get_symbol_edges,
 )
-from ast_tools.types import Symbol, Edge, EdgeKind, SymbolKind
+from ast_tools.types import Symbol, EdgeKind, SymbolKind
 
 
 @pytest.fixture

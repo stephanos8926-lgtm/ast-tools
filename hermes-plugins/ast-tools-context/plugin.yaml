@@ -1,0 +1,13 @@
+name: ast-tools-context
+description: Injects ast-tools documentation into LLM context when relevant
+version: 1.0.0
+author: Hermes Agent Team
+license: MIT
+tags:
+  - ast
+  - context-injection
+  - code-analysis
+  - structural-search
+hooks:
+  - pre_llm_call
+requirements: []

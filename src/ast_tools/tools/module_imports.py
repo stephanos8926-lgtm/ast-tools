@@ -4,7 +4,7 @@ import ast
 from pathlib import Path
 from typing import Any
 
-from ast_tools.utils.file_utils import find_python_files, file_to_module
+from ast_tools.utils.file_utils import find_python_files
 
 
 def _normalize_module_path(path_str: str) -> str:

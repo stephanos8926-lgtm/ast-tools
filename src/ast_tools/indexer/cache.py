@@ -18,9 +18,8 @@ Each cache file contains:
 
 import json
 import hashlib
-import os
 from pathlib import Path
-from typing import Optional, List, Any, OrderedDict
+from typing import Optional, Any, OrderedDict
 import logging
 from datetime import datetime
 
@@ -104,7 +103,7 @@ class ASTCache:
         """
         # Security: validate path is absolute and normalized
         try:
-            resolved = Path(file_path).resolve()
+            Path(file_path).resolve()
             # Ensure it's a real file path (not trying to escape)
             if '..' in file_path:
                 logger.warning(f"Potential path traversal attempt: {file_path}")

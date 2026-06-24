@@ -1,6 +1,5 @@
 """Unit tests for parser module."""
 
-import pytest
 from pathlib import Path
 import tempfile
 import ast

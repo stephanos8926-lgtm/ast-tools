@@ -1,8 +1,6 @@
 """Unit tests for symbol extractor."""
 
-import pytest
 import ast
-from pathlib import Path
 
 from ast_tools.indexer.extractor import (
     SymbolExtractor,

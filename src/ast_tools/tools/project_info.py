@@ -1,6 +1,5 @@
 """project_info tool — project intelligence manifest."""
 
-from pathlib import Path
 from typing import Any
 
 

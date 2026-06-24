@@ -12,7 +12,7 @@ Does NOT use tree-sitter (deferred to Phase 2+).
 import ast
 import hashlib
 from pathlib import Path
-from typing import Optional, Tuple
+from typing import Optional
 import logging
 
 logger = logging.getLogger(__name__)

@@ -146,7 +146,7 @@ def _generate_class_stub(
                 continue
             if filtered_by_all and item.name not in all_set:
                 continue
-            _generate_function_stub(item, lambda l: add_line(prefix + "    " + l), include_docstrings)
+            _generate_function_stub(item, lambda line: add_line(prefix + "    " + line), include_docstrings)
             has_body = True
         elif isinstance(item, ast.AnnAssign) and isinstance(item.target, ast.Name):
             # Type annotated attribute

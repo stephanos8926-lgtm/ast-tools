@@ -1,7 +1,5 @@
 """Unit tests for AST cache with LRU eviction."""
 
-import pytest
-import json
 from pathlib import Path
 import tempfile
 import time
@@ -78,7 +76,7 @@ class TestASTCache:
             cache.set("/file_new.py", "hash_new", {'data': 'y' * 100000})
             
             # file0 should still exist (recently used)
-            result = cache.get("/file0.py", "hash0")
+            cache.get("/file0.py", "hash0")
             # Earlier files (1, 2, 3...) may have been evicted
             
     def test_cache_remove(self):

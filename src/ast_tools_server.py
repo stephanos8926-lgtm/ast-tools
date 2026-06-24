@@ -2,23 +2,24 @@
 """
 AST Tools MCP Server — structural code analysis and editing tools.
 
-Exposes 16 tools:
-  ast_grep    — Structural search (via ast-grep CLI)
-  ast_edit    — Surgical AST-based modification (via libcst)
-  ast_read    — Structural context extraction (via ast module)
-  ast_generate_stub — Generate .pyi stubs or interfaces (via ast)
+Exposes 17 tools:
+  ast_grep                    — Structural search (via ast-grep CLI)
+  ast_edit                    — Surgical AST-based modification (via libcst)
+  ast_read                    — Structural context extraction (via ast module)
+  ast_generate_stub           — Generate .pyi stubs or interfaces (via ast)
   ast_refactor_extract_interface — Extract interface to ABC/Protocol (via libcst)
-  structural_analysis — Call graphs, type hierarchies, symbol references (via jedi)
-  project_info — Project intelligence (project.json manifest)
-  codebase_summary — High-level architecture overview (<500 tokens)
-  find_references — Cross-file symbol usage search
-  impact_analysis — What breaks if you change a file or symbol
-  module_imports — Module-level import analysis (fan-in / fan-out)
-  search_symbols — FTS5 full-text search of indexed symbols
-  find_symbol_definition — Find symbol by qualified name
-  list_symbols — List symbols in a file
-  index_status — Get index statistics
-  refresh_index — Index a project (incremental, with content hashing)
+  structural_analysis         — Call graphs, type hierarchies, symbol references (via jedi)
+  project_info                — Project intelligence (project.json manifest)
+  codebase_summary            — High-level architecture overview (<500 tokens)
+  find_references             — Cross-file symbol usage search
+  impact_analysis             — What breaks if you change a file or symbol
+  module_imports              — Module-level import analysis (fan-in / fan-out)
+  search_symbols              — FTS5 full-text search of indexed symbols
+  find_symbol_definition      — Find symbol by qualified name
+  list_symbols                — List symbols in a file
+  index_status                — Get index statistics
+  refresh_index               — Index a project (incremental, with content hashing)
+  semantic_search             — Hybrid vector + FTS5 semantic search
 """
 
 import json
@@ -28,7 +29,6 @@ from typing import Any
 
 import anyio
 from mcp.server import Server
-from mcp.server.stdio import stdio_server
 from mcp.types import TextContent, Tool
 
 from ast_tools.tools import TOOL_REGISTRY, get_tool_handler, list_tool_names
@@ -503,7 +503,8 @@ async def list_tools() -> list[Tool]:
                 "Refresh the semantic index for a project. "
                 "Scans all Python files, extracts symbols and edges, updates the database. "
                 "Uses content hashing to skip unchanged files (incremental indexing). "
-                "Use force=True to re-index everything."
+                "Use force=True to re-index everything. "
+                "Use embeddings=True to generate vector embeddings for semantic search."
             ),
             inputSchema={
                 "type": "object",
@@ -517,8 +518,43 @@ async def list_tools() -> list[Tool]:
                         "default": False,
                         "description": "If True, re-index all files even if unchanged",
                     },
+                    "embeddings": {
+                        "type": "boolean",
+                        "default": False,
+                        "description": "If True, generate vector embeddings for all symbols (requires sentence-transformers)",
+                    },
                 },
                 "required": ["project_path"],
+            },
+        ),
+        Tool(
+            name="semantic_search",
+            description=(
+                "Hybrid semantic + keyword search for code symbols. "
+                "Combines vector similarity (meaning-based) with FTS5 full-text search (keyword-based) "
+                "using Reciprocal Rank Fusion for best results. "
+                "Finds code by intent (\"authentication logic\") not just by name (\"authenticate_user\"). "
+                "Requires index initialized via refresh_index and embeddings generated (refresh_index --embeddings)."
+            ),
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "query": {
+                        "type": "string",
+                        "description": "Natural language search query (semantic meaning)",
+                    },
+                    "k": {
+                        "type": "integer",
+                        "default": 10,
+                        "description": "Number of results to return",
+                    },
+                    "kind_filter": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "Optional symbol kinds to filter (function, class, method, variable, import, constant)",
+                    },
+                },
+                "required": ["query"],
             },
         ),
     ]

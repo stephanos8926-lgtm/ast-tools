@@ -18,14 +18,9 @@ from ast_tools.tools.ast_read import _tool_ast_read
 from ast_tools.tools.ast_edit import _tool_ast_edit
 from ast_tools.tools.structural_analysis import _tool_structural_analysis
 from ast_tools.tools.find_references import _tool_find_references
-from ast_tools.tools.impact_analysis import _tool_impact_analysis
 from ast_tools_server import call_tool
 
 # Import extracted tools from package
-from ast_tools.tools import (
-    _tool_project_info,
-    _tool_codebase_summary,
-)
 
 
 # ─── Helpers ───────────────────────────────────────────────────────────────

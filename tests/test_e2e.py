@@ -5,7 +5,6 @@ import json
 import os
 import subprocess
 import sys
-import tempfile
 from pathlib import Path
 
 import pytest
@@ -361,7 +360,7 @@ class TestCLI:
 class TestMCPServer:
     def test_server_import(self):
         """Server module imports without errors."""
-        from ast_tools_server import server, list_tools, call_tool
+        from ast_tools_server import server
         assert server is not None
 
     def test_list_tools(self):
@@ -386,7 +385,7 @@ class TestMCPServer:
         assert "list_symbols" in tool_names
         assert "index_status" in tool_names
         assert "refresh_index" in tool_names
-        assert len(tools) == 16
+        assert len(tools) == 17
 
     def test_call_tool_ast_grep(self, test_project):
         """Call ast_grep through the MCP server interface."""

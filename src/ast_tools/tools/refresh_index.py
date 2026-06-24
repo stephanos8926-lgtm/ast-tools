@@ -1,7 +1,7 @@
 """MCP tool: Refresh the semantic index for a project.
 
 Usage:
-    refresh_index(project_path: str, force: bool = False)
+    refresh_index(project_path: str, force: bool = False, embeddings: bool = False)
 
 Scans all Python files in the project, extracts symbols and edges,
 and updates the database. Uses file content hashing to skip unchanged files.
@@ -11,6 +11,12 @@ Features:
     - Transaction-based updates (atomic, no partial state)
     - Error handling (skips problematic files, continues indexing)
     - Thread-safe (uses database locking)
+    - Optional embedding generation for semantic search (--embeddings)
+
+Embeddings:
+    When embeddings=True, generates vector embeddings for all symbols
+    using the local BGE-small model. Use this after initial indexing
+    to enable semantic_search tool.
 """
 
 from typing import Any
@@ -29,7 +35,6 @@ from ..database import (
 )
 from ..database.connection import get_db_path
 from ..indexer import parse_file, extract_symbols
-from ..types import Edge
 
 logger = logging.getLogger(__name__)
 
@@ -81,12 +86,14 @@ def _tool_refresh_index(args: dict[str, Any]) -> dict[str, Any]:
     Args:
         project_path: Path to the project root
         force: If True, re-index all files even if unchanged (default: False)
+        embeddings: If True, generate vector embeddings for all symbols (default: False)
     
     Returns:
         Dict with indexing statistics (files_indexed, symbols_extracted, errors, etc.)
     """
     project_path = args.get("project_path", ".")
     force = args.get("force", False)
+    embeddings = args.get("embeddings", False)
     
     try:
         root = Path(project_path).resolve()
@@ -124,6 +131,7 @@ def _tool_refresh_index(args: dict[str, Any]) -> dict[str, Any]:
                 "files_failed": 0,
                 "symbols_extracted": 0,
                 "edges_extracted": 0,
+                "embeddings_generated": 0,
                 "errors": []
             }
             
@@ -192,6 +200,11 @@ def _tool_refresh_index(args: dict[str, Any]) -> dict[str, Any]:
                     })
                     logger.exception(f"Error indexing {file_path}")
             
+            # Generate embeddings if requested
+            if embeddings:
+                logger.info("Generating embeddings for all symbols...")
+                stats["embeddings_generated"] = _generate_embeddings(conn)
+            
             # Commit final stats
             conn.commit()
             
@@ -205,7 +218,7 @@ def _tool_refresh_index(args: dict[str, Any]) -> dict[str, Any]:
                 stats["errors_truncated"] = True
                 stats["errors"] = stats["errors"][:20]
             
-            logger.info(f"Index refresh complete: {stats['files_indexed']}/{stats['total_files']} files, {stats['symbols_extracted']} symbols")
+            logger.info(f"Index refresh complete: {stats['files_indexed']}/{stats['total_files']} files, {stats['symbols_extracted']} symbols, {stats['embeddings_generated']} embeddings")
             
             return stats
     
@@ -219,3 +232,67 @@ def _tool_refresh_index(args: dict[str, Any]) -> dict[str, Any]:
             "symbols_extracted": 0,
             "errors": [str(e)]
         }
+
+
+def _generate_embeddings(conn) -> int:
+    """Generate embeddings for all symbols in the database.
+    
+    Args:
+        conn: Database connection
+    
+    Returns:
+        Number of embeddings generated
+    """
+    try:
+        from ..embeddings import generate_batch_embeddings, insert_embeddings_batch
+    except ImportError:
+        logger.warning("Embedding dependencies not installed. Run: pip install sentence-transformers sqlite-vec")
+        return 0
+    
+    # Get all symbols without embeddings
+    symbols = conn.execute("""
+        SELECT s.id, s.signature, s.docstring
+        FROM symbols s
+        LEFT JOIN symbols_vec v ON s.id = v.symbol_id
+        WHERE v.symbol_id IS NULL
+    """).fetchall()
+    
+    if not symbols:
+        logger.info("All symbols already have embeddings")
+        return 0
+    
+    # Prepare texts for embedding (signature + docstring)
+    texts = []
+    symbol_ids = []
+    for row in symbols:
+        text = f"{row['signature'] or ''} {row['docstring'] or ''}".strip()
+        if text:
+            texts.append(text)
+            symbol_ids.append(row['id'])
+    
+    if not texts:
+        return 0
+    
+    # Generate embeddings in batches
+    batch_size = 32
+    total_generated = 0
+    
+    for i in range(0, len(texts), batch_size):
+        batch_texts = texts[i:i+batch_size]
+        batch_ids = symbol_ids[i:i+batch_size]
+        
+        try:
+            embeddings = generate_batch_embeddings(batch_texts, batch_size=batch_size)
+            
+            # Insert embeddings
+            symbol_embeddings = list(zip(batch_ids, embeddings))
+            insert_embeddings_batch(conn, symbol_embeddings)
+            
+            total_generated += len(batch_ids)
+            logger.debug(f"Generated {total_generated}/{len(texts)} embeddings...")
+            
+        except Exception as e:
+            logger.exception(f"Failed to generate embeddings for batch {i}: {e}")
+    
+    logger.info(f"Generated {total_generated} embeddings")
+    return total_generated

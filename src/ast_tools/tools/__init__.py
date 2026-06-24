@@ -22,7 +22,8 @@ def list_tool_names() -> list[str]:
     return list(TOOL_REGISTRY.keys())
 
 
-# Import and register all tools
+# Import and register all tools (E402: imports after code is intentional for tool registration)
+# ruff: noqa: E402
 from .ast_generate_stub import _tool_ast_generate_stub
 from .ast_refactor_extract_interface import _tool_ast_refactor_extract_interface
 from .ast_grep import _tool_ast_grep
@@ -39,6 +40,17 @@ from .find_symbol_definition import _tool_find_symbol_definition
 from .list_symbols import _tool_list_symbols
 from .index_status import _tool_index_status
 from .refresh_index import _tool_refresh_index
+from .semantic_search import _tool_semantic_search
+from .watcher import _tool_watch_add, _tool_watch_status, _tool_reindex_path
+from .lsp_tools import register_lsp_tools
+from .dependency_tools import (
+    _tool_circular_dependencies,
+    _tool_external_dependencies,
+    _tool_dead_code_detection,
+    _tool_dependency_chain,
+    _tool_api_surface_diff
+)
+from .curator import _tool_curator_audit, _tool_curator_summary, _tool_curator_status
 
 register_tool("ast_generate_stub", _tool_ast_generate_stub)
 register_tool("ast_refactor_extract_interface", _tool_ast_refactor_extract_interface)
@@ -56,3 +68,22 @@ register_tool("find_symbol_definition", _tool_find_symbol_definition)
 register_tool("list_symbols", _tool_list_symbols)
 register_tool("index_status", _tool_index_status)
 register_tool("refresh_index", _tool_refresh_index)
+register_tool("semantic_search", _tool_semantic_search)
+register_tool("watch_add", _tool_watch_add)
+register_tool("watch_status", _tool_watch_status)
+register_tool("reindex_path", _tool_reindex_path)
+
+# Register dependency graph tools
+register_tool("circular_dependencies", _tool_circular_dependencies)
+register_tool("external_dependencies", _tool_external_dependencies)
+register_tool("dead_code_detection", _tool_dead_code_detection)
+register_tool("dependency_chain", _tool_dependency_chain)
+register_tool("api_surface_diff", _tool_api_surface_diff)
+
+# Register curator tools
+register_tool("curator_audit", _tool_curator_audit)
+register_tool("curator_summary", _tool_curator_summary)
+register_tool("curator_status", _tool_curator_status)
+
+# Register LSP tools
+register_lsp_tools(TOOL_REGISTRY)

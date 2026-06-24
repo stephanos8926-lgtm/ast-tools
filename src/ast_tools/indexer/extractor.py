@@ -1,4 +1,4 @@
-"""Symbol and edge extraction from Python AST.
+"""Symbol and edge extraction from Python AST and tree-sitter ASTs.
 
 Extracts:
 - Functions, classes, methods, variables, imports, constants
@@ -8,6 +8,8 @@ Handles errors gracefully:
 - Skips nodes that can't be analyzed
 - Continues extraction even if some nodes fail
 - Logs warnings for edge cases
+
+Supports both Python's built-in ast module and tree-sitter for multi-language support.
 """
 
 import ast
@@ -155,6 +157,7 @@ class SymbolExtractor(ast.NodeVisitor):
                 signature=signature,
                 docstring=docstring,
                 embedding=embedding,
+                lang="python",
             )
             self.symbols.append(symbol)
             
@@ -193,6 +196,7 @@ class SymbolExtractor(ast.NodeVisitor):
                 end_line=node.end_lineno or node.lineno,
                 docstring=docstring,
                 embedding=embedding,
+                lang="python",
             )
             self.symbols.append(symbol)
             
@@ -239,6 +243,7 @@ class SymbolExtractor(ast.NodeVisitor):
                     file_path=self.file_path,
                     start_line=node.lineno,
                     end_line=node.end_lineno or node.lineno,
+                    lang="python",
                 )
                 self.symbols.append(symbol)
                 
@@ -268,6 +273,7 @@ class SymbolExtractor(ast.NodeVisitor):
                     file_path=self.file_path,
                     start_line=node.lineno,
                     end_line=node.end_lineno or node.lineno,
+                    lang="python",
                 )
                 self.symbols.append(symbol)
                 
@@ -296,6 +302,7 @@ class SymbolExtractor(ast.NodeVisitor):
                         file_path=self.file_path,
                         start_line=node.lineno,
                         end_line=node.end_lineno or node.lineno,
+                        lang="python",
                     )
                     self.symbols.append(symbol)
         except Exception as e:
@@ -375,3 +382,302 @@ def extract_symbols(tree: ast.AST, file_path: str) -> Tuple[List[Symbol], List[E
     extractor = SymbolExtractor(file_path)
     extractor.visit(tree)
     return extractor.get_symbols(), extractor.get_edges()
+
+
+# ─── Tree-sitter symbol extraction (multi-language) ─────────────────────────
+
+def extract_symbols_ts(source: str, lang: str) -> List[Symbol]:
+    """Extract symbols from any tree-sitter supported language.
+    
+    Args:
+        source: Source code string
+        lang: Language code (python, rust, go, typescript, javascript, cpp, c, etc.)
+    
+    Returns:
+        List of Symbol objects with .lang field set
+    """
+    from ..ts_backend import ts_parse
+    
+    tree = ts_parse(source, lang)
+    if tree is None:
+        return []
+    
+    extractor = TreeSitterSymbolExtractor(lang)
+    return extractor.extract(tree)
+
+
+class TreeSitterSymbolExtractor:
+    """Language-specific symbol extraction via tree-sitter."""
+    
+    def __init__(self, lang: str):
+        """Initialize extractor for a specific language.
+        
+        Args:
+            lang: Language code
+        """
+        self.lang = lang
+        self.queries = self._load_queries(lang)
+    
+    def _load_queries(self, lang: str) -> dict[str, str]:
+        """Load tree-sitter queries for symbol extraction.
+        
+        Args:
+            lang: Language code
+        
+        Returns:
+            Dict of query names to query strings
+        """
+        return {
+            "python": """
+                (function_definition name: (identifier) @name) @function
+                (class_definition name: (identifier) @name) @class
+                (import_statement) @import
+                (import_from_statement) @import
+            """,
+            "rust": """
+                (function_item name: (identifier) @name) @function
+                (struct_item name: (type_identifier) @name) @struct
+                (enum_item name: (type_identifier) @name) @enum
+                (impl_item type: (type_identifier) @name) @impl
+                (use_declaration) @import
+            """,
+            "go": """
+                (function_declaration name: (identifier) @name) @function
+                (method_declaration name: (field_identifier) @name) @method
+                (type_spec name: (type_identifier) @name type: (struct_type)) @struct
+                (type_spec name: (type_identifier) @name type: (interface_type)) @interface
+                (import_spec) @import
+            """,
+            "typescript": """
+                (function_declaration name: (identifier) @name) @function
+                (class_declaration name: (type_identifier) @name) @class
+                (interface_declaration name: (type_identifier) @name) @interface
+                (import_statement) @import
+            """,
+            "javascript": """
+                (function_declaration name: (identifier) @name) @function
+                (class_declaration name: (identifier) @name) @class
+                (import_statement) @import
+            """,
+            "cpp": """
+                (function_definition declarator: (function_declarator declarator: (identifier) @name)) @function
+                (class_specifier name: (type_identifier) @name) @class
+                (struct_specifier name: (type_identifier) @name) @struct
+                (preproc_include) @import
+            """,
+            "c": """
+                (function_definition declarator: (function_declarator declarator: (identifier) @name)) @function
+                (struct_specifier name: (type_identifier) @name) @struct
+                (preproc_include) @import
+            """,
+        }.get(lang, "")
+    
+    def extract(self, tree) -> List[Symbol]:
+        """Extract symbols from a tree-sitter parse tree.
+        
+        Args:
+            tree: tree_sitter.Tree object
+        
+        Returns:
+            List of Symbol objects
+        """
+        from ..ts_backend import _ensure_tree_sitter
+        
+        ts = _ensure_tree_sitter()
+        symbols = []
+        
+        query_str = self.queries.get(self.lang, "")
+        if not query_str:
+            return symbols
+        
+        try:
+            language = tree.language
+            query = ts.Query(language, query_str)
+            query_cursor = ts.QueryCursor(query)
+            captures = query_cursor.captures(tree.root_node)
+            
+            # Organize captures by capture name
+            matches = {}
+            for name, nodes in captures.items():
+                if name not in matches:
+                    matches[name] = []
+                matches[name].extend(nodes)
+            
+            # Process each match
+            for node in matches.get("function", []):
+                symbols.append(self._extract_function(node))
+            
+            for node in matches.get("class", []):
+                symbols.append(self._extract_class(node))
+            
+            for node in matches.get("struct", []):
+                symbols.append(self._extract_struct(node))
+            
+            for node in matches.get("enum", []):
+                symbols.append(self._extract_enum(node))
+            
+            for node in matches.get("import", []):
+                symbols.append(self._extract_import(node))
+            
+            for node in matches.get("method", []):
+                symbols.append(self._extract_method(node))
+            
+            for node in matches.get("interface", []):
+                symbols.append(self._extract_interface(node))
+            
+            for node in matches.get("impl", []):
+                symbols.append(self._extract_impl(node))
+                
+        except Exception as e:
+            logger.warning(f"Error extracting symbols for {self.lang}: {e}")
+        
+        return symbols
+    
+    def _extract_function(self, node) -> Symbol:
+        """Extract a function symbol."""
+        name = self._find_name(node)
+        line = node.start_point[0] + 1
+        end_line = node.end_point[0] + 1
+        
+        return Symbol(
+            id=f":{name}",
+            name=name,
+            qualified_name=name,
+            kind=SymbolKind.FUNCTION,
+            file_path="",
+            start_line=line,
+            end_line=end_line,
+            signature=f"()",
+            lang=self.lang,
+        )
+    
+    def _extract_class(self, node) -> Symbol:
+        """Extract a class symbol."""
+        name = self._find_name(node)
+        line = node.start_point[0] + 1
+        end_line = node.end_point[0] + 1
+        
+        return Symbol(
+            id=f":{name}",
+            name=name,
+            qualified_name=name,
+            kind=SymbolKind.CLASS,
+            file_path="",
+            start_line=line,
+            end_line=end_line,
+            lang=self.lang,
+        )
+    
+    def _extract_struct(self, node) -> Symbol:
+        """Extract a struct symbol."""
+        name = self._find_name(node)
+        line = node.start_point[0] + 1
+        end_line = node.end_point[0] + 1
+        
+        return Symbol(
+            id=f":{name}",
+            name=name,
+            qualified_name=name,
+            kind=SymbolKind.CLASS,  # Treat struct like class
+            file_path="",
+            start_line=line,
+            end_line=end_line,
+            lang=self.lang,
+        )
+    
+    def _extract_enum(self, node) -> Symbol:
+        """Extract an enum symbol."""
+        name = self._find_name(node)
+        line = node.start_point[0] + 1
+        end_line = node.end_point[0] + 1
+        
+        return Symbol(
+            id=f":{name}",
+            name=name,
+            qualified_name=name,
+            kind=SymbolKind.CLASS,  # Treat enum like class
+            file_path="",
+            start_line=line,
+            end_line=end_line,
+            lang=self.lang,
+        )
+    
+    def _extract_import(self, node) -> Symbol:
+        """Extract an import symbol."""
+        name = node.text.decode("utf-8")[:100]
+        line = node.start_point[0] + 1
+        end_line = node.end_point[0] + 1
+        
+        return Symbol(
+            id=f":import:{line}",
+            name=name,
+            qualified_name=name,
+            kind=SymbolKind.IMPORT,
+            file_path="",
+            start_line=line,
+            end_line=end_line,
+            lang=self.lang,
+        )
+    
+    def _extract_method(self, node) -> Symbol:
+        """Extract a method symbol."""
+        name = self._find_name(node)
+        line = node.start_point[0] + 1
+        end_line = node.end_point[0] + 1
+        
+        return Symbol(
+            id=f":{name}",
+            name=name,
+            qualified_name=name,
+            kind=SymbolKind.METHOD,
+            file_path="",
+            start_line=line,
+            end_line=end_line,
+            signature=f"()",
+            lang=self.lang,
+        )
+    
+    def _extract_interface(self, node) -> Symbol:
+        """Extract an interface symbol."""
+        name = self._find_name(node)
+        line = node.start_point[0] + 1
+        end_line = node.end_point[0] + 1
+        
+        return Symbol(
+            id=f":{name}",
+            name=name,
+            qualified_name=name,
+            kind=SymbolKind.CLASS,  # Treat interface like class
+            file_path="",
+            start_line=line,
+            end_line=end_line,
+            lang=self.lang,
+        )
+    
+    def _extract_impl(self, node) -> Symbol:
+        """Extract an impl symbol (Rust specific)."""
+        name = self._find_name(node)
+        line = node.start_point[0] + 1
+        end_line = node.end_point[0] + 1
+        
+        return Symbol(
+            id=f":impl:{name}",
+            name=f"impl {name}",
+            qualified_name=name,
+            kind=SymbolKind.CLASS,
+            file_path="",
+            start_line=line,
+            end_line=end_line,
+            lang=self.lang,
+        )
+    
+    def _find_name(self, node) -> str:
+        """Find the name identifier in a node tree."""
+        for child in node.children:
+            if child.type in ("identifier", "type_identifier", "name", "field_identifier"):
+                return child.text.decode("utf-8")
+            # Recurse
+            name = self._find_name(child)
+            if name:
+                return name
+        return "anonymous"

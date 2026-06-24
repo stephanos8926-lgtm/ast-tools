@@ -2,7 +2,6 @@
 """AST annotation helpers and function signature extraction."""
 
 import ast
-from typing import Any
 
 
 def _annotation_to_str(node: ast.expr | None) -> str:

@@ -41,4 +41,7 @@ __all__ = [
     "insert_symbol",
     "insert_symbols_batch",
     "insert_edge",
+    "insert_edges_batch",
+    "get_index_stats",
+    "count_symbols_by_kind",
 ]

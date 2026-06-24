@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Impact analysis and dependency graph utilities."""
 
-from typing import Any
 
 
 def build_reverse_deps(dep_graph: dict[str, list[str]]) -> dict[str, list[str]]:

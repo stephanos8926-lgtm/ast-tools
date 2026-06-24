@@ -48,7 +48,7 @@ def _tool_ast_grep(args: dict[str, Any]) -> dict[str, Any]:
         except json.JSONDecodeError:
             matches = []
     else:
-        lines = [l for l in proc.stdout.strip().splitlines() if l]
+        lines = [line for line in proc.stdout.strip().splitlines() if line]
         matches = lines
 
     # Handle top_level filtering

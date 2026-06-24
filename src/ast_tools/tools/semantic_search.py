@@ -17,7 +17,8 @@ def hybrid_search(
     conn,
     query: str,
     k: int = 10,
-    kind: Optional[str] = None
+    kind: Optional[str] = None,
+    lang: Optional[str] = None
 ) -> list[dict]:
     """
     Hybrid search: FTS5 keyword + vector semantic with RRF fusion.
@@ -27,6 +28,7 @@ def hybrid_search(
         query: Search query text
         k: Number of results to return
         kind: Optional symbol kind filter (function, class, method, etc.)
+        lang: Optional language filter (python, rust, go, typescript, etc.)
 
     Returns:
         List of symbol dicts ordered by fused relevance score
@@ -48,6 +50,9 @@ def hybrid_search(
     if kind:
         fts_sql += " AND s.kind = ?"
         params.append(kind)
+    if lang:
+        fts_sql += " AND s.lang = ?"
+        params.append(lang)
     fts_sql += " LIMIT ?"
     params.append(k * 2)
 
@@ -91,6 +96,7 @@ async def _tool_semantic_search(
     query: str,
     k: int = 10,
     kind: Optional[str] = None,
+    lang: Optional[str] = None,
     db_path: Optional[str] = None
 ) -> str:
     """
@@ -101,12 +107,13 @@ async def _tool_semantic_search(
                e.g., "authentication handler", "database connection pool", "error retry logic"
         k: Number of results to return (default: 10, max: 50)
         kind: Optional symbol kind filter: function, class, method, variable, import, constant
+        lang: Optional language filter: python, rust, go, typescript, javascript, cpp, c, json, yaml, bash
         db_path: Optional custom database path
 
     Returns:
         JSON array of symbol objects with fields:
         - id, name, qualified_name, kind, file_path, start_line, end_line
-        - signature, docstring, is_public, content_hash, indexed_at
+        - signature, docstring, is_public, content_hash, indexed_at, lang
     """
     # Validate k
     if k < 1:
@@ -116,7 +123,7 @@ async def _tool_semantic_search(
 
     try:
         conn = get_connection(Path(db_path) if db_path else None)
-        results = hybrid_search(conn, query, k, kind)
+        results = hybrid_search(conn, query, k, kind, lang)
         conn.close()
         return json.dumps(results, indent=2, default=str)
     except Exception as e:
@@ -146,6 +153,11 @@ semantic_search_tool = {
                 "type": "string",
                 "description": "Optional symbol kind filter",
                 "enum": ["function", "class", "method", "variable", "import", "constant"]
+            },
+            "lang": {
+                "type": "string",
+                "description": "Optional language filter",
+                "enum": ["python", "rust", "go", "typescript", "javascript", "cpp", "c", "json", "yaml", "bash"]
             },
             "db_path": {
                 "type": "string",

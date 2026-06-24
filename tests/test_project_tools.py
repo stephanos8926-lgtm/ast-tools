@@ -2,12 +2,10 @@
 """TDD tests for project_tools.py fixes (Phase 0 Batch B)."""
 
 import json
-import os
 import sys
 import tempfile
 from pathlib import Path
 
-import pytest
 
 # Ensure src/ is importable
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
@@ -16,7 +14,6 @@ from project_tools import (
     _detect_entry_points,
     _detect_test_framework,
     _extract_languages,
-    find_project_root,
     generate_project_json,
     project_info_summary,
     project_init,
@@ -61,7 +58,7 @@ class TestDependencyGraphSrcLayout:
                 "mypkg/core.py": "class Foo:\n    pass\n",
                 "mypkg/main.py": "from mypkg.core import Foo\n",
             })
-            data = project_init(root)
+            _ = project_init(root)
             # Read dependency graph
             dep_file = root / "references" / "dependency_graph.json"
             assert dep_file.exists()
@@ -77,7 +74,7 @@ class TestDependencyGraphSrcLayout:
                 "src/mypkg/core.py": "class Foo:\n    pass\n",
                 "src/mypkg/main.py": "from mypkg.core import Foo\n",
             })
-            data = project_init(root)
+            _ = project_init(root)
             dep_file = root / "references" / "dependency_graph.json"
             assert dep_file.exists()
             dep_graph = json.loads(dep_file.read_text())
@@ -91,7 +88,7 @@ class TestDependencyGraphSrcLayout:
                 "src/mypkg/core.py": "class Foo:\n    pass\n",
                 "src/mypkg/main.py": "from .core import Foo\n",
             })
-            data = project_init(root)
+            _ = project_init(root)
             dep_file = root / "references" / "dependency_graph.json"
             dep_graph = json.loads(dep_file.read_text())
             main_deps = dep_graph.get("src/mypkg/main.py", [])
@@ -104,7 +101,7 @@ class TestDependencyGraphSrcLayout:
                 "src/mypkg/core/base.py": "class Foo:\n    pass\n",
                 "src/mypkg/extra/main.py": "from ..core.base import Foo\n",
             })
-            data = project_init(root)
+            _ = project_init(root)
             dep_file = root / "references" / "dependency_graph.json"
             dep_graph = json.loads(dep_file.read_text())
             main_deps = dep_graph.get("src/mypkg/extra/main.py", [])

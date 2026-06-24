@@ -8,7 +8,7 @@ import hashlib
 from datetime import datetime
 
 from ast_tools.database.connection import get_connection
-from ast_tools.database.schema import init_schema, SCHEMA_VERSION
+from ast_tools.database.schema import init_schema
 from ast_tools.database.queries import (
     insert_symbols_batch,
     insert_edges_batch,
@@ -23,7 +23,7 @@ from ast_tools.database.queries import (
     find_symbol_definition,
     get_symbols_in_file,
 )
-from ast_tools.types import Symbol, Edge, SymbolKind, EdgeKind, IndexStats, FileCacheEntry, ResolutionState
+from ast_tools.types import Symbol, SymbolKind, EdgeKind, FileCacheEntry, ResolutionState
 
 
 @pytest.fixture

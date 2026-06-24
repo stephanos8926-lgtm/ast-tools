@@ -144,7 +144,6 @@ def _tool_ast_edit(args: dict[str, Any]) -> dict[str, Any]:
     if transformer is None:
         return {"error": f"Unknown operation: {operation}", "error_code": "INVALID_INPUT", "tool": "ast_edit"}
 
-    import libcst.metadata as cst_meta
     wrapper = cst.MetadataWrapper(tree)
     try:
         new_tree = wrapper.visit(transformer)

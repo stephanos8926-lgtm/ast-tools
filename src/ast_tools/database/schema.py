@@ -17,7 +17,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 # Current schema version - increment when making breaking changes
-SCHEMA_VERSION = 3  # Phase 2: Added vector embeddings (symbols_vec) + embedding_hash for incremental
+SCHEMA_VERSION = 5  # Phase 9: Schema Enrichments (callgraph, dependencies, similarity, audit_log)
 
 # Initial schema (v1)
 INITIAL_SCHEMA = """
@@ -40,7 +40,8 @@ CREATE TABLE IF NOT EXISTS symbols (
     docstring TEXT,
     is_public INTEGER DEFAULT 1,
     content_hash TEXT NOT NULL,
-    indexed_at INTEGER NOT NULL
+    indexed_at INTEGER NOT NULL,
+    lang TEXT NOT NULL DEFAULT 'python' CHECK(lang IN ('python','rust','go','typescript','javascript','cpp','c','json','yaml','bash'))
 );
 
 -- FTS5 for fast name/search (contentless = halve storage)
@@ -114,20 +115,20 @@ def init_schema(conn: sqlite3.Connection) -> None:
     
     Note:
         Idempotent - safe to call multiple times. Uses CREATE IF NOT EXISTS
-        for all objects. Records schema version after successful init.
+        for all objects. Does NOT record schema version - use migrate() for that.
     """
     logger.info("Initializing database schema...")
     conn.executescript(INITIAL_SCHEMA)
     
-    # Record schema version if not already present
+    # Record schema version if not already present (version 0 -> 1)
     current_version = get_schema_version(conn)
-    if current_version < SCHEMA_VERSION:
+    if current_version == 0:
         conn.execute(
             "INSERT OR REPLACE INTO schema_version (version, applied_at) VALUES (?, ?)",
-            (SCHEMA_VERSION, int(datetime.now().timestamp()))
+            (1, int(datetime.now().timestamp()))
         )
         conn.commit()
-        logger.info(f"Schema initialized to version {SCHEMA_VERSION}")
+        logger.info("Schema initialized to version 1")
     else:
         logger.info(f"Schema already at version {current_version}")
 
@@ -259,6 +260,63 @@ def migrate_v2_to_v3(conn: sqlite3.Connection):
         logger.info("Migration v2→v3: Added embedding_hash column to file_cache")
     else:
         logger.info("Migration v2→v3: embedding_hash column already exists")
+
+
+@register_migration(4)
+def migrate_v3_to_v4(conn: sqlite3.Connection):
+    """Migration from schema v3 to v4.
+    
+    Adds multi-language support:
+    - lang column to symbols table
+    - Index on lang for filtering
+    """
+    # Check if column already exists
+    row = conn.execute("""
+        SELECT COUNT(*) FROM pragma_table_info('symbols') WHERE name='lang'
+    """).fetchone()
+    
+    if row[0] == 0:
+        conn.execute("""
+            ALTER TABLE symbols ADD COLUMN lang TEXT NOT NULL DEFAULT 'python'
+        """)
+        logger.info("Migration v3→v4: Added lang column to symbols table")
+    else:
+        logger.info("Migration v3→v4: lang column already exists")
+    
+    # Add index on lang for filtering
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_symbols_lang ON symbols(lang)")
+    logger.info("Migration v3→v4: Added index on symbols.lang")
+
+
+@register_migration(5)
+def migrate_v4_to_v5(conn: sqlite3.Connection):
+    """Migration from schema v4 to v5.
+    
+    Phase 9 Schema Enrichments:
+    - Metadata column to edges with size limit trigger
+    - Edge type validation trigger (adds 'implements')
+    - dependency_metrics table (fan-in, fan-out, SPOF, instability, centrality)
+    - embedding_similarity table (with staleness tracking and model versioning)
+    - knn_graph table (for approximate nearest neighbors)
+    - audit_log table (security compliance)
+    - Composite indexes for query optimization
+    - callgraph_edges view (backward compatibility)
+    
+    P0 Fixes Applied:
+    - UUIDs (TEXT) consistently
+    - 384-dim embeddings
+    - ON DELETE CASCADE on all FKs
+    - Transaction handling
+    - ANN for KNN (hnswlib)
+    
+    P1 Fixes Applied:
+    - Embedding versioning
+    - Composite indexes
+    - Audit logging
+    """
+    # Import migration logic from dedicated module
+    from ast_tools.database.migrations.migration_009_schema_enrichments import migrate_v4_to_v5
+    migrate_v4_to_v5(conn)
 
 
 def get_migration_sql() -> str:

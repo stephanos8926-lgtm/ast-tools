@@ -107,6 +107,11 @@ def get_connection(db_path: Optional[Path] = None) -> sqlite3.Connection:
         # sqlite-vec not installed - vector search will be unavailable
         pass
 
+    # Initialize schema and run migrations
+    from ast_tools.database.schema import init_schema, migrate
+    init_schema(conn)
+    migrate(conn)
+
     return conn
 
 

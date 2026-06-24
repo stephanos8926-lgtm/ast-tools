@@ -1,7 +1,5 @@
 """Unit tests for schema and migrations."""
 
-import pytest
-import sqlite3
 from pathlib import Path
 import tempfile
 
@@ -86,7 +84,7 @@ class TestInitSchema:
             )
             row = cursor.fetchone()
             assert row is not None
-            assert row[0] == SCHEMA_VERSION
+            assert row[0] == 1  # init_schema only initializes to v1; migrate() brings to SCHEMA_VERSION
             
             conn.close()
     
