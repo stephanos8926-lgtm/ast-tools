@@ -303,9 +303,10 @@ async def _tool_semantic_search(
     kind: Optional[str] = None,
     lang: Optional[str] = None,
     db_path: Optional[str] = None,
-    inject_context: bool = False,
-    max_context_symbols: int = 10,
-    context_tokens_budget: Optional[int] = None
+    inject_context: bool = True,
+    token_budget: int = 4096,
+    diversity_limit: int = 3,
+    session_id: Optional[str] = None
 ) -> str:
     """
     Search symbols by semantic similarity (meaning) + keyword matching.
@@ -317,9 +318,10 @@ async def _tool_semantic_search(
         kind: Optional symbol kind filter: function, class, method, variable, import, constant
         lang: Optional language filter: python, rust, go, typescript, javascript, cpp, c, json, yaml, bash
         db_path: Optional custom database path
-        inject_context: If True, inject relevant context symbols for LLM prompts
-        max_context_symbols: Max context symbols to inject (default: 10, only used if inject_context=True)
-        context_tokens_budget: Token budget for context (default: 20% of model context window)
+        inject_context: If True, inject relevant context symbols for LLM prompts (default: True)
+        token_budget: Token budget for context injection (default: 4096)
+        diversity_limit: Max symbols per file for diversity (default: 3)
+        session_id: Optional session ID for tracking
 
     Returns:
         JSON array of symbol objects with fields:
@@ -332,7 +334,8 @@ async def _tool_semantic_search(
             "context_injection": {
                 "context_markdown": "...formatted context...",
                 "tokens_used": 1234,
-                "budget_remaining": 5678
+                "budget_remaining": 5678,
+                "diversity_applied": true
             }
         }
     """
@@ -348,10 +351,13 @@ async def _tool_semantic_search(
             results, context_info = hybrid_search_with_context(
                 conn, query, k, kind, lang,
                 context_enabled=True,
-                max_context_symbols=max_context_symbols,
-                context_token_budget=context_tokens_budget
+                max_context_symbols=k,
+                model_context_window=token_budget,
+                context_token_budget=token_budget
             )
             conn.close()
+            # Add diversity_applied to context_info
+            context_info["diversity_applied"] = True
             return json.dumps({
                 "results": results,
                 "context_injection": context_info
@@ -363,7 +369,6 @@ async def _tool_semantic_search(
     except Exception as e:
         logger.error(f"Semantic search failed: {e}")
         return json.dumps({"error": str(e)}, indent=2)
-
 
 # Export for MCP server registration
 semantic_search_tool = {
@@ -399,19 +404,26 @@ semantic_search_tool = {
             },
             "inject_context": {
                 "type": "boolean",
-                "description": "If True, inject relevant context symbols for LLM prompts",
-                "default": False
+                "description": "If True, inject relevant context symbols for LLM prompts (default: True)",
+                "default": True
             },
-            "max_context_symbols": {
+            "token_budget": {
                 "type": "integer",
-                "description": "Max context symbols to inject (default: 10)",
-                "default": 10,
+                "description": "Token budget for context injection (default: 4096)",
+                "default": 4096,
+                "minimum": 512,
+                "maximum": 32768
+            },
+            "diversity_limit": {
+                "type": "integer",
+                "description": "Max symbols per file for diversity (default: 3)",
+                "default": 3,
                 "minimum": 1,
-                "maximum": 50
+                "maximum": 10
             },
-            "context_tokens_budget": {
-                "type": "integer",
-                "description": "Token budget for context (default: 6000)"
+            "session_id": {
+                "type": "string",
+                "description": "Optional session ID for tracking"
             }
         },
         "required": ["query"]
