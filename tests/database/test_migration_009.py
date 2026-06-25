@@ -30,6 +30,10 @@ def fresh_db():
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
     
+    # Load sqlite-vec extension
+    from ast_tools.embeddings.store import load_vec_extension
+    load_vec_extension(conn)
+    
     # Initialize to v4 (apply migrations 1-4)
     from ast_tools.database.schema import init_schema
     init_schema(conn)

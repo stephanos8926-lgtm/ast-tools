@@ -182,4 +182,11 @@ def migrate_v4_to_v5(conn: sqlite3.Connection):
         FROM edges
     """)
     
+    # Step 10: Update schema version
+    logger.info("Updating schema version to v5...")
+    conn.execute(
+        "INSERT OR REPLACE INTO schema_version (version, applied_at) VALUES (?, ?)",
+        (5, int(datetime.now().timestamp()))
+    )
+    
     logger.info("Migration v4→v5 complete")

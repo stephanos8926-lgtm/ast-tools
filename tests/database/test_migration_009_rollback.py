@@ -17,18 +17,24 @@ from ast_tools.database.migrations.migration_009_schema_enrichments import migra
 
 @pytest.fixture
 def migrated_db():
-    """Create a database migrated to v5 with test data."""
-    fd, db_path = tempfile.mkstemp(suffix='.db')
-    os.close(db_path)
+    """Create a fresh in-memory database migrated to v5 with test data."""
+    import sqlite3
+    from ast_tools.database.schema import migrate, init_schema
+    from ast_tools.embeddings.store import load_vec_extension
     
-    conn = sqlite3.connect(db_path)
+    conn = sqlite3.connect(':memory:')
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
     
-    # Initialize and migrate to v5
+    # Load vec extension
+    load_vec_extension(conn)
+    
+    # Initialize schema and migrate to v4 (base)
     init_schema(conn)
     migrate(conn, target_version=4)
-    migrate(conn, target_version=5)
+    
+    # Apply Phase 9 migration (v4 -> v5)
+    migrate_v4_to_v5(conn)
     
     # Insert test data
     conn.execute(
@@ -52,7 +58,6 @@ def migrated_db():
     yield conn
     
     conn.close()
-    os.unlink(db_path)
 
 
 def test_rollback_removes_new_tables(migrated_db):
@@ -239,8 +244,8 @@ def rollback_v5_to_v4(conn):
         conn.execute("DROP INDEX IF EXISTS idx_audit_log_timestamp")
         conn.execute("DROP INDEX IF EXISTS idx_audit_log_user")
         
-        # Revert schema version
-        conn.execute("UPDATE schema_version SET version = 4")
+        # Revert schema version - delete v5 row, max() will return v4
+        conn.execute("DELETE FROM schema_version WHERE version = 5")
     
     # Note: Can't drop metadata column from edges (SQLite limitation)
     # It will remain as a nullable, unused column
