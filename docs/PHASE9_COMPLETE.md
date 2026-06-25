@@ -13,18 +13,21 @@ Phase 9 adds **architectural intelligence** to AST-Tools: callgraph analysis, de
 
 **Timeline:** ~6 hours ( Waves 1-5 ), 30 min ( Wave 6 verification )  
 **Lines Added:** 18,273 across 98 files  
-**Schema Version:** v4 → v5
+**Schema Version:** v4 → v5  
+**Final Commit:** `21dac10` ( Wave 6 bug fixes )  
+**Tests:** 79 passing ( 18 database + 42 context + 19 other )
 
 ---
 
 ## Completed Deliverables
 
 ### Wave 1: Schema + Migrations ✅
-- `migration_009_schema_enrichments.py` (185 lines)
+- `migration_009_schema_enrichments.py` (192 lines)
 - 4 new tables: `dependency_metrics`, `embedding_similarity`, `knn_graph`, `audit_log`
 - 8 composite indexes for query optimization
 - 2 validation triggers (metadata size, edge_type)
-- Tests: 6 passing ( FK cascade, triggers, indexes, view )
+- Tests: 11 passing migration tests + 7 rollback tests = **18 total**
+- **Bug fixed in Wave 6:** Migration now correctly updates schema_version to v5 (was missing)
 
 ### Wave 2: Callgraph Edges ✅
 - `implements_detector.py` (233 lines)
@@ -312,6 +315,22 @@ rollback_v5_to_v4(conn)
 
 ---
 
+## Wave 6: Bug Fixes + Verification ✅ *(Added 2026-07-24)*
+
+**Issue discovered:** Migration v4→v5 was missing the schema version update, leaving DB at v1 even after migration. Rollback tests used wrong strategy (INSERT v4 instead of DELETE v5).
+
+**Fixes applied in commit `21dac10`:**
+1. **Migration file:** Added `INSERT OR REPLACE INTO schema_version (version, applied_at) VALUES (5, ...)` at end of migration
+2. **test_migration_009.py:** Added `load_vec_extension()` call to fixture (required for FTS5 + vec tables)
+3. **test_migration_009_rollback.py:** 
+   - Changed to in-memory DB per test (no shared state conflicts)
+   - Rollback uses `DELETE FROM schema_version WHERE version = 5` (correctly reverts to v4)
+   - Removed unused `datetime` import
+
+**Verification:** All 18 database tests passing (11 migration + 7 rollback). Full test suite: 79 passing.
+
+---
+
 ## Next Steps
 
 **Phase 8 (Context Injection)** — Resumed after Phase 9 completion:
@@ -342,6 +361,11 @@ rollback_v5_to_v4(conn)
 - `tests/database/test_migration_009.py` (CREATE)
 - `tests/database/test_migration_009_rollback.py` (CREATE)
 
+### Wave 6 Fixes
+- `src/ast_tools/database/migrations/migration_009_schema_enrichments.py` (UPDATED)
+- `tests/database/test_migration_009.py` (UPDATED)
+- `tests/database/test_migration_009_rollback.py` (UPDATED)
+
 ### Documentation
 - `docs/phase9-spec.md` (CREATE)
 - `docs/audits/phase9-forward-audit.md` (CREATE)
@@ -354,4 +378,5 @@ rollback_v5_to_v4(conn)
 **Phase 9 Status:** ✅ **COMPLETE**  
 **Ready for Production:** Yes  
 **Schema Version:** v5  
+**Final Commit:** `21dac10` (Wave 6 fixes)  
 **Next Phase:** Phase 8 (Context Injection — resumed)
