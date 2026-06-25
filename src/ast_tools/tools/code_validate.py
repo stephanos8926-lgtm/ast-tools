@@ -66,6 +66,10 @@ def _tool_code_validate(params: dict[str, Any]) -> dict[str, Any]:
         "typescript": _validate_typescript,
         "rust": _validate_rust,
         "go": _validate_go,
+        "c": _validate_c,
+        "cpp": _validate_cpp,
+        "c#": _validate_csharp,
+        "csharp": _validate_csharp,
     }
     
     if language not in VALIDATORS:
@@ -563,3 +567,91 @@ def _parse_go_errors(stderr: str) -> list[dict[str, Any]]:
         else:
             errors.append({"line": 0, "column": 0, "message": line})
     return errors
+
+
+def _validate_c(content: str, file_path: str | None = None) -> dict[str, Any]:
+    """Validate C syntax using tree-sitter."""
+    return _validate_with_tree_sitter(content, "c", "tree-sitter-c")
+
+
+def _validate_cpp(content: str, file_path: str | None = None) -> dict[str, Any]:
+    """Validate C++ syntax using tree-sitter."""
+    return _validate_with_tree_sitter(content, "cpp", "tree-sitter-cpp")
+
+
+def _validate_csharp(content: str, file_path: str | None = None) -> dict[str, Any]:
+    """Validate C# syntax using tree-sitter."""
+    return _validate_with_tree_sitter(content, "c_sharp", "tree-sitter-c-sharp")
+
+
+def _validate_with_tree_sitter(content: str, lang_name: str, package_name: str) -> dict[str, Any]:
+    """Validate code using tree-sitter parser.
+    
+    Args:
+        content: Code content to validate
+        lang_name: tree-sitter language name (c, cpp, c_sharp)
+        package_name: Python package name for error messages
+    
+    Returns:
+        Validation result dict
+    """
+    try:
+        from tree_sitter import Language, Parser
+        
+        # Dynamically import the language binding
+        lang_module = __import__(package_name.replace("-", "_"))
+        language = Language(lang_module.language())
+        
+        # New API: pass language to Parser constructor
+        parser = Parser(language)
+        
+        # Parse the code
+        tree = parser.parse(bytes(content, "utf-8"))
+        
+        # Check for syntax errors (tree-sitter sets root node type to 'ERROR' on failure)
+        if tree.root_node.type == "ERROR":
+            return {
+                "valid": False,
+                "errors": [{"line": 0, "column": 0, "message": f"Syntax error in {lang_name} code"}],
+                "warnings": [],
+                "parser_used": f"tree-sitter ({package_name})"
+            }
+        
+        # Check for ERROR nodes in the tree
+        def has_error(node):
+            if node.type == "ERROR":
+                return True
+            for child in node.children:
+                if has_error(child):
+                    return True
+            return False
+        
+        if has_error(tree.root_node):
+            return {
+                "valid": False,
+                "errors": [{"line": 0, "column": 0, "message": f"Syntax error in {lang_name} code"}],
+                "warnings": [],
+                "parser_used": f"tree-sitter ({package_name})"
+            }
+        
+        return {
+            "valid": True,
+            "errors": [],
+            "warnings": [],
+            "parser_used": f"tree-sitter ({package_name})"
+        }
+        
+    except ImportError:
+        return {
+            "valid": False,
+            "errors": [{"line": 0, "column": 0, "message": f"{package_name} not installed. Install with: pip install {package_name}"}],
+            "warnings": [],
+            "parser_used": "none"
+        }
+    except Exception as e:
+        return {
+            "valid": False,
+            "errors": [{"line": 0, "column": 0, "message": f"tree-sitter error: {str(e)}"}],
+            "warnings": [],
+            "parser_used": f"tree-sitter ({package_name})"
+        }

@@ -22,6 +22,9 @@ from src.ast_tools.tools.code_validate import (
     _validate_typescript,
     _validate_rust,
     _validate_go,
+    _validate_c,
+    _validate_cpp,
+    _validate_csharp,
     _parse_bash_errors,
     _parse_node_errors,
     _parse_tsc_errors,
@@ -340,6 +343,74 @@ class TestGoValidation:
             assert result["parser_used"] == "none"
         finally:
             subprocess.run = original_run
+
+
+class TestCValidation:
+    """Test C syntax validation via tree-sitter."""
+    
+    def test_valid_function(self):
+        result = _validate_c("int main() { return 0; }")
+        if result["parser_used"] == "none":
+            assert "not installed" in result["errors"][0]["message"]
+        else:
+            assert result["valid"] is True
+            assert "tree-sitter" in result["parser_used"]
+    
+    def test_invalid_syntax(self):
+        result = _validate_c("int main( { return 0; }")
+        if result["parser_used"] != "none":
+            assert result["valid"] is False
+    
+    def test_tree_sitter_not_found(self, monkeypatch):
+        """Test graceful degradation when tree-sitter-c is not installed."""
+        # Monkeypatch __import__ to simulate missing module
+        import builtins
+        original_import = builtins.__import__
+        def mock_import(name, *args, **kwargs):
+            if name == "tree_sitter_c":
+                raise ImportError("No module named 'tree_sitter_c'")
+            return original_import(name, *args, **kwargs)
+        builtins.__import__ = mock_import
+        try:
+            result = _validate_c("int x = 1;")
+            assert result["valid"] is False
+            assert "tree-sitter-c not installed" in result["errors"][0]["message"]
+        finally:
+            builtins.__import__ = original_import
+
+
+class TestCppValidation:
+    """Test C++ syntax validation via tree-sitter."""
+    
+    def test_valid_function(self):
+        result = _validate_cpp("int main() { return 0; }")
+        if result["parser_used"] == "none":
+            assert "not installed" in result["errors"][0]["message"]
+        else:
+            assert result["valid"] is True
+            assert "tree-sitter" in result["parser_used"]
+    
+    def test_invalid_syntax(self):
+        result = _validate_cpp("int main( { return 0; }")
+        if result["parser_used"] != "none":
+            assert result["valid"] is False
+
+
+class TestCSharpValidation:
+    """Test C# syntax validation via tree-sitter."""
+    
+    def test_valid_function(self):
+        result = _validate_csharp("class Program { static void Main() { } }")
+        if result["parser_used"] == "none":
+            assert "not installed" in result["errors"][0]["message"]
+        else:
+            assert result["valid"] is True
+            assert "tree-sitter" in result["parser_used"]
+    
+    def test_invalid_syntax(self):
+        result = _validate_csharp("class Program { static void Main( { } }")
+        if result["parser_used"] != "none":
+            assert result["valid"] is False
 
 
 class TestErrorHandlerParsing:

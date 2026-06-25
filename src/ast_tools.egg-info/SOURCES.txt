@@ -10,6 +10,7 @@ src/ast_tools.egg-info/dependency_links.txt
 src/ast_tools.egg-info/entry_points.txt
 src/ast_tools.egg-info/requires.txt
 src/ast_tools.egg-info/top_level.txt
+src/ast_tools/benchmarks/phase9_benchmark.py
 src/ast_tools/context/__init__.py
 src/ast_tools/context/formatters.py
 src/ast_tools/context/history.py
@@ -21,12 +22,16 @@ src/ast_tools/database/__init__.py
 src/ast_tools/database/connection.py
 src/ast_tools/database/queries.py
 src/ast_tools/database/schema.py
+src/ast_tools/database/migrations/migration_009_schema_enrichments.py
 src/ast_tools/embeddings/__init__.py
 src/ast_tools/embeddings/model.py
 src/ast_tools/embeddings/store.py
 src/ast_tools/indexer/__init__.py
 src/ast_tools/indexer/cache.py
+src/ast_tools/indexer/dependency_metrics.py
 src/ast_tools/indexer/extractor.py
+src/ast_tools/indexer/implements_detector.py
+src/ast_tools/indexer/knn_builder.py
 src/ast_tools/indexer/parser.py
 src/ast_tools/tools/__init__.py
 src/ast_tools/tools/ast_edit.py
@@ -34,7 +39,9 @@ src/ast_tools/tools/ast_generate_stub.py
 src/ast_tools/tools/ast_grep.py
 src/ast_tools/tools/ast_read.py
 src/ast_tools/tools/ast_refactor_extract_interface.py
+src/ast_tools/tools/code_validate.py
 src/ast_tools/tools/codebase_summary.py
+src/ast_tools/tools/context_tools.py
 src/ast_tools/tools/curator.py
 src/ast_tools/tools/dependency.py
 src/ast_tools/tools/dependency_tools.py
@@ -55,6 +62,7 @@ src/ast_tools/utils/__init__.py
 src/ast_tools/utils/annotations.py
 src/ast_tools/utils/file_utils.py
 src/ast_tools/utils/impact.py
+src/ast_tools/utils/secret_sanitizer.py
 src/ast_tools/watcher/__init__.py
 src/ast_tools/watcher/daemon.py
 tests/test_e2e.py
