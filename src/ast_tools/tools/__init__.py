@@ -51,6 +51,7 @@ from .dependency_tools import (
     _tool_api_surface_diff
 )
 from .curator import _tool_curator_audit, _tool_curator_summary, _tool_curator_status
+from .code_validate import _tool_code_validate
 
 register_tool("ast_generate_stub", _tool_ast_generate_stub)
 register_tool("ast_refactor_extract_interface", _tool_ast_refactor_extract_interface)
@@ -84,6 +85,9 @@ register_tool("api_surface_diff", _tool_api_surface_diff)
 register_tool("curator_audit", _tool_curator_audit)
 register_tool("curator_summary", _tool_curator_summary)
 register_tool("curator_status", _tool_curator_status)
+
+# Register code validation tool
+register_tool("code_validate_syntax", _tool_code_validate)
 
 # Register LSP tools
 register_lsp_tools(TOOL_REGISTRY)
