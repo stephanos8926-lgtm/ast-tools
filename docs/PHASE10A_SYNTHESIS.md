@@ -6,6 +6,25 @@
 
 ---
 
+## ⚠️ **CORRECTION NOTE (2026-07-26)**
+
+**Verified via git log + source inspection:**
+
+| Tool | Status | Notes |
+|------|--------|-------|
+| **code_validate_syntax** | ✅ **DONE** | 704 lines, 62 tests passing, registered line 91 in `src/ast_tools/tools/__init__.py` |
+| **repo_skeleton** | ❌ **NOT STARTED** | Phase 10A remaining work |
+| **file_related_suggest** | ❌ **NOT STARTED** | Phase 10A remaining work |
+
+**Lesson learned:** Initial synthesis incorrectly listed `code_validate_syntax` as "planned" — it was already implemented and tested. This was caught by the `verification-before-completion` skill. 
+
+**Golden rule:** **Never trust docs over source code.** Always verify with:
+- `git log --oneline -- <file>` — commit history
+- `ls src/` + grep `__init__.py` — tool registration
+- `pytest tests/` — test count verification
+
+---
+
 ## Documents Reviewed
 
 1. `docs/PHASE10A_SPEC.md` — Technical specification (21,874 bytes, 640 lines)
