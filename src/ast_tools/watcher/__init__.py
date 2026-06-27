@@ -1,10 +1,10 @@
 """Watcher daemon package for real-time file monitoring."""
 
-from .daemon import WatcherDaemon, IndexQueue, AstToolsHandler, reindex_file
+from .daemon import AstToolsHandler, IndexQueue, WatcherDaemon, reindex_file
 
 __all__ = [
-    "WatcherDaemon",
-    "IndexQueue", 
     "AstToolsHandler",
+    "IndexQueue",
+    "WatcherDaemon",
     "reindex_file",
 ]

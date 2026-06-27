@@ -11,26 +11,39 @@ from ast_tools.utils.file_utils import find_python_files
 
 def _tool_codebase_summary(args: dict[str, Any]) -> dict[str, Any]:
     """High-level architecture overview of a codebase.
-    
+
     Returns a compact summary with: project name, languages, module count,
     symbol count, entry points, test framework, directory tree,
     top imported modules, and test-to-source mapping.
     Optimized LLM context — under 500 tokens.
     """
     cwd = args.get("cwd", ".")
-    
+
     try:
-        from project_tools import project_info_summary, find_project_root
+        from project_tools import find_project_root, project_info_summary
+
         summary = project_info_summary(cwd)
     except Exception as e:
         return {"error": str(e), "error_code": "INTERNAL", "tool": "codebase_summary"}
-    
+
     root = find_project_root(cwd)
     # Build directory tree (2 levels deep)
     skip_dirs = {
-        ".git", "__pycache__", ".venv", "venv", "node_modules",
-        ".tox", ".eggs", "build", "dist", ".mypy_cache", ".pytest_cache",
-        ".idea", ".vscode", "site-packages", "references",
+        ".git",
+        "__pycache__",
+        ".venv",
+        "venv",
+        "node_modules",
+        ".tox",
+        ".eggs",
+        "build",
+        "dist",
+        ".mypy_cache",
+        ".pytest_cache",
+        ".idea",
+        ".vscode",
+        "site-packages",
+        "references",
     }
     tree = []
     try:
@@ -39,7 +52,9 @@ def _tool_codebase_summary(args: dict[str, Any]) -> dict[str, Any]:
             if depth > 2:
                 dirnames.clear()
                 continue
-            dirnames[:] = sorted(d for d in dirnames if d not in skip_dirs and not d.startswith("."))
+            dirnames[:] = sorted(
+                d for d in dirnames if d not in skip_dirs and not d.startswith(".")
+            )
             rel = str(Path(dirpath).relative_to(root))
             if depth <= 2:
                 for fn in sorted(filenames):
@@ -50,7 +65,7 @@ def _tool_codebase_summary(args: dict[str, Any]) -> dict[str, Any]:
                             tree.append(fn)
     except OSError:
         pass
-    
+
     # Top imported modules from dependency_graph.json
     top_imports: list[str] = []
     dep_file = root / "references" / "dependency_graph.json"
@@ -67,7 +82,7 @@ def _tool_codebase_summary(args: dict[str, Any]) -> dict[str, Any]:
             top_imports = [name for name, _count in sorted_imports[:10]]
         except (json.JSONDecodeError, OSError):
             pass
-    
+
     # Test-to-source mapping
     test_mapping: dict[str, list[str]] = {}
     try:
@@ -90,7 +105,7 @@ def _tool_codebase_summary(args: dict[str, Any]) -> dict[str, Any]:
             test_mapping[k] = sorted(set(test_mapping[k]))
     except Exception:
         pass
-    
+
     result = dict(summary)
     # Compact tree: group by directory, count files per dir
     tree_dirs: dict[str, int] = {}

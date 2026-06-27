@@ -1,6 +1,7 @@
 """AST-Tools: Tool implementations and registry."""
 
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 TOOL_REGISTRY: dict[str, Callable[[dict[str, Any]], dict[str, Any]]] = {}
 
@@ -22,36 +23,36 @@ def list_tool_names() -> list[str]:
     return list(TOOL_REGISTRY.keys())
 
 
-# Import and register all tools (E402: imports after code is intentional for tool registration)
+# Import and register all tools (imports after code is intentional for tool registration)
 # ruff: noqa: E402
-from .ast_generate_stub import _tool_ast_generate_stub
-from .ast_refactor_extract_interface import _tool_ast_refactor_extract_interface
-from .ast_grep import _tool_ast_grep
 from .ast_edit import _tool_ast_edit
+from .ast_generate_stub import _tool_ast_generate_stub
+from .ast_grep import _tool_ast_grep
 from .ast_read import _tool_ast_read
+from .ast_refactor_extract_interface import _tool_ast_refactor_extract_interface
+from .code_validate import _tool_code_validate
 from .codebase_summary import _tool_codebase_summary
-from .project_info import _tool_project_info
-from .structural_analysis import _tool_structural_analysis
-from .find_references import _tool_find_references
-from .impact_analysis import _tool_impact_analysis
-from .module_imports import _tool_module_imports
-from .search_symbols import _tool_search_symbols
-from .find_symbol_definition import _tool_find_symbol_definition
-from .list_symbols import _tool_list_symbols
-from .index_status import _tool_index_status
-from .refresh_index import _tool_refresh_index
-from .semantic_search import _tool_semantic_search
-from .watcher import _tool_watch_add, _tool_watch_status, _tool_reindex_path
-from .lsp_tools import register_lsp_tools
+from .curator import _tool_curator_audit, _tool_curator_status, _tool_curator_summary
 from .dependency_tools import (
+    _tool_api_surface_diff,
     _tool_circular_dependencies,
-    _tool_external_dependencies,
     _tool_dead_code_detection,
     _tool_dependency_chain,
-    _tool_api_surface_diff
+    _tool_external_dependencies,
 )
-from .curator import _tool_curator_audit, _tool_curator_summary, _tool_curator_status
-from .code_validate import _tool_code_validate
+from .find_references import _tool_find_references
+from .find_symbol_definition import _tool_find_symbol_definition
+from .impact_analysis import _tool_impact_analysis
+from .index_status import _tool_index_status
+from .list_symbols import _tool_list_symbols
+from .lsp_tools import register_lsp_tools
+from .module_imports import _tool_module_imports
+from .project_info import _tool_project_info
+from .refresh_index import _tool_refresh_index
+from .search_symbols import _tool_search_symbols
+from .semantic_search import _tool_semantic_search
+from .structural_analysis import _tool_structural_analysis
+from .watcher import _tool_reindex_path, _tool_watch_add, _tool_watch_status
 
 register_tool("ast_generate_stub", _tool_ast_generate_stub)
 register_tool("ast_refactor_extract_interface", _tool_ast_refactor_extract_interface)
@@ -94,4 +95,5 @@ register_lsp_tools(TOOL_REGISTRY)
 
 # Register context injection tools
 from .context_tools import register_tools as register_context_tools
+
 register_context_tools(register_tool)

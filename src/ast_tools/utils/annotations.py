@@ -6,7 +6,7 @@ import ast
 
 def _annotation_to_str(node: ast.expr | None) -> str:
     """Convert an AST annotation node to a human-readable type string.
-    
+
     Handles:
       ast.Name(id='str')                    -> "str"
       ast.Name(id='int')                    -> "int"

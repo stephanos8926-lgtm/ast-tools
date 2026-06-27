@@ -15,6 +15,7 @@ def _tool_impact_analysis(args: dict[str, Any]) -> dict[str, Any]:
     cwd = args.get("cwd", ".")
 
     from project_tools import find_project_root
+
     root = find_project_root(cwd)
 
     result: dict[str, Any] = {
@@ -52,6 +53,7 @@ def _tool_impact_analysis(args: dict[str, Any]) -> dict[str, Any]:
 
         if not dep_graph:
             from project_tools import project_init
+
             try:
                 project_init(str(root))
                 if dep_file.exists():
@@ -88,7 +90,7 @@ def _tool_impact_analysis(args: dict[str, Any]) -> dict[str, Any]:
     else:
         # Symbol target: use AST-based caller search
         callers = _ast_find_callers(str(target), str(root))
-        caller_files = sorted(set(c["file"] for c in callers))
+        caller_files = sorted({c["file"] for c in callers})
         result["direct_dependents"] = caller_files
         result["callers"] = callers
         result["fan_out"] = len(caller_files)

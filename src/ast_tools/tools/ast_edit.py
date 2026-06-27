@@ -1,8 +1,9 @@
 """ast_edit tool — surgical AST-based code modification using libcst."""
 
-import libcst as cst
 from pathlib import Path
 from typing import Any
+
+import libcst as cst
 
 
 def _build_transformer(operation: str, params: dict):
@@ -13,12 +14,12 @@ def _build_transformer(operation: str, params: dict):
         new_name = params["new_name"]
 
         class RenameTransformer(cst.CSTTransformer):
-            def leave_FunctionDef(self, original_node, updated_node):
+            def leave_FunctionDef(self, original_node, updated_node):  # noqa: ARG002
                 if updated_node.name.value == old_name:
                     return updated_node.with_changes(name=cst.Name(new_name))
                 return updated_node
 
-            def leave_Call(self, original_node, updated_node):
+            def leave_Call(self, original_node, updated_node):  # noqa: ARG002
                 if isinstance(updated_node.func, cst.Name) and updated_node.func.value == old_name:
                     return updated_node.with_changes(func=cst.Name(new_name))
                 return updated_node
@@ -52,7 +53,7 @@ def _build_transformer(operation: str, params: dict):
         new_params = params["parameters"]  # list of {"name": str, "default": str|None}
 
         class ChangeSigTransformer(cst.CSTTransformer):
-            def leave_FunctionDef(self, original_node, updated_node):
+            def leave_FunctionDef(self, original_node, updated_node):  # noqa: ARG002
                 if updated_node.name.value == func_name:
                     new_params_list = []
                     for p in new_params:
@@ -77,7 +78,7 @@ def _build_transformer(operation: str, params: dict):
             def __init__(self):
                 self._replacement_nodes = list(cst.parse_module(replacement).body)
 
-            def leave_Module(self, original_node, updated_node):
+            def leave_Module(self, original_node, updated_node):  # noqa: ARG002
                 if start_line is None:
                     return updated_node
                 new_body = []
@@ -88,7 +89,7 @@ def _build_transformer(operation: str, params: dict):
                     except (KeyError, AttributeError):
                         stmt_line = 0
                     if start_line <= stmt_line <= end_line:
-                        if not hasattr(self, '_replaced'):
+                        if not hasattr(self, "_replaced"):
                             new_body.extend(self._replacement_nodes)
                             self._replaced = True
                     else:
@@ -104,7 +105,7 @@ def _build_transformer(operation: str, params: dict):
         class RemoveTransformer(cst.CSTTransformer):
             METADATA_DEPENDENCIES = (cst.metadata.PositionProvider,)
 
-            def leave_Module(self, original_node, updated_node):
+            def leave_Module(self, original_node, updated_node):  # noqa: ARG002
                 if start_line is None:
                     return updated_node
                 new_body = []
@@ -132,23 +133,39 @@ def _tool_ast_edit(args: dict[str, Any]) -> dict[str, Any]:
     dry_run = args.get("dry_run", False)
 
     if not file_path.exists():
-        return {"error": f"File not found: {file_path}", "error_code": "NOT_FOUND", "tool": "ast_edit"}
+        return {
+            "error": f"File not found: {file_path}",
+            "error_code": "NOT_FOUND",
+            "tool": "ast_edit",
+        }
 
     source = file_path.read_text()
     try:
         tree = cst.parse_module(source)
     except cst.ParserSyntaxError as e:
-        return {"error": f"Syntax error in {file_path}: {e}", "error_code": "PARSE_ERROR", "tool": "ast_edit"}
+        return {
+            "error": f"Syntax error in {file_path}: {e}",
+            "error_code": "PARSE_ERROR",
+            "tool": "ast_edit",
+        }
 
     transformer = _build_transformer(operation, params)
     if transformer is None:
-        return {"error": f"Unknown operation: {operation}", "error_code": "INVALID_INPUT", "tool": "ast_edit"}
+        return {
+            "error": f"Unknown operation: {operation}",
+            "error_code": "INVALID_INPUT",
+            "tool": "ast_edit",
+        }
 
     wrapper = cst.MetadataWrapper(tree)
     try:
         new_tree = wrapper.visit(transformer)
     except Exception as e:
-        return {"error": f"Transformation failed: {e}", "error_code": "INTERNAL", "tool": "ast_edit"}
+        return {
+            "error": f"Transformation failed: {e}",
+            "error_code": "INTERNAL",
+            "tool": "ast_edit",
+        }
 
     new_source = new_tree.code
 

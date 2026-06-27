@@ -9,10 +9,10 @@ Defines the SQLite schema for the semantic codebase index, including:
 All schema changes must be versioned and migratable.
 """
 
-import sqlite3
-from typing import Callable
-from datetime import datetime
 import logging
+import sqlite3
+from collections.abc import Callable
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
@@ -109,23 +109,23 @@ CREATE VIRTUAL TABLE IF NOT EXISTS symbols_vec USING vec0(
 
 def init_schema(conn: sqlite3.Connection) -> None:
     """Initialize database schema with all tables, indexes, and triggers.
-    
+
     Args:
         conn: SQLite connection
-    
+
     Note:
         Idempotent - safe to call multiple times. Uses CREATE IF NOT EXISTS
         for all objects. Does NOT record schema version - use migrate() for that.
     """
     logger.info("Initializing database schema...")
     conn.executescript(INITIAL_SCHEMA)
-    
+
     # Record schema version if not already present (version 0 -> 1)
     current_version = get_schema_version(conn)
     if current_version == 0:
         conn.execute(
             "INSERT OR REPLACE INTO schema_version (version, applied_at) VALUES (?, ?)",
-            (1, int(datetime.now().timestamp()))
+            (1, int(datetime.now().timestamp())),
         )
         conn.commit()
         logger.info("Schema initialized to version 1")
@@ -135,10 +135,10 @@ def init_schema(conn: sqlite3.Connection) -> None:
 
 def get_schema_version(conn: sqlite3.Connection) -> int:
     """Get current schema version from database.
-    
+
     Args:
         conn: SQLite connection
-    
+
     Returns:
         Schema version number (0 if not initialized)
     """
@@ -146,7 +146,7 @@ def get_schema_version(conn: sqlite3.Connection) -> int:
         row = conn.execute(
             "SELECT version FROM schema_version ORDER BY version DESC LIMIT 1"
         ).fetchone()
-        return row['version'] if row else 0
+        return row["version"] if row else 0
     except sqlite3.OperationalError:
         # schema_version table doesn't exist yet
         return 0
@@ -154,10 +154,10 @@ def get_schema_version(conn: sqlite3.Connection) -> int:
 
 def needs_migration(conn: sqlite3.Connection) -> bool:
     """Check if database schema needs migration.
-    
+
     Args:
         conn: SQLite connection
-    
+
     Returns:
         True if current version < SCHEMA_VERSION
     """
@@ -171,57 +171,59 @@ MIGRATIONS: dict[int, Callable[[sqlite3.Connection], None]] = {}
 
 def register_migration(version: int):
     """Decorator to register a migration function.
-    
+
     Usage:
         @register_migration(2)
         def migrate_v1_to_v2(conn):
             ...
-    
+
     Args:
         version: Target schema version for this migration
     """
+
     def decorator(func: Callable[[sqlite3.Connection], None]):
         MIGRATIONS[version] = func
         return func
+
     return decorator
 
 
 def migrate(conn: sqlite3.Connection, target_version: int = SCHEMA_VERSION) -> None:
     """Run all pending migrations to bring database to target version.
-    
+
     Args:
         conn: SQLite connection
         target_version: Target schema version (default: current SCHEMA_VERSION)
-    
+
     Raises:
         ValueError: If no migration registered for a required version
-    
+
     Note:
         Runs migrations inside a transaction. If any migration fails,
         the entire transaction is rolled back.
     """
     current = get_schema_version(conn)
-    
+
     if current >= target_version:
         logger.info(f"Schema already at version {current}, no migration needed")
         return
-    
+
     logger.info(f"Migrating schema from version {current} to {target_version}")
-    
+
     with conn:  # Transaction
         for version in range(current + 1, target_version + 1):
             if version not in MIGRATIONS:
                 raise ValueError(f"No migration registered for version {version}")
-            
+
             logger.info(f"Applying migration to version {version}...")
             MIGRATIONS[version](conn)
-            
+
             # Update version after successful migration
             conn.execute(
                 "INSERT OR REPLACE INTO schema_version (version, applied_at) VALUES (?, ?)",
-                (version, int(datetime.now().timestamp()))
+                (version, int(datetime.now().timestamp())),
             )
-    
+
     logger.info(f"Migration complete, schema now at version {get_schema_version(conn)}")
 
 
@@ -229,7 +231,7 @@ def migrate(conn: sqlite3.Connection, target_version: int = SCHEMA_VERSION) -> N
 @register_migration(2)
 def migrate_v1_to_v2(conn: sqlite3.Connection):
     """Migration from schema v1 to v2.
-    
+
     Adds vector embeddings support for semantic search:
     - symbols_vec virtual table (sqlite-vec extension)
     - 384-dimensional embeddings for BGE-small model
@@ -247,14 +249,14 @@ def migrate_v1_to_v2(conn: sqlite3.Connection):
 @register_migration(3)
 def migrate_v2_to_v3(conn: sqlite3.Connection):
     """Migration from schema v2 to v3.
-    
+
     Adds embedding_hash column to file_cache for incremental embedding invalidation.
     """
     # Check if column already exists
     row = conn.execute("""
         SELECT COUNT(*) FROM pragma_table_info('file_cache') WHERE name='embedding_hash'
     """).fetchone()
-    
+
     if row[0] == 0:
         conn.execute("ALTER TABLE file_cache ADD COLUMN embedding_hash TEXT")
         logger.info("Migration v2→v3: Added embedding_hash column to file_cache")
@@ -265,7 +267,7 @@ def migrate_v2_to_v3(conn: sqlite3.Connection):
 @register_migration(4)
 def migrate_v3_to_v4(conn: sqlite3.Connection):
     """Migration from schema v3 to v4.
-    
+
     Adds multi-language support:
     - lang column to symbols table
     - Index on lang for filtering
@@ -274,7 +276,7 @@ def migrate_v3_to_v4(conn: sqlite3.Connection):
     row = conn.execute("""
         SELECT COUNT(*) FROM pragma_table_info('symbols') WHERE name='lang'
     """).fetchone()
-    
+
     if row[0] == 0:
         conn.execute("""
             ALTER TABLE symbols ADD COLUMN lang TEXT NOT NULL DEFAULT 'python'
@@ -282,7 +284,7 @@ def migrate_v3_to_v4(conn: sqlite3.Connection):
         logger.info("Migration v3→v4: Added lang column to symbols table")
     else:
         logger.info("Migration v3→v4: lang column already exists")
-    
+
     # Add index on lang for filtering
     conn.execute("CREATE INDEX IF NOT EXISTS idx_symbols_lang ON symbols(lang)")
     logger.info("Migration v3→v4: Added index on symbols.lang")
@@ -291,7 +293,7 @@ def migrate_v3_to_v4(conn: sqlite3.Connection):
 @register_migration(5)
 def migrate_v4_to_v5(conn: sqlite3.Connection):
     """Migration from schema v4 to v5.
-    
+
     Phase 9 Schema Enrichments:
     - Metadata column to edges with size limit trigger
     - Edge type validation trigger (adds 'implements')
@@ -301,14 +303,14 @@ def migrate_v4_to_v5(conn: sqlite3.Connection):
     - audit_log table (security compliance)
     - Composite indexes for query optimization
     - callgraph_edges view (backward compatibility)
-    
+
     P0 Fixes Applied:
     - UUIDs (TEXT) consistently
     - 384-dim embeddings
     - ON DELETE CASCADE on all FKs
     - Transaction handling
     - ANN for KNN (hnswlib)
-    
+
     P1 Fixes Applied:
     - Embedding versioning
     - Composite indexes
@@ -316,12 +318,13 @@ def migrate_v4_to_v5(conn: sqlite3.Connection):
     """
     # Import migration logic from dedicated module
     from ast_tools.database.migrations.migration_009_schema_enrichments import migrate_v4_to_v5
+
     migrate_v4_to_v5(conn)
 
 
 def get_migration_sql() -> str:
     """Get the full schema SQL as a string.
-    
+
     Returns:
         Complete schema SQL for reference or manual inspection
     """

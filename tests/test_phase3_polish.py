@@ -13,17 +13,18 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
+from ast_tools.tools.ast_edit import _tool_ast_edit
 from ast_tools.tools.ast_grep import _tool_ast_grep
 from ast_tools.tools.ast_read import _tool_ast_read
-from ast_tools.tools.ast_edit import _tool_ast_edit
-from ast_tools.tools.structural_analysis import _tool_structural_analysis
 from ast_tools.tools.find_references import _tool_find_references
+from ast_tools.tools.structural_analysis import _tool_structural_analysis
 from ast_tools_server import call_tool
 
 # Import extracted tools from package
 
 
 # ─── Helpers ───────────────────────────────────────────────────────────────
+
 
 def _make_file(directory: str, name: str, content: str) -> str:
     """Create a file and return its full path."""
@@ -98,10 +99,14 @@ PUBLIC_VALUE = 99
 
 # ─── __all__ filtering tests ──────────────────────────────────────────────
 
+
 class TestAllFiltering:
     def test_no_all_returns_all(self, tmp_path):
         """Without __all__, all public symbols are returned."""
-        core = _make_file(str(tmp_path), "no_all.py", '''\
+        core = _make_file(
+            str(tmp_path),
+            "no_all.py",
+            '''\
 """Module without __all__."""
 
 class DataProcessor:
@@ -138,7 +143,8 @@ def _private_func() -> int:
     return 42
 
 PUBLIC_VALUE = 42
-''')
+''',
+        )
         result = _tool_ast_read({"file": core})
         assert result["filtered_by__all__"] is False
         class_names = [c["name"] for c in result["classes"]]
@@ -188,7 +194,10 @@ PUBLIC_VALUE = 42
 
     def test_empty_all(self, tmp_path):
         """Empty __all__ = [] hides everything."""
-        core = _make_file(str(tmp_path), "empty_all.py", '''\
+        core = _make_file(
+            str(tmp_path),
+            "empty_all.py",
+            """\
 __all__ = []
 
 class MyClass:
@@ -198,7 +207,8 @@ def my_func():
     pass
 
 MY_VAR = 1
-''')
+""",
+        )
         result = _tool_ast_read({"file": core})
         assert result["filtered_by__all__"] is True
         assert len(result["classes"]) == 0
@@ -215,6 +225,7 @@ MY_VAR = 1
 
 
 # ─── Structured error codes tests ─────────────────────────────────────────
+
 
 class TestErrorCodes:
     def test_ast_read_file_not_found(self):
@@ -234,11 +245,13 @@ class TestErrorCodes:
         assert result["tool"] == "ast_read"
 
     def test_ast_edit_file_not_found(self):
-        result = _tool_ast_edit({
-            "file": "/nonexistent/path/to/file.py",
-            "operation": "rename_function",
-            "params": {"old_name": "foo", "new_name": "bar"},
-        })
+        result = _tool_ast_edit(
+            {
+                "file": "/nonexistent/path/to/file.py",
+                "operation": "rename_function",
+                "params": {"old_name": "foo", "new_name": "bar"},
+            }
+        )
         assert "error" in result
         assert result["error_code"] == "NOT_FOUND"
         assert result["tool"] == "ast_edit"
@@ -247,11 +260,13 @@ class TestErrorCodes:
         with tempfile.NamedTemporaryFile(suffix=".py", mode="w", delete=False) as f:
             f.write("def broken(:\n  pass\n")
             f.flush()
-            result = _tool_ast_edit({
-                "file": f.name,
-                "operation": "rename_function",
-                "params": {"old_name": "foo", "new_name": "bar"},
-            })
+            result = _tool_ast_edit(
+                {
+                    "file": f.name,
+                    "operation": "rename_function",
+                    "params": {"old_name": "foo", "new_name": "bar"},
+                }
+            )
             os.unlink(f.name)
         assert "error" in result
         assert result["error_code"] == "PARSE_ERROR"
@@ -261,11 +276,13 @@ class TestErrorCodes:
         with tempfile.NamedTemporaryFile(suffix=".py", mode="w", delete=False) as f:
             f.write("def foo(): pass\n")
             f.flush()
-            result = _tool_ast_edit({
-                "file": f.name,
-                "operation": "nonexistent_op",
-                "params": {},
-            })
+            result = _tool_ast_edit(
+                {
+                    "file": f.name,
+                    "operation": "nonexistent_op",
+                    "params": {},
+                }
+            )
             os.unlink(f.name)
         assert "error" in result
         assert result["error_code"] == "INVALID_INPUT"
@@ -273,19 +290,23 @@ class TestErrorCodes:
 
     def test_ast_grep_cli_not_found(self):
         """ast-grep CLI not installed returns NOT_FOUND error code."""
-        result = _tool_ast_grep({
-            "pattern": "def $FUNC($$$ARGS): $BODY",
-            "path": "/nonexistent/zzz",
-            "lang": "python",
-        })
+        result = _tool_ast_grep(
+            {
+                "pattern": "def $FUNC($$$ARGS): $BODY",
+                "path": "/nonexistent/zzz",
+                "lang": "python",
+            }
+        )
         # ast-grep not installed returns NOT_FOUND
         assert result.get("error_code") == "NOT_FOUND" or "matches" in result
 
     def test_structural_analysis_missing_file(self):
-        result = _tool_structural_analysis({
-            "analysis_type": "references",
-            "symbol": "Foo",
-        })
+        result = _tool_structural_analysis(
+            {
+                "analysis_type": "references",
+                "symbol": "Foo",
+            }
+        )
         assert "error" in result
         assert result["error_code"] == "INVALID_INPUT"
         assert result["tool"] == "structural_analysis"
@@ -294,10 +315,12 @@ class TestErrorCodes:
         with tempfile.NamedTemporaryFile(suffix=".py", mode="w", delete=False) as f:
             f.write("x = 1\n")
             f.flush()
-            result = _tool_structural_analysis({
-                "analysis_type": "callers",
-                "file": f.name,
-            })
+            result = _tool_structural_analysis(
+                {
+                    "analysis_type": "callers",
+                    "file": f.name,
+                }
+            )
             os.unlink(f.name)
         assert "error" in result
         assert result["error_code"] == "INVALID_INPUT"
@@ -334,12 +357,13 @@ def src_dir():
 
 # ─── CLI polish tests ─────────────────────────────────────────────────────
 
+
 class TestCLIPolish:
     def _run_cli(self, args, cwd):
         env = os.environ.copy()
         env["PYTHONPATH"] = self._src_dir
         proc = subprocess.run(
-            [sys.executable, "-m", "project_tools"] + args,
+            [sys.executable, "-m", "project_tools", *args],
             cwd=str(cwd),
             capture_output=True,
             text=True,
@@ -365,7 +389,10 @@ class TestCLIPolish:
 
     def test_project_summary_subcommand(self, tmp_path):
         root = str(tmp_path)
-        _make_file(root, "app.py", '''\
+        _make_file(
+            root,
+            "app.py",
+            '''\
 """My app."""
 
 __all__ = ["main"]
@@ -373,7 +400,8 @@ __all__ = ["main"]
 def main():
     """Main entry point."""
     print("hello")
-''')
+''',
+        )
         proc = self._run_cli(["project-summary"], tmp_path)
         assert proc.returncode == 0
         data = json.loads(proc.stdout)

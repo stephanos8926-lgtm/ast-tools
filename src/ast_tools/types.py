@@ -5,12 +5,12 @@ and tools packages. Centralizing types here prevents circular imports.
 """
 
 from dataclasses import dataclass
-from typing import Optional, List, Tuple
 from enum import Enum
 
 
 class SymbolKind(str, Enum):
     """Valid symbol kinds in the index."""
+
     FUNCTION = "function"
     CLASS = "class"
     METHOD = "method"
@@ -21,6 +21,7 @@ class SymbolKind(str, Enum):
 
 class EdgeKind(str, Enum):
     """Valid edge types between symbols."""
+
     CALLS = "calls"
     IMPORTS = "imports"
     INHERITS = "inherits"
@@ -30,6 +31,7 @@ class EdgeKind(str, Enum):
 
 class ResolutionState(int, Enum):
     """Edge resolution states."""
+
     UNRESOLVED = 0
     RESOLVED = 1
     STALE = 2
@@ -38,7 +40,7 @@ class ResolutionState(int, Enum):
 @dataclass
 class Symbol:
     """Represents a code symbol (function, class, method, etc.).
-    
+
     Attributes:
         id: Unique identifier (file_path:qualified_name)
         name: Simple symbol name
@@ -54,6 +56,7 @@ class Symbol:
         embedding: 384-dim vector embedding for semantic search (optional)
         lang: Programming language code (python, rust, go, typescript, etc.)
     """
+
     id: str
     name: str
     qualified_name: str
@@ -61,18 +64,18 @@ class Symbol:
     file_path: str
     start_line: int
     end_line: int
-    signature: Optional[str] = None
-    docstring: Optional[str] = None
+    signature: str | None = None
+    docstring: str | None = None
     is_public: bool = True
     content_hash: str = ""
-    embedding: Optional[List[float]] = None  # Phase 2: vector embedding
+    embedding: list[float] | None = None  # Phase 2: vector embedding
     lang: str = "python"  # Programming language
-    
+
     def __post_init__(self):
         """Validate and normalize kind field."""
         if isinstance(self.kind, str):
             self.kind = SymbolKind(self.kind.lower())
-        
+
         # Auto-detect public status if not set
         if self.name.startswith("_"):
             self.is_public = False
@@ -81,7 +84,7 @@ class Symbol:
 @dataclass
 class Edge:
     """Represents a relationship between two symbols.
-    
+
     Attributes:
         source_id: ID of the source symbol (the caller/importer)
         target_name: Name of target symbol (may be unresolved)
@@ -90,13 +93,14 @@ class Edge:
         resolution_state: Whether target has been resolved
         metadata: Optional JSON metadata (Phase 9: edge context)
     """
+
     source_id: str
     target_name: str
     edge_type: EdgeKind | str
-    target_id: Optional[str] = None
+    target_id: str | None = None
     resolution_state: ResolutionState | int = ResolutionState.UNRESOLVED
-    metadata: Optional[dict] = None  # Phase 9: additional context
-    
+    metadata: dict | None = None  # Phase 9: additional context
+
     def __post_init__(self):
         """Validate and normalize edge_type and resolution_state."""
         if isinstance(self.edge_type, str):
@@ -108,13 +112,14 @@ class Edge:
 @dataclass
 class FileCache:
     """Cached metadata for an indexed file.
-    
+
     Attributes:
         file_path: Path to the source file
         content_hash: SHA256 hash of file content
         last_indexed: Unix timestamp of last indexing
         symbol_count: Number of symbols extracted
     """
+
     file_path: str
     content_hash: str
     last_indexed: int
@@ -128,7 +133,7 @@ FileCacheEntry = FileCache
 @dataclass
 class IndexStats:
     """Statistics about the codebase index.
-    
+
     Attributes:
         indexed_files: Number of files in index
         total_symbols: Total symbols across all files
@@ -136,6 +141,7 @@ class IndexStats:
         cache_path: Path to cache directory
         last_update: Unix timestamp of last update
     """
+
     indexed_files: int
     total_symbols: int
     total_edges: int
@@ -144,24 +150,24 @@ class IndexStats:
 
 
 # Type aliases for convenience
-SymbolList = List[Symbol]
-EdgeList = List[Edge]
+SymbolList = list[Symbol]
+EdgeList = list[Edge]
 SymbolDict = dict[str, Symbol]
-EdgeTuple = Tuple[str, str, str]  # (source_id, target_name, edge_type)
+EdgeTuple = tuple[str, str, str]  # (source_id, target_name, edge_type)
 
 __all__ = [
-    # Enums
-    "SymbolKind",
+    "Edge",
     "EdgeKind",
+    "EdgeList",
+    "EdgeTuple",
+    "FileCache",
+    "IndexStats",
     "ResolutionState",
     # Dataclasses
     "Symbol",
-    "Edge",
-    "FileCache",
-    "IndexStats",
+    "SymbolDict",
+    # Enums
+    "SymbolKind",
     # Type aliases
     "SymbolList",
-    "EdgeList",
-    "SymbolDict",
-    "EdgeTuple",
 ]

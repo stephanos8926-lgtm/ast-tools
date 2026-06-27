@@ -42,6 +42,7 @@ def _ensure_tree_sitter():
     if _tree_sitter is None:
         try:
             import tree_sitter
+
             _tree_sitter = tree_sitter
         except ImportError:
             raise ImportError(
@@ -52,28 +53,30 @@ def _ensure_tree_sitter():
 
 def _get_language(lang: str):
     """Get a tree-sitter Language object for the given language code.
-    
+
     Args:
         lang: Language code (python, rust, go, typescript, javascript, cpp, c, json, yaml, bash)
-    
+
     Returns:
         tree_sitter.Language object
-    
+
     Raises:
         ImportError: If tree-sitter or language parser not installed
         ValueError: If language not supported
     """
     ts = _ensure_tree_sitter()
-    
+
     if lang not in _LANGUAGE_MAP:
-        raise ValueError(f"Unsupported language: {lang}. Supported: {', '.join(_LANGUAGE_MAP.keys())}")
-    
+        raise ValueError(
+            f"Unsupported language: {lang}. Supported: {', '.join(_LANGUAGE_MAP.keys())}"
+        )
+
     if _LANGUAGE_MAP[lang] is None:
         # Lazy load the parser module
         module_name = f"tree_sitter_{lang.replace('-', '_')}"
         try:
             module = __import__(module_name)
-            
+
             # Special handling for tree-sitter-typescript which has separate languages
             if lang == "typescript":
                 _LANGUAGE_MAP[lang] = ts.Language(module.language_typescript())
@@ -88,17 +91,18 @@ def _get_language(lang: str):
             ) from e
         except AttributeError as e:
             # Fallback for modules with different attribute names
-            if lang == "typescript" and hasattr(module, 'language_typescript'):
+            if lang == "typescript" and hasattr(module, "language_typescript"):
                 _LANGUAGE_MAP[lang] = ts.Language(module.language_typescript())
             else:
                 raise ImportError(
                     f"Parser for {lang} has unexpected API. Module: {module_name}"
                 ) from e
-    
+
     return _LANGUAGE_MAP[lang]
 
 
 # ─── Parse ────────────────────────────────────────────────────────────────
+
 
 def ts_parse(source: str, lang: str = "python"):
     """Parse source code with tree-sitter.
@@ -121,6 +125,7 @@ def ts_parse(source: str, lang: str = "python"):
 
 
 # ─── Grep ─────────────────────────────────────────────────────────────────
+
 
 def ts_grep(tree, pattern: str) -> list[dict[str, Any]]:
     """Search a tree-sitter parse tree for matching nodes (Python-only for backward compat).
@@ -174,15 +179,17 @@ def ts_grep(tree, pattern: str) -> list[dict[str, Any]]:
     # captures is a dict of {capture_name: [nodes]}
     for name, nodes in captures.items():
         for node in nodes:
-            results.append({
-                "type": node.type,
-                "text": node.text.decode("utf-8"),
-                "start_line": node.start_point[0] + 1,  # 1-indexed
-                "start_col": node.start_point[1],
-                "end_line": node.end_point[0] + 1,  # 1-indexed
-                "end_col": node.end_point[1],
-                "captures": [name],
-            })
+            results.append(
+                {
+                    "type": node.type,
+                    "text": node.text.decode("utf-8"),
+                    "start_line": node.start_point[0] + 1,  # 1-indexed
+                    "start_col": node.start_point[1],
+                    "end_line": node.end_point[0] + 1,  # 1-indexed
+                    "end_col": node.end_point[1],
+                    "captures": [name],
+                }
+            )
 
     return results
 
@@ -270,7 +277,7 @@ def ts_grep_lang(tree, pattern: str, lang: str) -> list[dict[str, Any]]:
     }
 
     patterns = _LANG_PATTERNS.get(lang, {})
-    
+
     if pattern in patterns:
         query_str = patterns[pattern]
     elif pattern in _LANG_PATTERNS.get("python", {}):
@@ -288,15 +295,17 @@ def ts_grep_lang(tree, pattern: str, lang: str) -> list[dict[str, Any]]:
     results = []
     for name, nodes in captures.items():
         for node in nodes:
-            results.append({
-                "type": node.type,
-                "text": node.text.decode("utf-8"),
-                "start_line": node.start_point[0] + 1,
-                "start_col": node.start_point[1],
-                "end_line": node.end_point[0] + 1,
-                "end_col": node.end_point[1],
-                "captures": [name],
-            })
+            results.append(
+                {
+                    "type": node.type,
+                    "text": node.text.decode("utf-8"),
+                    "start_line": node.start_point[0] + 1,
+                    "start_col": node.start_point[1],
+                    "end_line": node.end_point[0] + 1,
+                    "end_col": node.end_point[1],
+                    "captures": [name],
+                }
+            )
 
     return results
 
@@ -304,21 +313,24 @@ def ts_grep_lang(tree, pattern: str, lang: str) -> list[dict[str, Any]]:
 def _flatten_nodes(node) -> list[dict[str, Any]]:
     """Flatten all nodes into a list of match dicts."""
     results = []
-    results.append({
-        "type": node.type,
-        "text": node.text.decode("utf-8")[:200],
-        "start_line": node.start_point[0] + 1,
-        "start_col": node.start_point[1],
-        "end_line": node.end_point[0] + 1,
-        "end_col": node.end_point[1],
-        "captures": [],
-    })
+    results.append(
+        {
+            "type": node.type,
+            "text": node.text.decode("utf-8")[:200],
+            "start_line": node.start_point[0] + 1,
+            "start_col": node.start_point[1],
+            "end_line": node.end_point[0] + 1,
+            "end_col": node.end_point[1],
+            "captures": [],
+        }
+    )
     for child in node.children:
         results.extend(_flatten_nodes(child))
     return results
 
 
 # ─── Read (API surface extraction) ────────────────────────────────────────
+
 
 def ts_read(tree, lang: str = "python") -> dict[str, Any]:
     """Extract API surface from a tree-sitter parse tree.
@@ -363,7 +375,7 @@ def _walk_ts_node(node, functions, classes, imports, lang: str = "python"):
     """Walk a tree-sitter node tree and extract API surface."""
     # Get language-specific node types
     node_types = _get_node_types(lang)
-    
+
     for child in node.children:
         if child.type in node_types.get("function", []):
             _extract_function_ts(child, functions, lang)
@@ -445,7 +457,7 @@ def ts_read_lang(file_path: str, lang: str) -> dict[str, Any]:
         Dict with functions, classes, imports, summary (same as ts_read)
     """
     from pathlib import Path
-    
+
     try:
         source = Path(file_path).read_text(encoding="utf-8")
         tree = ts_parse(source, lang)
@@ -471,12 +483,14 @@ def _extract_function_ts(node, functions: list, lang: str = "python"):
 
     signature = f"({', '.join(params)})" if params else "()"
 
-    functions.append({
-        "name": name,
-        "signature": signature,
-        "line": line,
-        "docstring": None,  # tree-sitter doesn't reliably extract docstrings
-    })
+    functions.append(
+        {
+            "name": name,
+            "signature": signature,
+            "line": line,
+            "docstring": None,  # tree-sitter doesn't reliably extract docstrings
+        }
+    )
 
 
 def _extract_params_ts(node, lang: str = "python") -> list[str]:
@@ -515,20 +529,22 @@ def _extract_class_ts(node, classes: list, lang: str = "python"):
             # Body — find methods
             _extract_methods_ts(child, methods, lang)
 
-    classes.append({
-        "name": name,
-        "line": line,
-        "bases": bases,
-        "methods": methods,
-        "docstring": None,
-    })
+    classes.append(
+        {
+            "name": name,
+            "line": line,
+            "bases": bases,
+            "methods": methods,
+            "docstring": None,
+        }
+    )
 
 
 def _extract_methods_ts(node, methods: list, lang: str = "python"):
     """Extract method definitions from a class body."""
     node_types = _get_node_types(lang)
     function_types = node_types.get("function", ["function_definition"])
-    
+
     for child in node.children:
         if child.type in function_types:
             name = ""
@@ -536,10 +552,12 @@ def _extract_methods_ts(node, methods: list, lang: str = "python"):
             for sub in child.children:
                 if sub.type in ("identifier", "name"):
                     name = sub.text.decode("utf-8")
-            methods.append({
-                "name": name,
-                "line": line,
-            })
+            methods.append(
+                {
+                    "name": name,
+                    "line": line,
+                }
+            )
 
 
 def _extract_import_ts(node, imports: list, lang: str = "python"):
@@ -572,17 +590,19 @@ def _extract_import_ts(node, imports: list, lang: str = "python"):
                 module = child.text.decode("utf-8").strip('"')
                 names = [module.split("/")[-1]]
 
-    imports.append({
-        "module": module,
-        "names": names,
-        "line": line,
-    })
+    imports.append(
+        {
+            "module": module,
+            "names": names,
+            "line": line,
+        }
+    )
 
 
 __all__ = [
-    "ts_parse",
     "ts_grep",
     "ts_grep_lang",
+    "ts_parse",
     "ts_read",
     "ts_read_lang",
 ]

@@ -6,14 +6,14 @@ Submodules:
     cache: JSON-based cache with LRU eviction
 """
 
-from .parser import Parser, parse_file
-from .extractor import SymbolExtractor, extract_symbols
 from .cache import ASTCache
+from .extractor import SymbolExtractor, extract_symbols
+from .parser import Parser, parse_file
 
 __all__ = [
+    "ASTCache",
     "Parser",
     "SymbolExtractor",
     "extract_symbols",
     "parse_file",
-    "ASTCache",
 ]

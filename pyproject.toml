@@ -1,6 +1,6 @@
 [build-system]
-requires = ["setuptools>=68.0", "wheel"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [project]
 name = "ast-tools"
@@ -10,15 +10,44 @@ readme = "README.md"
 license = {text = "MIT"}
 requires-python = ">=3.10"
 authors = [
-    {name = "ZOO"},
+    {name = "RapidWebs Enterprise", email = "dev@rapidwebs.com"},
 ]
+keywords = ["mcp", "code-analysis", "ast", "refactoring", "semantic-search"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Software Development :: Code Generators",
+]
+
 dependencies = [
     "anyio>=4.0",
     "libcst>=1.0",
     "mcp>=1.0",
+    "sqlite-vec>=0.1.0",
+    "sentence-transformers>=2.2.0",
+    "tiktoken>=0.7.0",
+    "tree-sitter>=0.23",
+    "jedi>=0.19.0",
+    "watchdog>=4.0.0",
+    "sqlparse>=0.5.0",
 ]
 
 [project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+    "pytest-cov>=4.1",
+    "ruff>=0.4.0",
+    "pre-commit>=3.6",
+    "hnswlib>=0.8.0",
+]
 tree-sitter = [
     "tree-sitter>=0.23",
     "tree-sitter-python>=0.23",
@@ -31,15 +60,75 @@ tree-sitter = [
 ast-tools-server = "ast_tools_server:main"
 ast-tools-project = "project_tools:cli_main"
 
-[tool.setuptools]
-package-dir = {"" = "src"}
+[tool.hatch.build.targets.wheel]
+packages = ["src/ast_tools"]
 
-[tool.setuptools.packages.find]
-where = ["src"]
+# Ruff configuration - linting + formatting
+[tool.ruff]
+line-length = 100
+target-version = "py310"
 
+[tool.ruff.lint]
+select = [
+    "E",      # pycodestyle errors
+    "W",      # pycodestyle warnings
+    "F",      # pyflakes
+    "I",      # isort
+    "B",      # flake8-bugbear
+    "C4",     # flake8-comprehensions
+    "UP",     # pyupgrade
+    "ARG",    # flake8-unused-arguments
+    "SIM",    # flake8-simplify
+    "TCH",    # flake8-type-checking
+    "RUF",    # ruff-specific rules
+]
+ignore = [
+    "E501",   # line too long (handled by formatter)
+    "B008",   # function call in argument defaults (common in async)
+    "B904",   # raise without from (we do this intentionally)
+    "RUF012", # mutable class defaults (handled by type checker)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401", "F403"]  # star imports in compat shims
+"tests/**/*.py" = ["ARG001", "S101"]  # unused args in tests, assert allowed
+"**/fixtures/*.py" = ["ALL"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["ast_tools"]
+known-third-party = ["libcst", "mcp", "sentence_transformers"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "lf"
+
+# Pytest configuration
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
-addopts = "-v --tb=short"
+addopts = "-v --tb=short --cov=ast_tools --cov-report=term-missing"
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+
+# Coverage configuration
+[tool.coverage.run]
+source = ["src/ast_tools"]
+branch = true
+omit = [
+    "*/tests/*",
+    "*/__pycache__/*",
+    "*/site-packages/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise NotImplementedError",
+    "if TYPE_CHECKING:",
+    "if __name__ == .__main__.:",
+]

@@ -10,8 +10,9 @@ from hermes_cli.plugins import PluginContext
 
 
 def register(ctx: PluginContext):
-    """Register ast-tools context injection hook."""
+    """Register ast-tools context injection hooks."""
     ctx.register_hook("pre_llm_call", inject_ast_tools_context)
+    ctx.register_hook("on_session_start", inject_session_onboarding)
 
 
 def inject_ast_tools_context(
@@ -170,3 +171,28 @@ def build_ast_tools_context(query: str) -> str:
 
 **Tip:** Use Context7 (say "use context7") for library documentation when working with external APIs.
 """
+
+
+def inject_session_onboarding(session_id: str, **kwargs) -> dict:
+    """Inject compact ast-tools index at session start."""
+    return {
+        "context": """
+## AST-Tools Quick Index (29 tools available)
+
+**Core:** ast_grep (structural search), ast_read (API surface), ast_edit (surgical edits—dry_run FIRST!), semantic_search (inject_context=True)
+
+**Analysis:** impact_analysis (before API changes), module_imports (before splits), structural_analysis (callers/callees), find_references (before renaming)
+
+**Gotchas:** 
+- ast_edit: Always dry_run=true before applying
+- semantic_search: inject_context=True (default), token_budget=4096, diversity_limit=3
+- refresh_index: incremental via SHA256 hashing, watcher auto-enabled
+
+**Full reference:** Say "ast-tools help" or "show me ast_edit examples"
+
+⚠️ **Verification-before-completion active:**
+- Before claiming done → run pytest/ruff/make test, show output
+- Before claiming tools exist → ls src/ + grep __init__.py
+- Never trust docs over source code
+"""
+    }

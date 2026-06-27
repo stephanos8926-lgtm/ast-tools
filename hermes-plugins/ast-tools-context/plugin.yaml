@@ -9,5 +9,6 @@ tags:
   - code-analysis
   - structural-search
 hooks:
+  - on_session_start
   - pre_llm_call
 requirements: []

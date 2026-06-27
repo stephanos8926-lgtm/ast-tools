@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """Extract interface from a class using libcst."""
 
-import libcst as cst
 from pathlib import Path
 from typing import Any
+
+import libcst as cst
 
 
 def _tool_ast_refactor_extract_interface(args: dict[str, Any]) -> dict[str, Any]:
@@ -19,13 +20,21 @@ def _tool_ast_refactor_extract_interface(args: dict[str, Any]) -> dict[str, Any]
     dry_run = args.get("dry_run", False)
 
     if not file_path.exists():
-        return {"error": f"File not found: {file_path}", "error_code": "NOT_FOUND", "tool": "ast_refactor_extract_interface"}
+        return {
+            "error": f"File not found: {file_path}",
+            "error_code": "NOT_FOUND",
+            "tool": "ast_refactor_extract_interface",
+        }
 
     source = file_path.read_text()
     try:
         tree = cst.parse_module(source)
     except Exception as e:
-        return {"error": f"Parse error: {e}", "error_code": "PARSE_ERROR", "tool": "ast_refactor_extract_interface"}
+        return {
+            "error": f"Parse error: {e}",
+            "error_code": "PARSE_ERROR",
+            "tool": "ast_refactor_extract_interface",
+        }
 
     # Find the target class
     target_class = None
@@ -35,7 +44,11 @@ def _tool_ast_refactor_extract_interface(args: dict[str, Any]) -> dict[str, Any]
             break
 
     if not target_class:
-        return {"error": f"Class '{class_name}' not found in {file_path}", "error_code": "NOT_FOUND", "tool": "ast_refactor_extract_interface"}
+        return {
+            "error": f"Class '{class_name}' not found in {file_path}",
+            "error_code": "NOT_FOUND",
+            "tool": "ast_refactor_extract_interface",
+        }
 
     # Extract public methods
     interface_methods = []
@@ -70,17 +83,25 @@ def _tool_ast_refactor_extract_interface(args: dict[str, Any]) -> dict[str, Any]
                 continue
 
             # Create abstract method signature
-            method_stub = _create_method_stub(item, is_property, is_classmethod, is_staticmethod, interface_type)
+            method_stub = _create_method_stub(
+                item, is_property, is_classmethod, is_staticmethod, interface_type
+            )
             interface_methods.append(method_stub)
 
     if not interface_methods:
-        return {"error": f"No public methods found in class '{class_name}'", "error_code": "NO_METHODS", "tool": "ast_refactor_extract_interface"}
+        return {
+            "error": f"No public methods found in class '{class_name}'",
+            "error_code": "NO_METHODS",
+            "tool": "ast_refactor_extract_interface",
+        }
 
     # Generate interface file content
     if interface_type == "abc":
         interface_code = _generate_abc_interface(interface_name, target_class, interface_methods)
     else:
-        interface_code = _generate_protocol_interface(interface_name, target_class, interface_methods)
+        interface_code = _generate_protocol_interface(
+            interface_name, target_class, interface_methods
+        )
 
     # Determine output file path
     if not output_file:
@@ -102,14 +123,22 @@ def _tool_ast_refactor_extract_interface(args: dict[str, Any]) -> dict[str, Any]
         result["interface_written"] = True
 
         # Modify source file to add interface inheritance
-        modified_source = _add_interface_inheritance(source, class_name, interface_name, file_path.parent)
+        modified_source = _add_interface_inheritance(
+            source, class_name, interface_name, file_path.parent
+        )
         Path(file_path).write_text(modified_source)
         result["source_modified"] = True
 
     return result
 
 
-def _create_method_stub(method: cst.FunctionDef, is_property: bool, is_classmethod: bool, is_staticmethod: bool, interface_type: str) -> cst.FunctionDef:
+def _create_method_stub(
+    method: cst.FunctionDef,
+    is_property: bool,
+    is_classmethod: bool,
+    is_staticmethod: bool,
+    interface_type: str,
+) -> cst.FunctionDef:
     """Create an abstract method stub from a method definition."""
     # Build decorator list
     decorators = []
@@ -145,10 +174,12 @@ def _create_method_stub(method: cst.FunctionDef, is_property: bool, is_classmeth
     )
 
 
-def _generate_abc_interface(interface_name: str, target_class: cst.ClassDef, methods: list[cst.FunctionDef]) -> str:
+def _generate_abc_interface(
+    interface_name: str, target_class: cst.ClassDef, methods: list[cst.FunctionDef]
+) -> str:
     """Generate an Abstract Base Class interface."""
     lines = [
-        "\"\"\"Auto-generated interface for backward compatibility.\"\"\"",
+        '"""Auto-generated interface for backward compatibility."""',
         "from abc import ABC, abstractmethod",
         "",
         "",
@@ -173,10 +204,12 @@ def _generate_abc_interface(interface_name: str, target_class: cst.ClassDef, met
     return "\n".join(lines)
 
 
-def _generate_protocol_interface(interface_name: str, target_class: cst.ClassDef, methods: list[cst.FunctionDef]) -> str:
+def _generate_protocol_interface(
+    interface_name: str, target_class: cst.ClassDef, methods: list[cst.FunctionDef]
+) -> str:
     """Generate a typing.Protocol interface."""
     lines = [
-        "\"\"\"Auto-generated protocol interface for backward compatibility.\"\"\"",
+        '"""Auto-generated protocol interface for backward compatibility."""',
         "from typing import Protocol",
         "",
         "",
@@ -199,17 +232,21 @@ def _generate_protocol_interface(interface_name: str, target_class: cst.ClassDef
     return "\n".join(lines)
 
 
-def _add_interface_inheritance(source: str, class_name: str, interface_name: str, module_dir: Path) -> str:
+def _add_interface_inheritance(
+    source: str, class_name: str, interface_name: str, module_dir: Path
+) -> str:
     """Add interface to class inheritance list."""
     tree = cst.parse_module(source)
 
     class InterfaceAdder(cst.CSTTransformer):
-        def leave_ClassDef(self, original_node: cst.ClassDef, updated_node: cst.ClassDef) -> cst.ClassDef:
+        def leave_ClassDef(
+            self, original_node: cst.ClassDef, updated_node: cst.ClassDef
+        ) -> cst.ClassDef:
             if original_node.name.value == class_name:
                 # Create base class reference
                 new_base = cst.Arg(value=cst.Name(interface_name))
                 if updated_node.bases:
-                    new_bases = list(updated_node.bases) + [new_base]
+                    new_bases = [*list(updated_node.bases), new_base]
                 else:
                     new_bases = [new_base]
                 return updated_node.with_changes(bases=new_bases)

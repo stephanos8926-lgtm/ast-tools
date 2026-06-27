@@ -14,7 +14,11 @@ def _tool_find_references(args: dict[str, Any]) -> dict[str, Any]:
     limit = int(args.get("limit", 100))
 
     if not symbol:
-        return {"error": "symbol is required", "error_code": "INVALID_INPUT", "tool": "find_references"}
+        return {
+            "error": "symbol is required",
+            "error_code": "INVALID_INPUT",
+            "tool": "find_references",
+        }
 
     try:
         refs = _ast_find_references(symbol, cwd)

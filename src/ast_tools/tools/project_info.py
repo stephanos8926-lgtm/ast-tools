@@ -8,10 +8,10 @@ def _tool_project_info(args: dict[str, Any]) -> dict[str, Any]:
     cwd = args.get("cwd", ".")
     full = args.get("full", False)
     diff = args.get("diff", False)
-    
+
     try:
-        from project_tools import project_info, project_info_summary, generate_project_json
-        
+        from project_tools import generate_project_json, project_info, project_info_summary
+
         if diff:
             return generate_project_json(cwd, diff=True)
         if full:

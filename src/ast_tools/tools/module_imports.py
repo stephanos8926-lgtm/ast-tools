@@ -24,6 +24,7 @@ def _tool_module_imports(args: dict[str, Any]) -> dict[str, Any]:
     max_files = int(args.get("max_files", 500))
 
     from project_tools import find_project_root
+
     root = find_project_root(cwd)
 
     # Resolve module path to file path
@@ -48,7 +49,9 @@ def _tool_module_imports(args: dict[str, Any]) -> dict[str, Any]:
                 }
 
     target_str = str(target_path)
-    target_rel = str(target_path.relative_to(root)) if target_path.is_relative_to(root) else target_str
+    target_rel = (
+        str(target_path.relative_to(root)) if target_path.is_relative_to(root) else target_str
+    )
     target_module = _normalize_module_path(target_rel)
 
     fan_in: list[dict] = []
@@ -69,33 +72,42 @@ def _tool_module_imports(args: dict[str, Any]) -> dict[str, Any]:
                 if isinstance(node, ast.Import):
                     for alias in node.names:
                         mod_name = alias.name
-                        fan_out.append({
-                            "module": mod_name,
-                            "line": node.lineno,
-                            "type": "import",
-                            "name": alias.asname or alias.name,
-                        })
-                        import_lines.append({
-                            "file": target_rel,
-                            "line": node.lineno,
-                            "statement": f"import {mod_name}" + (f" as {alias.asname}" if alias.asname else ""),
-                            "direction": "out",
-                        })
+                        fan_out.append(
+                            {
+                                "module": mod_name,
+                                "line": node.lineno,
+                                "type": "import",
+                                "name": alias.asname or alias.name,
+                            }
+                        )
+                        import_lines.append(
+                            {
+                                "file": target_rel,
+                                "line": node.lineno,
+                                "statement": f"import {mod_name}"
+                                + (f" as {alias.asname}" if alias.asname else ""),
+                                "direction": "out",
+                            }
+                        )
                 elif isinstance(node, ast.ImportFrom):
                     mod_name = node.module or ""
                     names = [a.name for a in node.names]
-                    fan_out.append({
-                        "module": mod_name,
-                        "line": node.lineno,
-                        "type": "from",
-                        "names": names,
-                    })
-                    import_lines.append({
-                        "file": target_rel,
-                        "line": node.lineno,
-                        "statement": f"from {mod_name} import {', '.join(names)}",
-                        "direction": "out",
-                    })
+                    fan_out.append(
+                        {
+                            "module": mod_name,
+                            "line": node.lineno,
+                            "type": "from",
+                            "names": names,
+                        }
+                    )
+                    import_lines.append(
+                        {
+                            "file": target_rel,
+                            "line": node.lineno,
+                            "statement": f"from {mod_name} import {', '.join(names)}",
+                            "direction": "out",
+                        }
+                    )
 
     # Fan-in: what imports from target
     for py_file in find_python_files(str(root), max_files=max_files):
@@ -110,34 +122,46 @@ def _tool_module_imports(args: dict[str, Any]) -> dict[str, Any]:
             if isinstance(node, ast.Import):
                 for alias in node.names:
                     if alias.name == target_module or alias.name.startswith(target_module + "."):
-                        fan_in.append({
-                            "module": alias.name,
-                            "file": rel,
-                            "line": node.lineno,
-                            "type": "import",
-                        })
-                        import_lines.append({
-                            "file": rel,
-                            "line": node.lineno,
-                            "statement": f"import {alias.name}" + (f" as {alias.asname}" if alias.asname else ""),
-                            "direction": "in",
-                        })
-            elif isinstance(node, ast.ImportFrom):
-                if node.module and (node.module == target_module or node.module.startswith(target_module + ".")):
-                    names = [a.name for a in node.names]
-                    fan_in.append({
+                        fan_in.append(
+                            {
+                                "module": alias.name,
+                                "file": rel,
+                                "line": node.lineno,
+                                "type": "import",
+                            }
+                        )
+                        import_lines.append(
+                            {
+                                "file": rel,
+                                "line": node.lineno,
+                                "statement": f"import {alias.name}"
+                                + (f" as {alias.asname}" if alias.asname else ""),
+                                "direction": "in",
+                            }
+                        )
+            elif (
+                isinstance(node, ast.ImportFrom)
+                and node.module
+                and (node.module == target_module or node.module.startswith(target_module + "."))
+            ):
+                names = [a.name for a in node.names]
+                fan_in.append(
+                    {
                         "module": node.module,
                         "file": rel,
                         "line": node.lineno,
                         "type": "from",
                         "names": names,
-                    })
-                    import_lines.append({
+                    }
+                )
+                import_lines.append(
+                    {
                         "file": rel,
                         "line": node.lineno,
                         "statement": f"from {node.module} import {', '.join(names)}",
                         "direction": "in",
-                    })
+                    }
+                )
 
     # Detect circular deps
     all_modules = set()

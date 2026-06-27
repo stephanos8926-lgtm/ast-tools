@@ -5,12 +5,12 @@ Provides search with optional context injection for LLM prompts.
 
 import json
 import logging
-from typing import Any, Dict, List, Optional, Tuple
 from pathlib import Path
+from typing import Any
 
+from src.ast_tools.context import ContextInjector, MarkdownFormatter
 from src.ast_tools.database.connection import get_connection
 from src.ast_tools.embeddings import generate_embedding, search_similar
-from src.ast_tools.context import ContextInjector, MarkdownFormatter, count_tokens
 
 logger = logging.getLogger(__name__)
 
@@ -18,11 +18,7 @@ RRF_K = 1.5  # Reciprocal Rank Fusion constant
 
 
 def hybrid_search(
-    conn,
-    query: str,
-    k: int = 10,
-    kind: Optional[str] = None,
-    lang: Optional[str] = None
+    conn, query: str, k: int = 10, kind: str | None = None, lang: str | None = None
 ) -> list[dict]:
     """
     Hybrid search: FTS5 keyword + vector semantic with RRF fusion.
@@ -61,7 +57,7 @@ def hybrid_search(
     params.append(k * 2)
 
     fts_rows = conn.execute(fts_sql, params).fetchall()
-    fts_results = [(row['symbol_id'], row['score']) for row in fts_rows]
+    fts_results = [(row["symbol_id"], row["score"]) for row in fts_rows]
 
     # 4. Reciprocal Rank Fusion
     fused_scores = {}
@@ -71,7 +67,7 @@ def hybrid_search(
         fused_scores[symbol_id] = fused_scores.get(symbol_id, 0) + 1 / (i + 1 + RRF_K)
 
     # FTS5 results: rank by BM25 score (lower = better)
-    for i, (symbol_id, score) in enumerate(fts_results):
+    for i, (symbol_id, _score) in enumerate(fts_results):
         fused_scores[symbol_id] = fused_scores.get(symbol_id, 0) + 1 / (i + 1 + RRF_K)
 
     # 5. Sort by fused score (higher = better)
@@ -83,12 +79,11 @@ def hybrid_search(
         placeholders = ",".join("?" for _ in top_k)
         symbol_ids = [sid for sid, _ in top_k]
         rows = conn.execute(
-            f"SELECT * FROM symbols WHERE id IN ({placeholders})",
-            symbol_ids
+            f"SELECT * FROM symbols WHERE id IN ({placeholders})", symbol_ids
         ).fetchall()
 
         # Preserve fused ranking order
-        row_map = {row['id']: dict(row) for row in rows}
+        row_map = {row["id"]: dict(row) for row in rows}
         for symbol_id, _ in top_k:
             if symbol_id in row_map:
                 symbols.append(row_map[symbol_id])
@@ -96,42 +91,42 @@ def hybrid_search(
     return symbols
 
 
-def estimate_context_tokens(symbol: Dict[str, Any]) -> int:
+def estimate_context_tokens(symbol: dict[str, Any]) -> int:
     """Estimate token count for a context symbol.
-    
+
     Args:
         symbol: Symbol dict with signature and docstring
-        
+
     Returns:
         Estimated token count (range: 150-1000)
     """
     base = 150
-    
+
     if symbol.get("signature"):
         base += len(str(symbol["signature"])) // 4
-    
+
     if symbol.get("docstring"):
         base += len(str(symbol["docstring"])) // 4
-    
+
     return min(base, 1000)
 
 
 def format_context_result(
-    symbols: List[Dict[str, Any]],
+    symbols: list[dict[str, Any]],
     tokens_used: int,
     tokens_budget: int,
     model_context_window: int,
-    max_symbols: int = 10
+    max_symbols: int = 10,
 ) -> str:
     """Format context injection results as markdown.
-    
+
     Args:
         symbols: List of symbol dicts with relevance_score
         tokens_used: Total tokens used for context
         tokens_budget: Available token budget for context
         model_context_window: Model's total context window
         max_symbols: Max symbols to display
-        
+
     Returns:
         Formatted markdown string
     """
@@ -141,7 +136,7 @@ def format_context_result(
         total_available=max_symbols,
         tokens_used=tokens_used,
         tokens_budget=tokens_budget,
-        model_context_window=model_context_window
+        model_context_window=model_context_window,
     )
 
 
@@ -149,15 +144,15 @@ def hybrid_search_with_context(
     conn,
     query: str,
     k: int = 10,
-    kind: Optional[str] = None,
-    lang: Optional[str] = None,
+    kind: str | None = None,
+    lang: str | None = None,
     context_enabled: bool = True,
     max_context_symbols: int = 10,
     model_context_window: int = 32000,
-    context_token_budget: Optional[int] = None
-) -> Tuple[list[dict], dict[str, Any]]:
+    context_token_budget: int | None = None,
+) -> tuple[list[dict], dict[str, Any]]:
     """Hybrid search with optional context injection.
-    
+
     Args:
         conn: SQLite connection
         query: Search query
@@ -168,7 +163,7 @@ def hybrid_search_with_context(
         max_context_symbols: Max symbols for context
         model_context_window: Model's context window size
         context_token_budget: Token budget for context (default: 20% of window)
-        
+
     Returns:
         Tuple of (search_results, context_injection_info)
         context_injection_info contains:
@@ -177,49 +172,49 @@ def hybrid_search_with_context(
         - budget_remaining: Remaining budget
     """
     results = hybrid_search(conn, query, k, kind, lang)
-    
+
     if not context_enabled or not results:
         return results, {
             "context_markdown": "",
             "tokens_used": 0,
-            "budget_remaining": context_token_budget or (model_context_window // 5)
+            "budget_remaining": context_token_budget or (model_context_window // 5),
         }
-    
+
     budget = context_token_budget or (model_context_window // 5)
     selected_symbols = []
     tokens_used = 0
-    
+
     for symbol in results[:max_context_symbols]:
         token_cost = estimate_context_tokens(symbol)
         if tokens_used + token_cost <= budget:
             selected_symbols.append(symbol)
             tokens_used += token_cost
-    
+
     context_markdown = format_context_result(
         symbols=selected_symbols,
         tokens_used=tokens_used,
         tokens_budget=budget,
         model_context_window=model_context_window,
-        max_symbols=max_context_symbols
+        max_symbols=max_context_symbols,
     )
-    
+
     return results, {
         "context_markdown": context_markdown,
         "tokens_used": tokens_used,
-        "budget_remaining": budget - tokens_used
+        "budget_remaining": budget - tokens_used,
     }
 
 
 def select_context_with_budget(
-    symbols: List[Dict[str, Any]],
+    symbols: list[dict[str, Any]],
     injector: ContextInjector,
     max_tokens: int,
     existing_context_tokens: int = 0,
     k: int = 10,
-    diversity_limit: int = 3
-) -> Tuple[List[Dict[str, Any]], int]:
+    diversity_limit: int = 3,
+) -> tuple[list[dict[str, Any]], int]:
     """Select context symbols respecting token budget and diversity.
-    
+
     Args:
         symbols: Candidate symbols with relevance scores
         injector: ContextInjector instance
@@ -227,54 +222,50 @@ def select_context_with_budget(
         existing_context_tokens: Tokens already used
         k: Max symbols to select
         diversity_limit: Max symbols per file
-        
+
     Returns:
         Tuple of (selected_symbols, tokens_used)
     """
     from collections import Counter
-    
+
     available_tokens = max_tokens - existing_context_tokens
     selected = []
     tokens_used = 0
     file_counts = Counter()
-    
+
     for symbol in symbols[:k]:
         if len(selected) >= k:
             break
-            
+
         token_cost = estimate_context_tokens(symbol)
         file_path = symbol.get("file_path", "unknown")
-        
+
         if tokens_used + token_cost > available_tokens:
             continue
         if file_counts[file_path] >= diversity_limit:
             continue
-        
+
         selected.append(symbol)
         tokens_used += token_cost
         file_counts[file_path] += 1
-    
+
     return selected, tokens_used
 
 
 def fallback_search(
-    conn,
-    query: str,
-    k: int = 10,
-    kind: Optional[str] = None,
-    lang: Optional[str] = None
+    conn, query: str, k: int = 10, kind: str | None = None, lang: str | None = None
 ) -> list[dict]:
     """Fallback search using only FTS5 (no embeddings).
-    
+
     Used when sqlite-vec is unavailable or embedding generation fails.
-    
+
     Args:
         conn: SQLite connection
         query: Search query
         k: Number of results
         kind: Optional kind filter
         lang: Optional language filter
-        
+
     Returns:
         List of symbol dicts
     """
@@ -292,7 +283,7 @@ def fallback_search(
         params.append(lang)
     fts_sql += " LIMIT ?"
     params.append(k)
-    
+
     rows = conn.execute(fts_sql, params).fetchall()
     return [dict(row) for row in rows]
 
@@ -300,13 +291,13 @@ def fallback_search(
 async def _tool_semantic_search(
     query: str,
     k: int = 10,
-    kind: Optional[str] = None,
-    lang: Optional[str] = None,
-    db_path: Optional[str] = None,
+    kind: str | None = None,
+    lang: str | None = None,
+    db_path: str | None = None,
     inject_context: bool = True,
     token_budget: int = 4096,
     diversity_limit: int = 3,
-    session_id: Optional[str] = None
+    session_id: str | None = None,
 ) -> str:
     """
     Search symbols by semantic similarity (meaning) + keyword matching.
@@ -327,7 +318,7 @@ async def _tool_semantic_search(
         JSON array of symbol objects with fields:
         - id, name, qualified_name, kind, file_path, start_line, end_line
         - signature, docstring, is_public, content_hash, indexed_at, lang
-        
+
         If inject_context=True, returns:
         {
             "results": [...search results...],
@@ -346,22 +337,25 @@ async def _tool_semantic_search(
 
     try:
         conn = get_connection(Path(db_path) if db_path else None)
-        
+
         if inject_context:
             results, context_info = hybrid_search_with_context(
-                conn, query, k, kind, lang,
+                conn,
+                query,
+                k,
+                kind,
+                lang,
                 context_enabled=True,
                 max_context_symbols=k,
                 model_context_window=token_budget,
-                context_token_budget=token_budget
+                context_token_budget=token_budget,
             )
             conn.close()
             # Add diversity_applied to context_info
             context_info["diversity_applied"] = True
-            return json.dumps({
-                "results": results,
-                "context_injection": context_info
-            }, indent=2, default=str)
+            return json.dumps(
+                {"results": results, "context_injection": context_info}, indent=2, default=str
+            )
         else:
             results = hybrid_search(conn, query, k, kind, lang)
             conn.close()
@@ -369,6 +363,7 @@ async def _tool_semantic_search(
     except Exception as e:
         logger.error(f"Semantic search failed: {e}")
         return json.dumps({"error": str(e)}, indent=2)
+
 
 # Export for MCP server registration
 semantic_search_tool = {
@@ -379,54 +374,59 @@ semantic_search_tool = {
         "properties": {
             "query": {
                 "type": "string",
-                "description": "Search query - finds code by meaning, e.g. 'authentication handler', 'database pool', 'error retry'"
+                "description": "Search query - finds code by meaning, e.g. 'authentication handler', 'database pool', 'error retry'",
             },
             "k": {
                 "type": "integer",
                 "description": "Number of results (default: 10, max: 50)",
                 "default": 10,
                 "minimum": 1,
-                "maximum": 50
+                "maximum": 50,
             },
             "kind": {
                 "type": "string",
                 "description": "Optional symbol kind filter",
-                "enum": ["function", "class", "method", "variable", "import", "constant"]
+                "enum": ["function", "class", "method", "variable", "import", "constant"],
             },
             "lang": {
                 "type": "string",
                 "description": "Optional language filter",
-                "enum": ["python", "rust", "go", "typescript", "javascript", "cpp", "c", "json", "yaml", "bash"]
+                "enum": [
+                    "python",
+                    "rust",
+                    "go",
+                    "typescript",
+                    "javascript",
+                    "cpp",
+                    "c",
+                    "json",
+                    "yaml",
+                    "bash",
+                ],
             },
-            "db_path": {
-                "type": "string",
-                "description": "Optional custom database path"
-            },
+            "db_path": {"type": "string", "description": "Optional custom database path"},
             "inject_context": {
                 "type": "boolean",
                 "description": "If True, inject relevant context symbols for LLM prompts (default: True)",
-                "default": True
+                "default": True,
             },
             "token_budget": {
                 "type": "integer",
                 "description": "Token budget for context injection (default: 4096)",
                 "default": 4096,
                 "minimum": 512,
-                "maximum": 32768
+                "maximum": 32768,
             },
             "diversity_limit": {
                 "type": "integer",
                 "description": "Max symbols per file for diversity (default: 3)",
                 "default": 3,
                 "minimum": 1,
-                "maximum": 10
+                "maximum": 10,
             },
-            "session_id": {
-                "type": "string",
-                "description": "Optional session ID for tracking"
-            }
+            "session_id": {"type": "string", "description": "Optional session ID for tracking"},
         },
-        "required": ["query"]
+        "required": ["query"],
     },
-    "handler": _tool_semantic_search
+    "handler": _tool_semantic_search,
 }

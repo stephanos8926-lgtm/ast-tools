@@ -29,12 +29,14 @@ def _ast_find_references(symbol: str, project_root: str) -> list[dict]:
                 line_num = node.lineno
                 col = node.col_offset
                 context = lines[line_num - 1] if 0 < line_num <= len(lines) else ""
-                results.append({
-                    "file": str(py_file.relative_to(project_root)),
-                    "line": line_num,
-                    "col": col,
-                    "context": context.strip(),
-                })
+                results.append(
+                    {
+                        "file": str(py_file.relative_to(project_root)),
+                        "line": line_num,
+                        "col": col,
+                        "context": context.strip(),
+                    }
+                )
     results.sort(key=lambda r: (r["file"], r["line"]))
     return results
 
@@ -50,25 +52,23 @@ def _ast_find_callers(symbol: str, project_root: str) -> list[dict]:
             continue
 
         def _walk_calls(node, enclosing_name=None):
-            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                enclosing_name = node.name
-            elif isinstance(node, ast.ClassDef):
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
                 enclosing_name = node.name
             elif isinstance(node, ast.Call):
-                if isinstance(node.func, ast.Name) and node.func.id == symbol:
-                    callers.append({
-                        "file": str(py_file.relative_to(project_root)),
-                        "line": node.lineno,
-                        "caller": enclosing_name or "<module>",
-                        "context": source.splitlines()[node.lineno - 1].strip() if node.lineno <= len(source.splitlines()) else "",
-                    })
-                elif isinstance(node.func, ast.Attribute) and node.func.attr == symbol:
-                    callers.append({
-                        "file": str(py_file.relative_to(project_root)),
-                        "line": node.lineno,
-                        "caller": enclosing_name or "<module>",
-                        "context": source.splitlines()[node.lineno - 1].strip() if node.lineno <= len(source.splitlines()) else "",
-                    })
+                source_lines = source.splitlines()  # noqa: B023
+                if (isinstance(node.func, ast.Name) and node.func.id == symbol) or (
+                    isinstance(node.func, ast.Attribute) and node.func.attr == symbol
+                ):
+                    callers.append(
+                        {
+                            "file": str(py_file.relative_to(project_root)),  # noqa: B023
+                            "line": node.lineno,
+                            "caller": enclosing_name or "<module>",
+                            "context": source_lines[node.lineno - 1].strip()
+                            if node.lineno <= len(source_lines)
+                            else "",
+                        }
+                    )
             for child in ast.iter_child_nodes(node):
                 _walk_calls(child, enclosing_name)
 
@@ -76,7 +76,7 @@ def _ast_find_callers(symbol: str, project_root: str) -> list[dict]:
     return callers
 
 
-def _ast_find_callees(symbol: str, file_path: str, project_root: str) -> list[dict]:
+def _ast_find_callees(symbol: str, file_path: str, _project_root: str) -> list[dict]:
     """Find all functions called BY `symbol`."""
     try:
         source = Path(file_path).read_text(encoding="utf-8", errors="replace")
@@ -101,11 +101,15 @@ def _ast_find_callees(symbol: str, file_path: str, project_root: str) -> list[di
             elif isinstance(node.func, ast.Attribute):
                 callee_name = node.func.attr
             if callee_name:
-                callees.append({
-                    "name": callee_name,
-                    "line": node.lineno,
-                    "context": source.splitlines()[node.lineno - 1].strip() if node.lineno <= len(source.splitlines()) else "",
-                })
+                callees.append(
+                    {
+                        "name": callee_name,
+                        "line": node.lineno,
+                        "context": source.splitlines()[node.lineno - 1].strip()
+                        if node.lineno <= len(source.splitlines())
+                        else "",
+                    }
+                )
 
     _walk(tree)
     return callees
@@ -119,9 +123,17 @@ def _tool_structural_analysis(args: dict[str, Any]) -> dict[str, Any]:
     project_root = args.get("project_root", ".")
 
     if not file_path and analysis_type in ("callers", "callees", "references"):
-        return {"error": f"{analysis_type} analysis requires 'file'", "error_code": "INVALID_INPUT", "tool": "structural_analysis"}
+        return {
+            "error": f"{analysis_type} analysis requires 'file'",
+            "error_code": "INVALID_INPUT",
+            "tool": "structural_analysis",
+        }
     if not symbol and analysis_type in ("callers", "callees", "references"):
-        return {"error": f"{analysis_type} analysis requires 'symbol'", "error_code": "INVALID_INPUT", "tool": "structural_analysis"}
+        return {
+            "error": f"{analysis_type} analysis requires 'symbol'",
+            "error_code": "INVALID_INPUT",
+            "tool": "structural_analysis",
+        }
 
     if analysis_type == "references" and symbol:
         refs = _ast_find_references(symbol, project_root)
@@ -159,20 +171,30 @@ def _tool_structural_analysis(args: dict[str, Any]) -> dict[str, Any]:
         project = jedi.Project(path=".")
 
     if analysis_type == "type_hierarchy":
-        script = jedi.Script(path=file_path, project=project) if file_path else jedi.Script("", project=project)
+        script = (
+            jedi.Script(path=file_path, project=project)
+            if file_path
+            else jedi.Script("", project=project)
+        )
         definitions = script.get_names(all_scopes=True)
         target = next((d for d in definitions if d.name == symbol and d.type == "class"), None)
         if not target:
-            return {"error": f"Class '{symbol}' not found", "error_code": "NOT_FOUND", "tool": "structural_analysis"}
+            return {
+                "error": f"Class '{symbol}' not found",
+                "error_code": "NOT_FOUND",
+                "tool": "structural_analysis",
+            }
         try:
             hierarchy = []
             for g in target.goto():
-                hierarchy.append({
-                    "name": g.name,
-                    "type": g.type,
-                    "line": g.line,
-                    "file": str(g.module_path) if g.module_path else None,
-                })
+                hierarchy.append(
+                    {
+                        "name": g.name,
+                        "type": g.type,
+                        "line": g.line,
+                        "file": str(g.module_path) if g.module_path else None,
+                    }
+                )
             return {"analysis": "type_hierarchy", "symbol": symbol, "hierarchy": hierarchy}
         except Exception as e:
             return {"error": str(e), "error_code": "INTERNAL", "tool": "structural_analysis"}
@@ -182,8 +204,17 @@ def _tool_structural_analysis(args: dict[str, Any]) -> dict[str, Any]:
         try:
             imports = script.get_names(all_scopes=True)
             deps = [{"name": imp.name, "line": imp.line} for imp in imports if imp.type == "module"]
-            return {"analysis": "dependencies", "file": file_path, "dependencies": deps, "count": len(deps)}
+            return {
+                "analysis": "dependencies",
+                "file": file_path,
+                "dependencies": deps,
+                "count": len(deps),
+            }
         except Exception as e:
             return {"error": str(e), "error_code": "INTERNAL", "tool": "structural_analysis"}
 
-    return {"error": f"Unknown analysis type: {analysis_type}", "error_code": "INVALID_INPUT", "tool": "structural_analysis"}
+    return {
+        "error": f"Unknown analysis type: {analysis_type}",
+        "error_code": "INVALID_INPUT",
+        "tool": "structural_analysis",
+    }

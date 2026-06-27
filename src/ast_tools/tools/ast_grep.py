@@ -7,7 +7,7 @@ from typing import Any
 
 def _filter_top_level(matches: list, pattern: str) -> list:
     """Filter matches to only top-level definitions.
-    
+
     This is a placeholder implementation — the actual filtering requires
     AST analysis to determine if a match is inside a class/function.
     For now, returns all matches unchanged.
@@ -35,12 +35,25 @@ def _tool_ast_grep(args: dict[str, Any]) -> dict[str, Any]:
     try:
         proc = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
     except FileNotFoundError:
-        return {"error": "ast-grep CLI not found. Install: cargo install ast-grep", "error_code": "NOT_FOUND", "tool": "ast_grep"}
+        return {
+            "error": "ast-grep CLI not found. Install: cargo install ast-grep",
+            "error_code": "NOT_FOUND",
+            "tool": "ast_grep",
+        }
     except subprocess.TimeoutExpired:
-        return {"error": "ast-grep timed out after 30s", "error_code": "TIMEOUT", "tool": "ast_grep"}
+        return {
+            "error": "ast-grep timed out after 30s",
+            "error_code": "TIMEOUT",
+            "tool": "ast_grep",
+        }
 
     if proc.returncode != 0 and not proc.stdout:
-        return {"error": proc.stderr.strip() or "ast-grep returned no output", "matches": [], "error_code": "PARSE_ERROR", "tool": "ast_grep"}
+        return {
+            "error": proc.stderr.strip() or "ast-grep returned no output",
+            "matches": [],
+            "error_code": "PARSE_ERROR",
+            "tool": "ast_grep",
+        }
 
     if json_output:
         try:

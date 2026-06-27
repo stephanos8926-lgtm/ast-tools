@@ -20,6 +20,7 @@ _PROJECT_MARKERS = (".git", "pyproject.toml", "setup.py", "setup.cfg", "package.
 
 # ─── File hash caching ───────────────────────────────────────────────────
 
+
 def _compute_file_hash(file_path: Path) -> str:
     """Compute MD5 hash of a file's contents."""
     h = hashlib.md5()
@@ -85,6 +86,7 @@ def find_project_root(cwd: str | Path) -> Path:
 
 # ─── project.json read/write ─────────────────────────────────────────────
 
+
 def read_project_json(cwd: str | Path) -> dict[str, Any] | None:
     """Find and read project.json from cwd up to 3 levels up."""
     path = Path(cwd).resolve()
@@ -113,12 +115,25 @@ def write_project_json(project_root: Path, data: dict[str, Any]) -> Path:
 
 # ─── Codebase scanning ───────────────────────────────────────────────────
 
+
 def _scan_python_files(project_root: Path) -> list[Path]:
     """Find all Python files, skipping common non-project dirs."""
     skip_dirs = {
-        ".git", "__pycache__", ".venv", "venv", "node_modules",
-        ".tox", ".eggs", "build", "dist", ".mypy_cache", ".pytest_cache",
-        ".idea", ".vscode", "site-packages", "references",
+        ".git",
+        "__pycache__",
+        ".venv",
+        "venv",
+        "node_modules",
+        ".tox",
+        ".eggs",
+        "build",
+        "dist",
+        ".mypy_cache",
+        ".pytest_cache",
+        ".idea",
+        ".vscode",
+        "site-packages",
+        "references",
     }
     results = []
     for dirpath, dirnames, filenames in os.walk(project_root):
@@ -150,27 +165,35 @@ def _extract_symbols_from_file(file_path: Path) -> dict[str, Any]:
             methods = []
             for item in node.body:
                 if isinstance(item, ast.FunctionDef) and not item.name.startswith("_"):
-                    methods.append({
-                        "name": item.name,
-                        "line": item.lineno,
-                    })
-            classes.append({
-                "name": node.name,
-                "line": node.lineno,
-                "methods": methods,
-            })
+                    methods.append(
+                        {
+                            "name": item.name,
+                            "line": item.lineno,
+                        }
+                    )
+            classes.append(
+                {
+                    "name": node.name,
+                    "line": node.lineno,
+                    "methods": methods,
+                }
+            )
         elif isinstance(node, ast.FunctionDef) and not node.name.startswith("_"):
-            functions.append({
-                "name": node.name,
-                "line": node.lineno,
-            })
+            functions.append(
+                {
+                    "name": node.name,
+                    "line": node.lineno,
+                }
+            )
         elif isinstance(node, ast.Assign):
             for target in node.targets:
                 if isinstance(target, ast.Name) and not target.id.startswith("_"):
-                    variables.append({
-                        "name": target.id,
-                        "line": node.lineno,
-                    })
+                    variables.append(
+                        {
+                            "name": target.id,
+                            "line": node.lineno,
+                        }
+                    )
 
     return {
         "classes": classes,
@@ -289,6 +312,7 @@ def _detect_entry_points(project_root: Path) -> list[str]:
     if pyproject.exists():
         try:
             import tomllib
+
             with pyproject.open("rb") as f:
                 data = tomllib.load(f)
             scripts = data.get("project", {}).get("scripts", {})
@@ -323,20 +347,24 @@ def _detect_entry_points(project_root: Path) -> list[str]:
             # 3. if __name__ == '__main__'
             if isinstance(node, ast.If):
                 test = node.test
-                if (isinstance(test, ast.Compare)
-                        and isinstance(test.left, ast.Name)
-                        and test.left.id == "__name__"
-                        and len(test.ops) == 1
-                        and isinstance(test.ops[0], ast.Eq)
-                        and len(test.comparators) == 1
-                        and isinstance(test.comparators[0], ast.Constant)
-                        and test.comparators[0].value == "__main__"):
+                if (
+                    isinstance(test, ast.Compare)
+                    and isinstance(test.left, ast.Name)
+                    and test.left.id == "__name__"
+                    and len(test.ops) == 1
+                    and isinstance(test.ops[0], ast.Eq)
+                    and len(test.comparators) == 1
+                    and isinstance(test.comparators[0], ast.Constant)
+                    and test.comparators[0].value == "__main__"
+                ):
                     has_main_guard = True
 
             # 4. def main() or def cli_main()
-            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                if node.name in ("main", "cli_main"):
-                    has_main_func = True
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name in (
+                "main",
+                "cli_main",
+            ):
+                has_main_func = True
 
             # 5. import argparse
             if isinstance(node, ast.Import):
@@ -345,11 +373,10 @@ def _detect_entry_points(project_root: Path) -> list[str]:
                         has_argparse = True
 
             # 6. sys.argv usage
-            if isinstance(node, ast.Attribute):
-                if (isinstance(node.value, ast.Name)
-                        and node.value.id == "sys"
-                        and node.attr == "argv"):
-                    has_sys_argv = True
+            if isinstance(node, ast.Attribute) and (
+                isinstance(node.value, ast.Name) and node.value.id == "sys" and node.attr == "argv"
+            ):
+                has_sys_argv = True
 
             # 7. Click decorators
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
@@ -382,25 +409,58 @@ def _extract_languages(project_root: Path) -> dict[str, Any]:
     Plus a flat "all" key for backward compatibility.
     """
     code_ext_map = {
-        ".py": "python", ".js": "javascript", ".ts": "typescript",
-        ".jsx": "javascript", ".tsx": "typescript", ".rs": "rust",
-        ".go": "go", ".java": "java", ".c": "c", ".cpp": "cpp",
-        ".h": "c", ".rb": "ruby", ".php": "php",
+        ".py": "python",
+        ".js": "javascript",
+        ".ts": "typescript",
+        ".jsx": "javascript",
+        ".tsx": "typescript",
+        ".rs": "rust",
+        ".go": "go",
+        ".java": "java",
+        ".c": "c",
+        ".cpp": "cpp",
+        ".h": "c",
+        ".rb": "ruby",
+        ".php": "php",
     }
     config_ext_map = {
-        ".md": "markdown", ".yaml": "yaml", ".yml": "yaml",
-        ".toml": "toml", ".json": "json", ".sh": "shell",
-        ".txt": "text", ".cfg": "config", ".ini": "config",
-        ".html": "html", ".css": "css", ".sql": "sql",
+        ".md": "markdown",
+        ".yaml": "yaml",
+        ".yml": "yaml",
+        ".toml": "toml",
+        ".json": "json",
+        ".sh": "shell",
+        ".txt": "text",
+        ".cfg": "config",
+        ".ini": "config",
+        ".html": "html",
+        ".css": "css",
+        ".sql": "sql",
     }
     # Special filenames (no extension or unusual)
     special_file_map = {
-        "dockerfile": "docker", "makefile": "make",
-        "gemfile": "ruby", "rakefile": "ruby",
+        "dockerfile": "docker",
+        "makefile": "make",
+        "gemfile": "ruby",
+        "rakefile": "ruby",
     }
-    skip_dirs = {".git", "__pycache__", ".venv", "venv", "node_modules", ".tox",
-                 ".eggs", "build", "dist", ".mypy_cache", ".pytest_cache",
-                 ".idea", ".vscode", "site-packages", "references"}
+    skip_dirs = {
+        ".git",
+        "__pycache__",
+        ".venv",
+        "venv",
+        "node_modules",
+        ".tox",
+        ".eggs",
+        "build",
+        "dist",
+        ".mypy_cache",
+        ".pytest_cache",
+        ".idea",
+        ".vscode",
+        "site-packages",
+        "references",
+    }
     code_counts: dict[str, dict[str, int]] = {}
     config_counts: dict[str, dict[str, int]] = {}
     all_counts: dict[str, dict[str, int]] = {}
@@ -448,6 +508,7 @@ def _extract_languages(project_root: Path) -> dict[str, Any]:
 
 # ─── Main API ─────────────────────────────────────────────────────────────
 
+
 def generate_project_json(cwd: str | Path, diff: bool = False) -> dict[str, Any]:
     """Generate project.json data by scanning the codebase.
 
@@ -462,7 +523,7 @@ def generate_project_json(cwd: str | Path, diff: bool = False) -> dict[str, Any]
     entry_points = _detect_entry_points(root)
 
     # Incremental scanning: only re-parse changed files
-    changed_files, deleted_files = _get_changed_files(root)
+    _changed_files, deleted_files = _get_changed_files(root)
     stored_hashes = _load_file_hashes(root)
 
     # Scan symbols from Python files
@@ -474,12 +535,14 @@ def generate_project_json(cwd: str | Path, diff: bool = False) -> dict[str, Any]
         symbols = _extract_symbols_from_file(py_file)
         lines = len(py_file.read_text(errors="replace").splitlines())
         if symbols["classes"] or symbols["functions"]:
-            modules.append({
-                "path": str(rel),
-                "lines": lines,
-                "classes": [c["name"] for c in symbols["classes"]],
-                "functions": [f["name"] for f in symbols["functions"]],
-            })
+            modules.append(
+                {
+                    "path": str(rel),
+                    "lines": lines,
+                    "classes": [c["name"] for c in symbols["classes"]],
+                    "functions": [f["name"] for f in symbols["functions"]],
+                }
+            )
         for cls in symbols["classes"]:
             symbol_index[cls["name"]] = {"file": str(rel), "line": cls["line"], "type": "class"}
         for fn in symbols["functions"]:
@@ -547,22 +610,33 @@ def _compute_symbol_diff(
 
     for name in sorted(new_names - old_names):
         entry = current_symbols[name]
-        added.append({"name": name, "file": entry["file"], "line": entry["line"], "type": entry["type"]})
+        added.append(
+            {"name": name, "file": entry["file"], "line": entry["line"], "type": entry["type"]}
+        )
 
     for name in sorted(old_names - new_names):
         entry = old_index[name]
-        removed.append({"name": name, "file": entry.get("file", "?"), "line": entry.get("line", 0), "type": entry.get("type", "?")})
+        removed.append(
+            {
+                "name": name,
+                "file": entry.get("file", "?"),
+                "line": entry.get("line", 0),
+                "type": entry.get("type", "?"),
+            }
+        )
 
     for name in sorted(old_names & new_names):
         old = old_index[name]
         new = current_symbols[name]
         if old.get("file") != new.get("file") or old.get("line") != new.get("line"):
-            modified.append({
-                "name": name,
-                "type": new.get("type", "?"),
-                "old": {"file": old.get("file", "?"), "line": old.get("line", 0)},
-                "new": {"file": new.get("file", "?"), "line": new.get("line", 0)},
-            })
+            modified.append(
+                {
+                    "name": name,
+                    "type": new.get("type", "?"),
+                    "old": {"file": old.get("file", "?"), "line": old.get("line", 0)},
+                    "new": {"file": new.get("file", "?"), "line": new.get("line", 0)},
+                }
+            )
 
     return {"added": added, "removed": removed, "modified": modified}
 
@@ -610,14 +684,14 @@ def project_info_summary(cwd: str | Path) -> dict[str, Any]:
     MAX_MODULES = 15
     if len(modules) > MAX_MODULES:
         shown = modules[:MAX_MODULES]
-        module_list = shown + [f"... +{len(modules) - MAX_MODULES} more"]
+        module_list = [*shown, f"... +{len(modules) - MAX_MODULES} more"]
     else:
         module_list = modules
 
     # Limit entry points to top 5
     entry_points = data.get("entry_points", [])
     if len(entry_points) > 5:
-        entry_points = entry_points[:5] + [f"... +{len(data.get('entry_points', [])) - 5} more"]
+        entry_points = [*entry_points[:5], f"... +{len(data.get('entry_points', [])) - 5} more"]
 
     return {
         "name": data.get("name", "?"),
@@ -653,14 +727,14 @@ def _detect_source_roots(root: Path) -> list[Path]:
     if pyproject.exists():
         try:
             import tomllib
+
             with pyproject.open("rb") as f:
                 data = tomllib.load(f)
             pkg_dir = data.get("tool", {}).get("setuptools", {}).get("packages.find", {})
             if isinstance(pkg_dir, dict):
                 where = pkg_dir.get("where", [])
-                if "src" in where:
-                    if src_dir not in roots:
-                        roots.append(src_dir)
+                if "src" in where and src_dir not in roots:
+                    roots.append(src_dir)
         except Exception:
             pass
 
@@ -676,7 +750,7 @@ def _build_import_map(root: Path, source_roots: list[Path]) -> dict[str, Path]:
     """
     import_map: dict[str, Path] = {}
     for sr in source_roots:
-        for dirpath, dirnames, filenames in os.walk(sr):
+        for dirpath, _dirnames, filenames in os.walk(sr):
             # Skip non-package directories
             rel_dir = Path(dirpath).relative_to(sr)
             parts = rel_dir.parts
@@ -697,10 +771,14 @@ def _build_import_map(root: Path, source_roots: list[Path]) -> dict[str, Path]:
     return import_map
 
 
-def _resolve_import_to_file(module_name: str, source_roots: list[Path],
-                             import_map: dict[str, Path], project_root: Path,
-                             current_package: str | None = None,
-                             level: int = 0) -> str | None:
+def _resolve_import_to_file(
+    module_name: str,
+    source_roots: list[Path],
+    import_map: dict[str, Path],
+    project_root: Path,
+    current_package: str | None = None,
+    level: int = 0,
+) -> str | None:
     """Resolve an import module name to a relative file path.
 
     Returns path relative to project_root, or None if not found.
@@ -709,7 +787,7 @@ def _resolve_import_to_file(module_name: str, source_roots: list[Path],
         parts = current_package.split(".")
         if level > len(parts):
             return None
-        base_parts = parts[:len(parts) - (level - 1)]
+        base_parts = parts[: len(parts) - (level - 1)]
         if module_name:
             abs_name = ".".join(base_parts + module_name.split("."))
         else:
@@ -818,9 +896,12 @@ def project_init(cwd: str | Path) -> dict[str, Any]:
                         # Relative import
                         mod_name = node.module if node.module else ""
                         resolved = _resolve_import_to_file(
-                            mod_name, source_roots, import_map,
+                            mod_name,
+                            source_roots,
+                            import_map,
                             root,
-                            current_package=current_package, level=node.level
+                            current_package=current_package,
+                            level=node.level,
                         )
                         if resolved and resolved not in deps:
                             deps.append(resolved)
@@ -829,9 +910,12 @@ def project_init(cwd: str | Path) -> dict[str, Any]:
                             for alias in node.names:
                                 sub_mod = f"{mod_name}.{alias.name}" if mod_name else alias.name
                                 sub_resolved = _resolve_import_to_file(
-                                    sub_mod, source_roots, import_map,
+                                    sub_mod,
+                                    source_roots,
+                                    import_map,
                                     root,
-                                    current_package=current_package, level=node.level
+                                    current_package=current_package,
+                                    level=node.level,
                                 )
                                 if sub_resolved and sub_resolved not in deps:
                                     deps.append(sub_resolved)
@@ -839,18 +923,14 @@ def project_init(cwd: str | Path) -> dict[str, Any]:
                         # Absolute import
                         mod_name = node.module
                         # Try full module path first
-                        resolved = _resolve_import_to_file(
-                            mod_name, source_roots, import_map,
-                            root
-                        )
+                        resolved = _resolve_import_to_file(mod_name, source_roots, import_map, root)
                         if resolved and resolved not in deps:
                             deps.append(resolved)
                         # Also try parent package for "from pkg.sub import name"
                         if node.names and "." in mod_name:
                             parent = mod_name.rsplit(".", 1)[0]
                             parent_resolved = _resolve_import_to_file(
-                                parent, source_roots, import_map,
-                                root
+                                parent, source_roots, import_map, root
                             )
                             if parent_resolved and parent_resolved not in deps:
                                 deps.append(parent_resolved)
@@ -858,8 +938,7 @@ def project_init(cwd: str | Path) -> dict[str, Any]:
                 elif isinstance(node, ast.Import):
                     for alias in node.names:
                         resolved = _resolve_import_to_file(
-                            alias.name, source_roots, import_map,
-                            root
+                            alias.name, source_roots, import_map, root
                         )
                         if resolved and resolved not in deps:
                             deps.append(resolved)
@@ -905,12 +984,25 @@ def project_verify(cwd: str | Path, full: bool = False) -> dict[str, Any]:
     try:
         committed = json.loads(committed_file.read_text(encoding="utf-8"))
     except (json.JSONDecodeError, OSError) as e:
-        return {"status": "error", "message": f"Cannot read committed project.json: {e}", "diffs": []}
+        return {
+            "status": "error",
+            "message": f"Cannot read committed project.json: {e}",
+            "diffs": [],
+        }
 
     # Compare top-level fields (ignore 'generated' timestamp and 'generator')
     diffs: list[dict[str, Any]] = []
-    for key in ("name", "version", "languages", "code_languages", "config_languages",
-                "modules", "entry_points", "test_files", "test_framework"):
+    for key in (
+        "name",
+        "version",
+        "languages",
+        "code_languages",
+        "config_languages",
+        "modules",
+        "entry_points",
+        "test_files",
+        "test_framework",
+    ):
         gen_val = generated.get(key)
         com_val = committed.get(key)
         if gen_val != com_val:
@@ -925,17 +1017,21 @@ def project_verify(cwd: str | Path, full: bool = False) -> dict[str, Any]:
                 changed = []
                 for path in sorted(gen_paths & com_paths):
                     if gen_modules[path] != com_modules[path]:
-                        changed.append({
-                            "path": path,
-                            "committed": com_modules[path],
-                            "generated": gen_modules[path],
-                        })
-                diffs.append({
-                    "field": key,
-                    "added": added,
-                    "removed": removed,
-                    "changed": changed,
-                })
+                        changed.append(
+                            {
+                                "path": path,
+                                "committed": com_modules[path],
+                                "generated": gen_modules[path],
+                            }
+                        )
+                diffs.append(
+                    {
+                        "field": key,
+                        "added": added,
+                        "removed": removed,
+                        "changed": changed,
+                    }
+                )
             else:
                 diffs.append({"field": key, "committed": com_val, "generated": gen_val})
 
@@ -950,6 +1046,7 @@ def project_verify(cwd: str | Path, full: bool = False) -> dict[str, Any]:
 
 
 # ─── CLI entry point ─────────────────────────────────────────────────────
+
 
 def cli_main() -> int:
     """CLI dispatch for project commands."""
@@ -973,36 +1070,48 @@ def cli_main() -> int:
         help="Generate project.json + references for a codebase",
         description="Scan a Python codebase and generate a project.json manifest file along with reference indices (symbol index, dependency graph, file hashes).",
     )
-    p_init.add_argument("cwd", nargs="?", default=".", help="Project root directory (default: current directory)")
+    p_init.add_argument(
+        "cwd", nargs="?", default=".", help="Project root directory (default: current directory)"
+    )
 
     p_update = sub.add_parser(
         "project-update",
         help="Refresh project.json and indices",
         description="Re-scan the codebase and regenerate project.json and all reference files. This is a full refresh — same as project-init.",
     )
-    p_update.add_argument("cwd", nargs="?", default=".", help="Project root directory (default: current directory)")
+    p_update.add_argument(
+        "cwd", nargs="?", default=".", help="Project root directory (default: current directory)"
+    )
 
     p_verify = sub.add_parser(
         "project-verify",
         help="Verify project.json is up to date",
         description="Compare the generated project.json against the committed one and report any differences. Exit code 0 = up to date, 1 = stale or missing.",
     )
-    p_verify.add_argument("cwd", nargs="?", default=".", help="Project root directory (default: current directory)")
-    p_verify.add_argument("--quiet", "-q", action="store_true", help="Suppress output, only set exit code")
+    p_verify.add_argument(
+        "cwd", nargs="?", default=".", help="Project root directory (default: current directory)"
+    )
+    p_verify.add_argument(
+        "--quiet", "-q", action="store_true", help="Suppress output, only set exit code"
+    )
 
     p_info = sub.add_parser(
         "project-info",
         help="Print project.json (read existing or generate)",
         description="Read and display the project.json manifest. If no manifest exists, auto-generate one by scanning the codebase.",
     )
-    p_info.add_argument("cwd", nargs="?", default=".", help="Project root directory (default: current directory)")
+    p_info.add_argument(
+        "cwd", nargs="?", default=".", help="Project root directory (default: current directory)"
+    )
 
     p_summary = sub.add_parser(
         "project-summary",
         help="Print a compact project summary (<500 tokens)",
         description="Return a compact project summary optimized for LLM context. Includes: name, version, languages, module count, symbol count, entry points, test framework, and top modules.",
     )
-    p_summary.add_argument("cwd", nargs="?", default=".", help="Project root directory (default: current directory)")
+    p_summary.add_argument(
+        "cwd", nargs="?", default=".", help="Project root directory (default: current directory)"
+    )
 
     args = parser.parse_args()
 

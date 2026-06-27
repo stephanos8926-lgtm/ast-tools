@@ -7,15 +7,26 @@ from pathlib import Path
 
 def find_python_files(project_root: str, max_files: int | None = None) -> list[Path]:
     """Find all Python files under project_root, skipping common non-project dirs.
-    
+
     Args:
         project_root: Root directory to search from
         max_files: Optional limit on number of files returned
     """
     skip_dirs = {
-        ".git", "__pycache__", ".venv", "venv", "node_modules",
-        ".tox", ".eggs", "build", "dist", ".mypy_cache", ".pytest_cache",
-        ".idea", ".vscode", "site-packages",
+        ".git",
+        "__pycache__",
+        ".venv",
+        "venv",
+        "node_modules",
+        ".tox",
+        ".eggs",
+        "build",
+        "dist",
+        ".mypy_cache",
+        ".pytest_cache",
+        ".idea",
+        ".vscode",
+        "site-packages",
     }
     root = Path(project_root)
     results = []
@@ -53,7 +64,7 @@ def file_to_module(file_path: str, root: Path) -> str:
 
 def filter_top_level(matches: list, pattern: str) -> list:
     """Filter matches to only top-level function/class definitions.
-    
+
     Uses the column offset from ast-grep's range data: top-level definitions
     start at column 0, while methods inside classes are indented (column > 0).
     """

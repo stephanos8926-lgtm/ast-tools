@@ -7,41 +7,41 @@ Submodules:
     queries: Query functions with batch operations
 """
 
-from .connection import get_connection, database_context, retry_on_locked
-from .schema import init_schema, get_schema_version, needs_migration
+from .connection import database_context, get_connection, retry_on_locked
 from .queries import (
-    search_symbols,
+    count_symbols_by_kind,
     find_symbol_definition,
-    list_symbols_by_file,
     get_cached_hash,
-    update_file_cache,
-    insert_symbol,
-    insert_symbols_batch,
+    get_index_stats,
     insert_edge,
     insert_edges_batch,
-    get_index_stats,
-    count_symbols_by_kind,
+    insert_symbol,
+    insert_symbols_batch,
+    list_symbols_by_file,
+    search_symbols,
+    update_file_cache,
 )
+from .schema import get_schema_version, init_schema, needs_migration
 
 __all__ = [
+    "count_symbols_by_kind",
+    "database_context",
+    "find_symbol_definition",
+    "get_cached_hash",
     # Connection
     "get_connection",
-    "database_context",
-    "retry_on_locked",
+    "get_index_stats",
+    "get_schema_version",
     # Schema
     "init_schema",
-    "get_schema_version",
-    "needs_migration",
-    # Queries
-    "search_symbols",
-    "find_symbol_definition",
-    "list_symbols_by_file",
-    "get_cached_hash",
-    "update_file_cache",
-    "insert_symbol",
-    "insert_symbols_batch",
     "insert_edge",
     "insert_edges_batch",
-    "get_index_stats",
-    "count_symbols_by_kind",
+    "insert_symbol",
+    "insert_symbols_batch",
+    "list_symbols_by_file",
+    "needs_migration",
+    "retry_on_locked",
+    # Queries
+    "search_symbols",
+    "update_file_cache",
 ]

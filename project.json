@@ -1,0 +1,818 @@
+{
+  "name": "ast-tools",
+  "version": "0.1.0",
+  "generated": "2026-06-27T02:17:46.596876+00:00",
+  "generator": "ast-tools-project-v1",
+  "languages": {
+    "yaml": {
+      "files": 3,
+      "lines": 71
+    },
+    "markdown": {
+      "files": 54,
+      "lines": 19769
+    },
+    "toml": {
+      "files": 1,
+      "lines": 134
+    },
+    "shell": {
+      "files": 4,
+      "lines": 170
+    },
+    "python": {
+      "files": 91,
+      "lines": 20805
+    },
+    "text": {
+      "files": 5,
+      "lines": 82
+    }
+  },
+  "code_languages": {
+    "python": {
+      "files": 91,
+      "lines": 20805
+    }
+  },
+  "config_languages": {
+    "yaml": {
+      "files": 3,
+      "lines": 71
+    },
+    "markdown": {
+      "files": 54,
+      "lines": 19769
+    },
+    "toml": {
+      "files": 1,
+      "lines": 134
+    },
+    "shell": {
+      "files": 4,
+      "lines": 170
+    },
+    "text": {
+      "files": 5,
+      "lines": 82
+    }
+  },
+  "entry_points": [
+    "ast_tools_server:main",
+    "project_tools:cli_main",
+    "src/ast_tools/benchmarks/phase9_benchmark.py#if-__name__",
+    "src/ast_tools/curator/daemon.py#if-__name__",
+    "src/ast_tools/curator/daemon.py#sys.argv",
+    "src/ast_tools/lsp_client.py#if-__name__",
+    "src/ast_tools/lsp_client.py#sys.argv",
+    "src/ast_tools/tools/curator.py#if-__name__",
+    "src/ast_tools/watcher/daemon.py#if-__name__",
+    "src/ast_tools/watcher/daemon.py#sys.argv",
+    "src/project_tools.py#if-__name__",
+    "src/project_tools.py#main",
+    "src/project_tools.py#argparse",
+    "tests/tools/test_semantic_search_context.py#if-__name__",
+    "tests/watcher/test_daemon.py#if-__name__"
+  ],
+  "test_framework": "pytest",
+  "test_files": 28,
+  "test_command": "python3 -m pytest",
+  "modules": [
+    {
+      "path": "hermes-plugins/ast-tools-context/__init__.py",
+      "lines": 198,
+      "classes": [],
+      "functions": [
+        "register",
+        "inject_ast_tools_context",
+        "build_ast_tools_context",
+        "inject_session_onboarding"
+      ]
+    },
+    {
+      "path": "hermes-plugins/ast-tools-tokens/__init__.py",
+      "lines": 173,
+      "classes": [],
+      "functions": [
+        "register",
+        "track_ast_tools_usage",
+        "check_context_pressure",
+        "correct_ast_tools_errors"
+      ]
+    },
+    {
+      "path": "src/ast_tools/benchmarks/phase9_benchmark.py",
+      "lines": 265,
+      "classes": [],
+      "functions": [
+        "generate_test_data",
+        "benchmark_dependency_metrics",
+        "benchmark_knn_build",
+        "benchmark_audit_log_writes",
+        "benchmark_index_effectiveness",
+        "run_benchmarks"
+      ]
+    },
+    {
+      "path": "src/ast_tools/context/formatters.py",
+      "lines": 188,
+      "classes": [
+        "MarkdownFormatter"
+      ],
+      "functions": [
+        "count_tokens"
+      ]
+    },
+    {
+      "path": "src/ast_tools/context/history.py",
+      "lines": 126,
+      "classes": [
+        "InjectionHistory"
+      ],
+      "functions": []
+    },
+    {
+      "path": "src/ast_tools/context/injector.py",
+      "lines": 287,
+      "classes": [
+        "Symbol",
+        "ContextInjector"
+      ],
+      "functions": [
+        "calculate_recency_score",
+        "calculate_usage_score",
+        "calculate_kind_boost",
+        "calculate_proximity_score"
+      ]
+    },
+    {
+      "path": "src/ast_tools/curator/daemon.py",
+      "lines": 393,
+      "classes": [
+        "LLmCurator"
+      ],
+      "functions": [
+        "run_daily_audit",
+        "generate_summary"
+      ]
+    },
+    {
+      "path": "src/ast_tools/database/connection.py",
+      "lines": 165,
+      "classes": [],
+      "functions": [
+        "retry_on_locked",
+        "get_connection",
+        "database_context",
+        "get_cache_path",
+        "get_db_path"
+      ]
+    },
+    {
+      "path": "src/ast_tools/database/migrations/migration_009_schema_enrichments.py",
+      "lines": 200,
+      "classes": [],
+      "functions": [
+        "migrate_v4_to_v5"
+      ]
+    },
+    {
+      "path": "src/ast_tools/database/queries.py",
+      "lines": 596,
+      "classes": [],
+      "functions": [
+        "search_symbols",
+        "find_symbol_definition",
+        "list_symbols_by_file",
+        "get_symbol_by_id",
+        "find_references",
+        "get_symbol_edges",
+        "insert_symbol",
+        "insert_symbols_batch",
+        "insert_edge",
+        "insert_edges_batch",
+        "insert_symbol_embedding",
+        "insert_symbol_embeddings_batch",
+        "generate_embeddings",
+        "get_cached_hash",
+        "update_file_cache",
+        "get_file_cache",
+        "get_index_stats",
+        "insert_file_cache_entry",
+        "get_file_cache_entry",
+        "update_file_cache_entry_hash",
+        "delete_file_cache_entry",
+        "search_symbols_fts",
+        "get_symbols_in_file",
+        "count_symbols_by_kind"
+      ]
+    },
+    {
+      "path": "src/ast_tools/database/schema.py",
+      "lines": 331,
+      "classes": [],
+      "functions": [
+        "init_schema",
+        "get_schema_version",
+        "needs_migration",
+        "register_migration",
+        "migrate",
+        "migrate_v1_to_v2",
+        "migrate_v2_to_v3",
+        "migrate_v3_to_v4",
+        "migrate_v4_to_v5",
+        "get_migration_sql"
+      ]
+    },
+    {
+      "path": "src/ast_tools/embeddings/model.py",
+      "lines": 160,
+      "classes": [],
+      "functions": [
+        "get_model",
+        "generate_embedding",
+        "generate_batch_embeddings",
+        "unload_model"
+      ]
+    },
+    {
+      "path": "src/ast_tools/embeddings/store.py",
+      "lines": 240,
+      "classes": [],
+      "functions": [
+        "load_vec_extension",
+        "insert_embedding",
+        "insert_embeddings_batch",
+        "search_similar",
+        "get_embedding_count",
+        "get_symbols_without_embeddings",
+        "delete_embedding",
+        "delete_embeddings_for_file"
+      ]
+    },
+    {
+      "path": "src/ast_tools/indexer/cache.py",
+      "lines": 310,
+      "classes": [
+        "ASTNodeEncoder",
+        "ASTCache"
+      ],
+      "functions": []
+    },
+    {
+      "path": "src/ast_tools/indexer/dependency_metrics.py",
+      "lines": 282,
+      "classes": [
+        "DependencyMetricsCalculator"
+      ],
+      "functions": [
+        "compute_metrics_for_symbols",
+        "insert_metrics_to_db"
+      ]
+    },
+    {
+      "path": "src/ast_tools/indexer/extractor.py",
+      "lines": 698,
+      "classes": [
+        "SymbolExtractor",
+        "TreeSitterSymbolExtractor"
+      ],
+      "functions": [
+        "extract_symbols",
+        "extract_symbols_ts"
+      ]
+    },
+    {
+      "path": "src/ast_tools/indexer/implements_detector.py",
+      "lines": 219,
+      "classes": [
+        "ImplementsDetector"
+      ],
+      "functions": [
+        "find_implements_relationships"
+      ]
+    },
+    {
+      "path": "src/ast_tools/indexer/knn_builder.py",
+      "lines": 288,
+      "classes": [
+        "KNNGraphBuilder"
+      ],
+      "functions": [
+        "build_knn_graph_from_db",
+        "store_similarity_to_db",
+        "store_knn_to_db"
+      ]
+    },
+    {
+      "path": "src/ast_tools/indexer/parser.py",
+      "lines": 168,
+      "classes": [
+        "ParseResult",
+        "Parser"
+      ],
+      "functions": [
+        "compute_content_hash",
+        "parse_file",
+        "parse_source"
+      ]
+    },
+    {
+      "path": "src/ast_tools/lsp_client.py",
+      "lines": 399,
+      "classes": [
+        "LSPClient"
+      ],
+      "functions": [
+        "detect_language",
+        "get_lsp_client"
+      ]
+    },
+    {
+      "path": "src/ast_tools/tools/__init__.py",
+      "lines": 99,
+      "classes": [],
+      "functions": [
+        "register_tool",
+        "get_tool_handler",
+        "list_tool_names"
+      ]
+    },
+    {
+      "path": "src/ast_tools/tools/context_tools.py",
+      "lines": 42,
+      "classes": [],
+      "functions": [
+        "register_tools"
+      ]
+    },
+    {
+      "path": "src/ast_tools/tools/dependency.py",
+      "lines": 373,
+      "classes": [
+        "DependencyNode"
+      ],
+      "functions": [
+        "build_import_graph",
+        "find_circular_dependencies",
+        "get_external_dependencies",
+        "find_dead_code",
+        "get_dependency_chain"
+      ]
+    },
+    {
+      "path": "src/ast_tools/tools/dependency_tools.py",
+      "lines": 233,
+      "classes": [],
+      "functions": [
+        "circular_dependencies",
+        "external_dependencies",
+        "dead_code_detection",
+        "dependency_chain",
+        "api_surface_diff"
+      ]
+    },
+    {
+      "path": "src/ast_tools/tools/lsp_tools.py",
+      "lines": 430,
+      "classes": [],
+      "functions": [
+        "lsp_definition",
+        "lsp_references",
+        "lsp_hover",
+        "lsp_symbols",
+        "lsp_call_hierarchy_in",
+        "lsp_call_hierarchy_out",
+        "lsp_diagnostics",
+        "lsp_format",
+        "lsp_available_languages",
+        "lsp_check_server",
+        "register_lsp_tools"
+      ]
+    },
+    {
+      "path": "src/ast_tools/tools/refresh_index.py",
+      "lines": 304,
+      "classes": [],
+      "functions": [
+        "compute_file_hash",
+        "find_python_files"
+      ]
+    },
+    {
+      "path": "src/ast_tools/tools/semantic_search.py",
+      "lines": 432,
+      "classes": [],
+      "functions": [
+        "hybrid_search",
+        "estimate_context_tokens",
+        "format_context_result",
+        "hybrid_search_with_context",
+        "select_context_with_budget",
+        "fallback_search"
+      ]
+    },
+    {
+      "path": "src/ast_tools/tools/watcher.py",
+      "lines": 170,
+      "classes": [],
+      "functions": [
+        "watch_add",
+        "watch_remove",
+        "watch_status",
+        "watch_start",
+        "watch_stop",
+        "reindex_path",
+        "register_tools"
+      ]
+    },
+    {
+      "path": "src/ast_tools/types.py",
+      "lines": 173,
+      "classes": [
+        "SymbolKind",
+        "EdgeKind",
+        "ResolutionState",
+        "Symbol",
+        "Edge",
+        "FileCache",
+        "IndexStats"
+      ],
+      "functions": []
+    },
+    {
+      "path": "src/ast_tools/utils/file_utils.py",
+      "lines": 86,
+      "classes": [],
+      "functions": [
+        "find_python_files",
+        "is_test_file",
+        "file_to_module",
+        "filter_top_level"
+      ]
+    },
+    {
+      "path": "src/ast_tools/utils/impact.py",
+      "lines": 48,
+      "classes": [],
+      "functions": [
+        "build_reverse_deps",
+        "get_transitive_deps",
+        "classify_risk"
+      ]
+    },
+    {
+      "path": "src/ast_tools/utils/secret_sanitizer.py",
+      "lines": 291,
+      "classes": [
+        "SecretSanitizer"
+      ],
+      "functions": [
+        "sanitize_for_audit",
+        "log_audit_event"
+      ]
+    },
+    {
+      "path": "src/ast_tools/watcher/daemon.py",
+      "lines": 390,
+      "classes": [
+        "IndexQueue",
+        "AstToolsHandler",
+        "WatcherDaemon"
+      ],
+      "functions": [
+        "reindex_file"
+      ]
+    },
+    {
+      "path": "src/project_tools.py",
+      "lines": 1146,
+      "classes": [],
+      "functions": [
+        "find_project_root",
+        "read_project_json",
+        "write_project_json",
+        "generate_project_json",
+        "project_info",
+        "project_info_summary",
+        "project_init",
+        "project_verify",
+        "cli_main"
+      ]
+    },
+    {
+      "path": "src/ts_backend.py",
+      "lines": 608,
+      "classes": [],
+      "functions": [
+        "ts_parse",
+        "ts_grep",
+        "ts_grep_lang",
+        "ts_read",
+        "ts_read_lang"
+      ]
+    },
+    {
+      "path": "tests/conftest.py",
+      "lines": 147,
+      "classes": [],
+      "functions": [
+        "create_test_project"
+      ]
+    },
+    {
+      "path": "tests/context/test_formatters.py",
+      "lines": 133,
+      "classes": [
+        "TestTokenCounting",
+        "TestMarkdownFormatter"
+      ],
+      "functions": []
+    },
+    {
+      "path": "tests/context/test_history.py",
+      "lines": 79,
+      "classes": [
+        "TestInjectionHistory"
+      ],
+      "functions": []
+    },
+    {
+      "path": "tests/context/test_injector_1.py",
+      "lines": 114,
+      "classes": [
+        "TestRelevanceScoring"
+      ],
+      "functions": []
+    },
+    {
+      "path": "tests/context/test_injector_2.py",
+      "lines": 156,
+      "classes": [
+        "TestBudgetManagement",
+        "TestDiversityEnforcement"
+      ],
+      "functions": []
+    },
+    {
+      "path": "tests/curator/test_curator.py",
+      "lines": 108,
+      "classes": [
+        "TestLLmCurator",
+        "TestCuratorTools"
+      ],
+      "functions": []
+    },
+    {
+      "path": "tests/database/test_connection.py",
+      "lines": 153,
+      "classes": [
+        "TestRetryDecorator",
+        "TestConnectionContextManager",
+        "TestGetConnection"
+      ],
+      "functions": []
+    },
+    {
+      "path": "tests/database/test_migration_009.py",
+      "lines": 276,
+      "classes": [],
+      "functions": [
+        "fresh_db",
+        "test_migration_applies_successfully",
+        "test_dependency_metrics_table_created",
+        "test_embedding_similarity_table_created",
+        "test_knn_graph_table_created",
+        "test_audit_log_table_created",
+        "test_foreign_key_cascade",
+        "test_metadata_trigger",
+        "test_edge_type_trigger",
+        "test_composite_indexes_created",
+        "test_callgraph_edges_view_created",
+        "test_transaction_rollback_on_failure"
+      ]
+    },
+    {
+      "path": "tests/database/test_migration_009_rollback.py",
+      "lines": 259,
+      "classes": [],
+      "functions": [
+        "migrated_db",
+        "test_rollback_removes_new_tables",
+        "test_rollback_removes_triggers",
+        "test_rollback_removes_indexes",
+        "test_rollback_removes_view",
+        "test_rollback_restores_schema_version",
+        "test_rollback_preserves_original_data",
+        "test_rollback_removes_dependency_metrics_data",
+        "rollback_v5_to_v4"
+      ]
+    },
+    {
+      "path": "tests/database/test_queries.py",
+      "lines": 454,
+      "classes": [
+        "TestInsertFunctions",
+        "TestGetFunctions",
+        "TestUpdateDeleteFunctions"
+      ],
+      "functions": [
+        "db_conn",
+        "create_file_hash"
+      ]
+    },
+    {
+      "path": "tests/database/test_queries_edges.py",
+      "lines": 215,
+      "classes": [
+        "TestEdgeQueries"
+      ],
+      "functions": [
+        "db_conn"
+      ]
+    },
+    {
+      "path": "tests/database/test_queries_symbols.py",
+      "lines": 186,
+      "classes": [
+        "TestSymbolQueries"
+      ],
+      "functions": [
+        "db_conn"
+      ]
+    },
+    {
+      "path": "tests/database/test_schema.py",
+      "lines": 134,
+      "classes": [
+        "TestInitSchema",
+        "TestMigrate"
+      ],
+      "functions": []
+    },
+    {
+      "path": "tests/embeddings/test_model.py",
+      "lines": 124,
+      "classes": [
+        "TestModelLoading",
+        "TestGenerateEmbedding",
+        "TestGenerateBatchEmbeddings",
+        "TestModelConfiguration"
+      ],
+      "functions": []
+    },
+    {
+      "path": "tests/embeddings/test_store.py",
+      "lines": 256,
+      "classes": [
+        "TestFloatConversion",
+        "TestInsertEmbedding",
+        "TestInsertEmbeddingsBatch",
+        "TestSearchSimilar",
+        "TestGetEmbeddingCount",
+        "TestGetSymbolsWithoutEmbeddings",
+        "TestDeleteEmbedding",
+        "TestDeleteEmbeddingsForFile"
+      ],
+      "functions": [
+        "vec_conn"
+      ]
+    },
+    {
+      "path": "tests/indexer/test_cache.py",
+      "lines": 133,
+      "classes": [
+        "TestASTNodeEncoder",
+        "TestASTCache"
+      ],
+      "functions": []
+    },
+    {
+      "path": "tests/indexer/test_extractor.py",
+      "lines": 206,
+      "classes": [
+        "TestSymbolExtractor",
+        "TestExtractEdges",
+        "TestExtractSymbolsFunction"
+      ],
+      "functions": []
+    },
+    {
+      "path": "tests/indexer/test_parser.py",
+      "lines": 146,
+      "classes": [
+        "TestComputeContentHash",
+        "TestParseSource",
+        "TestParseFile",
+        "TestParserClass"
+      ],
+      "functions": []
+    },
+    {
+      "path": "tests/test_e2e.py",
+      "lines": 496,
+      "classes": [
+        "TestAstGrep",
+        "TestAstRead",
+        "TestAstEdit",
+        "TestStructuralAnalysis",
+        "TestCLI",
+        "TestMCPServer"
+      ],
+      "functions": [
+        "test_project"
+      ]
+    },
+    {
+      "path": "tests/test_phase3_polish.py",
+      "lines": 416,
+      "classes": [
+        "TestAllFiltering",
+        "TestErrorCodes",
+        "TestCLIPolish"
+      ],
+      "functions": [
+        "tmp_proj",
+        "src_dir"
+      ]
+    },
+    {
+      "path": "tests/test_project_tools.py",
+      "lines": 1172,
+      "classes": [
+        "TestDependencyGraphSrcLayout",
+        "TestProjectVerifyOutput",
+        "TestFrameworkDetection",
+        "TestEntryPointDetection",
+        "TestLanguageDetection",
+        "TestTreeSitterBackend",
+        "TestProjectInfoSummary",
+        "TestIncrementalScanning",
+        "TestChangeDetection",
+        "TestCodebaseSummary",
+        "TestFindReferences",
+        "TestImpactAnalysis"
+      ],
+      "functions": []
+    },
+    {
+      "path": "tests/tools/test_code_validate.py",
+      "lines": 534,
+      "classes": [
+        "TestPythonValidation",
+        "TestSQLValidation",
+        "TestShellValidation",
+        "TestJavaScriptValidation",
+        "TestTypeScriptValidation",
+        "TestRustValidation",
+        "TestGoValidation",
+        "TestCValidation",
+        "TestCppValidation",
+        "TestCSharpValidation",
+        "TestErrorHandlerParsing",
+        "TestToolInterface",
+        "TestSecurityValidations"
+      ],
+      "functions": []
+    },
+    {
+      "path": "tests/tools/test_dependency.py",
+      "lines": 223,
+      "classes": [
+        "TestBuildImportGraph",
+        "TestCircularDependencies",
+        "TestExternalDependencies",
+        "TestDeadCode",
+        "TestDependencyChain",
+        "TestIntegration"
+      ],
+      "functions": []
+    },
+    {
+      "path": "tests/tools/test_semantic_search_context.py",
+      "lines": 334,
+      "classes": [
+        "TestContextInjectionIntegration",
+        "TestDiversitySelection",
+        "TestTokenBudgetEnforcement",
+        "TestGracefulFallback",
+        "TestFallbackSearch"
+      ],
+      "functions": []
+    },
+    {
+      "path": "tests/watcher/test_daemon.py",
+      "lines": 255,
+      "classes": [
+        "TestIndexQueue",
+        "TestAstToolsHandler",
+        "TestWatcherDaemon",
+        "TestReindexFile"
+      ],
+      "functions": []
+    }
+  ],
+  "indices": {
+    "symbols": "references/symbol_index.json"
+  }
+}

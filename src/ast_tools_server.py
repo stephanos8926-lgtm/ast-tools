@@ -41,6 +41,7 @@ server = Server("ast-tools")
 
 # ─── Tool Definitions ────────────────────────────────────────────────────
 
+
 @server.list_tools()
 async def list_tools() -> list[Tool]:
     return [
@@ -156,7 +157,14 @@ async def list_tools() -> list[Tool]:
                         "description": "Filter results to only include specific AST node types. Valid values: 'ClassDef', 'FunctionDef', 'AsyncFunctionDef', 'Assign', 'Import', 'ImportFrom'. Default: include all.",
                         "items": {
                             "type": "string",
-                            "enum": ["ClassDef", "FunctionDef", "AsyncFunctionDef", "Assign", "Import", "ImportFrom"]
+                            "enum": [
+                                "ClassDef",
+                                "FunctionDef",
+                                "AsyncFunctionDef",
+                                "Assign",
+                                "Import",
+                                "ImportFrom",
+                            ],
                         },
                     },
                 },
@@ -533,7 +541,7 @@ async def list_tools() -> list[Tool]:
                 "Hybrid semantic + keyword search for code symbols. "
                 "Combines vector similarity (meaning-based) with FTS5 full-text search (keyword-based) "
                 "using Reciprocal Rank Fusion for best results. "
-                "Finds code by intent (\"authentication logic\") not just by name (\"authenticate_user\"). "
+                'Finds code by intent ("authentication logic") not just by name ("authenticate_user"). '
                 "Requires index initialized via refresh_index and embeddings generated (refresh_index --embeddings)."
             ),
             inputSchema={
@@ -562,16 +570,33 @@ async def list_tools() -> list[Tool]:
 
 # ─── Tool Handlers ────────────────────────────────────────────────────────
 
+
 @server.call_tool()
 async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
     """Dispatch tool calls to registered handlers."""
     try:
         if name not in TOOL_REGISTRY:
-            return [TextContent(type="text", text=json.dumps({"error": f"Unknown tool: {name}", "error_code": "NOT_FOUND", "available_tools": list_tool_names()}))]
-        
+            return [
+                TextContent(
+                    type="text",
+                    text=json.dumps(
+                        {
+                            "error": f"Unknown tool: {name}",
+                            "error_code": "NOT_FOUND",
+                            "available_tools": list_tool_names(),
+                        }
+                    ),
+                )
+            ]
+
         handler = get_tool_handler(name)
         result = await anyio.to_thread.run_sync(handler, arguments)
         return [TextContent(type="text", text=json.dumps(result, indent=2, default=str))]
     except Exception as e:
         logger.exception("Tool %s failed", name)
-        return [TextContent(type="text", text=json.dumps({"error": str(e), "error_code": "INTERNAL", "tool": name}))]
+        return [
+            TextContent(
+                type="text",
+                text=json.dumps({"error": str(e), "error_code": "INTERNAL", "tool": name}),
+            )
+        ]

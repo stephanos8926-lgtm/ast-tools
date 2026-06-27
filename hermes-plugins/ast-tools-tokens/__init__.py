@@ -21,10 +21,37 @@ AST_TOOLS_TOKEN_BUDGETS = {
 }
 
 
+# Error pattern → correction mapping for behavioral training
+AST_TOOLS_ERROR_CORRECTIONS = {
+    "ast_edit": {
+        "Invalid operation": """
+**Correct usage:** ast_edit operations are specific:
+- `rename_function`: {"function": "old_name", "new_name": "new_name"}
+- `replace_node`: {"pattern": "old", "replacement": "new"}
+- `insert_after`: {"anchor": "func", "code": "new code"}
+- `add_parameter`: {"function": "foo", "param": "bar", "type": "str"}
+See: docs/AST_EDIT_OPERATIONS.md for full list. Always dry_run=true first!
+""",
+        "dry_run": "⚠️ Always run dry_run=true FIRST to preview changes. Then re-run with dry_run=false.",
+    },
+    "semantic_search": {
+        "k exceeds": "⚠️ k=50 is large. Use k=10 + diversity_limit=5 for broad results, or add lang='python' filter.",
+        "no results": "Try broader query or remove kind/lang filters. FTS5 needs keyword matches for recall.",
+    },
+    "ast_grep": {
+        "Invalid pattern": "Use $VAR for single node, $$$VAR for multiple nodes. Example: def $FUNC($$$ARGS)",
+    },
+    "impact_analysis": {
+        "symbol not found": "Use find_references first to locate symbol, then impact_analysis on the file.",
+    },
+}
+
+
 def register(ctx: PluginContext):
     """Register ast-tools token management hooks."""
     ctx.register_hook("post_tool_call", track_ast_tools_usage)
     ctx.register_hook("pre_llm_call", check_context_pressure)
+    ctx.register_hook("post_tool_call", correct_ast_tools_errors)
 
 
 def track_ast_tools_usage(tool_name: str, params: dict, result: str, **kwargs):
@@ -108,5 +135,39 @@ def check_context_pressure(
 - For large codebases, use semantic_search with focused queries instead of full context injection
 """
         }
+    
+    return None
+
+
+def correct_ast_tools_errors(tool_name: str, params: dict, result: str, **kwargs):
+    """Inject behavioral corrections for ast-tools misuse."""
+    if not tool_name.startswith("mcp_ast_tools_"):
+        return  # Not our concern — skip non-ast-tools
+    
+    # Extract tool key
+    tool_key = tool_name.replace("mcp_ast_tools_", "")
+    
+    # Check for error patterns
+    if "error" in result.get("status", "").lower() or "Error:" in result:
+        correction = _get_correction_for_error(tool_key, result)
+        if correction:
+            return {
+                "context": f"\n⚠️ **AST-Tools Usage Correction:**\n{correction}\n"
+            }
+    
+    return None
+
+
+def _get_correction_for_error(tool_key: str, result: str) -> str | None:
+    """Match error pattern to correction from database."""
+    corrections = AST_TOOLS_ERROR_CORRECTIONS.get(tool_key, {})
+    
+    for pattern, correction in corrections.items():
+        if pattern.lower() in result.lower():
+            return correction
+    
+    # Generic fallback for unknown errors on known tools
+    if tool_key in AST_TOOLS_ERROR_CORRECTIONS:
+        return f"Check docs for {tool_key} usage. Common issues: wrong params, missing required fields."
     
     return None

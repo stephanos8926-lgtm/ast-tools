@@ -1,0 +1,1442 @@
+{
+  "register": {
+    "file": "hermes-plugins/ast-tools-tokens/__init__.py",
+    "line": 50,
+    "type": "function"
+  },
+  "inject_ast_tools_context": {
+    "file": "hermes-plugins/ast-tools-context/__init__.py",
+    "line": 18,
+    "type": "function"
+  },
+  "build_ast_tools_context": {
+    "file": "hermes-plugins/ast-tools-context/__init__.py",
+    "line": 72,
+    "type": "function"
+  },
+  "inject_session_onboarding": {
+    "file": "hermes-plugins/ast-tools-context/__init__.py",
+    "line": 176,
+    "type": "function"
+  },
+  "track_ast_tools_usage": {
+    "file": "hermes-plugins/ast-tools-tokens/__init__.py",
+    "line": 57,
+    "type": "function"
+  },
+  "check_context_pressure": {
+    "file": "hermes-plugins/ast-tools-tokens/__init__.py",
+    "line": 85,
+    "type": "function"
+  },
+  "correct_ast_tools_errors": {
+    "file": "hermes-plugins/ast-tools-tokens/__init__.py",
+    "line": 142,
+    "type": "function"
+  },
+  "generate_test_data": {
+    "file": "src/ast_tools/benchmarks/phase9_benchmark.py",
+    "line": 29,
+    "type": "function"
+  },
+  "benchmark_dependency_metrics": {
+    "file": "src/ast_tools/benchmarks/phase9_benchmark.py",
+    "line": 95,
+    "type": "function"
+  },
+  "benchmark_knn_build": {
+    "file": "src/ast_tools/benchmarks/phase9_benchmark.py",
+    "line": 121,
+    "type": "function"
+  },
+  "benchmark_audit_log_writes": {
+    "file": "src/ast_tools/benchmarks/phase9_benchmark.py",
+    "line": 157,
+    "type": "function"
+  },
+  "benchmark_index_effectiveness": {
+    "file": "src/ast_tools/benchmarks/phase9_benchmark.py",
+    "line": 185,
+    "type": "function"
+  },
+  "run_benchmarks": {
+    "file": "src/ast_tools/benchmarks/phase9_benchmark.py",
+    "line": 221,
+    "type": "function"
+  },
+  "MarkdownFormatter": {
+    "file": "src/ast_tools/context/formatters.py",
+    "line": 35,
+    "type": "class"
+  },
+  "count_tokens": {
+    "file": "src/ast_tools/context/formatters.py",
+    "line": 9,
+    "type": "function"
+  },
+  "InjectionHistory": {
+    "file": "src/ast_tools/context/history.py",
+    "line": 8,
+    "type": "class"
+  },
+  "Symbol": {
+    "file": "src/ast_tools/types.py",
+    "line": 41,
+    "type": "class"
+  },
+  "ContextInjector": {
+    "file": "src/ast_tools/context/injector.py",
+    "line": 106,
+    "type": "class"
+  },
+  "calculate_recency_score": {
+    "file": "src/ast_tools/context/injector.py",
+    "line": 35,
+    "type": "function"
+  },
+  "calculate_usage_score": {
+    "file": "src/ast_tools/context/injector.py",
+    "line": 48,
+    "type": "function"
+  },
+  "calculate_kind_boost": {
+    "file": "src/ast_tools/context/injector.py",
+    "line": 57,
+    "type": "function"
+  },
+  "calculate_proximity_score": {
+    "file": "src/ast_tools/context/injector.py",
+    "line": 74,
+    "type": "function"
+  },
+  "LLmCurator": {
+    "file": "src/ast_tools/curator/daemon.py",
+    "line": 26,
+    "type": "class"
+  },
+  "run_daily_audit": {
+    "file": "src/ast_tools/curator/daemon.py",
+    "line": 365,
+    "type": "function"
+  },
+  "generate_summary": {
+    "file": "src/ast_tools/curator/daemon.py",
+    "line": 371,
+    "type": "function"
+  },
+  "retry_on_locked": {
+    "file": "src/ast_tools/database/connection.py",
+    "line": 25,
+    "type": "function"
+  },
+  "get_connection": {
+    "file": "src/ast_tools/database/connection.py",
+    "line": 73,
+    "type": "function"
+  },
+  "database_context": {
+    "file": "src/ast_tools/database/connection.py",
+    "line": 126,
+    "type": "function"
+  },
+  "get_cache_path": {
+    "file": "src/ast_tools/database/connection.py",
+    "line": 150,
+    "type": "function"
+  },
+  "get_db_path": {
+    "file": "src/ast_tools/database/connection.py",
+    "line": 159,
+    "type": "function"
+  },
+  "migrate_v4_to_v5": {
+    "file": "src/ast_tools/database/schema.py",
+    "line": 294,
+    "type": "function"
+  },
+  "search_symbols": {
+    "file": "src/ast_tools/database/queries.py",
+    "line": 24,
+    "type": "function"
+  },
+  "find_symbol_definition": {
+    "file": "src/ast_tools/database/queries.py",
+    "line": 77,
+    "type": "function"
+  },
+  "list_symbols_by_file": {
+    "file": "src/ast_tools/database/queries.py",
+    "line": 103,
+    "type": "function"
+  },
+  "get_symbol_by_id": {
+    "file": "src/ast_tools/database/queries.py",
+    "line": 124,
+    "type": "function"
+  },
+  "find_references": {
+    "file": "src/ast_tools/database/queries.py",
+    "line": 150,
+    "type": "function"
+  },
+  "get_symbol_edges": {
+    "file": "src/ast_tools/database/queries.py",
+    "line": 173,
+    "type": "function"
+  },
+  "insert_symbol": {
+    "file": "src/ast_tools/database/queries.py",
+    "line": 198,
+    "type": "function"
+  },
+  "insert_symbols_batch": {
+    "file": "src/ast_tools/database/queries.py",
+    "line": 233,
+    "type": "function"
+  },
+  "insert_edge": {
+    "file": "src/ast_tools/database/queries.py",
+    "line": 280,
+    "type": "function"
+  },
+  "insert_edges_batch": {
+    "file": "src/ast_tools/database/queries.py",
+    "line": 308,
+    "type": "function"
+  },
+  "insert_symbol_embedding": {
+    "file": "src/ast_tools/database/queries.py",
+    "line": 339,
+    "type": "function"
+  },
+  "insert_symbol_embeddings_batch": {
+    "file": "src/ast_tools/database/queries.py",
+    "line": 356,
+    "type": "function"
+  },
+  "generate_embeddings": {
+    "file": "src/ast_tools/database/queries.py",
+    "line": 395,
+    "type": "function"
+  },
+  "get_cached_hash": {
+    "file": "src/ast_tools/database/queries.py",
+    "line": 415,
+    "type": "function"
+  },
+  "update_file_cache": {
+    "file": "src/ast_tools/database/queries.py",
+    "line": 431,
+    "type": "function"
+  },
+  "get_file_cache": {
+    "file": "src/ast_tools/database/queries.py",
+    "line": 452,
+    "type": "function"
+  },
+  "get_index_stats": {
+    "file": "src/ast_tools/database/queries.py",
+    "line": 476,
+    "type": "function"
+  },
+  "insert_file_cache_entry": {
+    "file": "src/ast_tools/database/queries.py",
+    "line": 511,
+    "type": "function"
+  },
+  "get_file_cache_entry": {
+    "file": "src/ast_tools/database/queries.py",
+    "line": 538,
+    "type": "function"
+  },
+  "update_file_cache_entry_hash": {
+    "file": "src/ast_tools/database/queries.py",
+    "line": 543,
+    "type": "function"
+  },
+  "delete_file_cache_entry": {
+    "file": "src/ast_tools/database/queries.py",
+    "line": 548,
+    "type": "function"
+  },
+  "search_symbols_fts": {
+    "file": "src/ast_tools/database/queries.py",
+    "line": 554,
+    "type": "function"
+  },
+  "get_symbols_in_file": {
+    "file": "src/ast_tools/database/queries.py",
+    "line": 563,
+    "type": "function"
+  },
+  "count_symbols_by_kind": {
+    "file": "src/ast_tools/database/queries.py",
+    "line": 572,
+    "type": "function"
+  },
+  "init_schema": {
+    "file": "src/ast_tools/database/schema.py",
+    "line": 110,
+    "type": "function"
+  },
+  "get_schema_version": {
+    "file": "src/ast_tools/database/schema.py",
+    "line": 136,
+    "type": "function"
+  },
+  "needs_migration": {
+    "file": "src/ast_tools/database/schema.py",
+    "line": 155,
+    "type": "function"
+  },
+  "register_migration": {
+    "file": "src/ast_tools/database/schema.py",
+    "line": 172,
+    "type": "function"
+  },
+  "migrate": {
+    "file": "src/ast_tools/database/schema.py",
+    "line": 191,
+    "type": "function"
+  },
+  "migrate_v1_to_v2": {
+    "file": "src/ast_tools/database/schema.py",
+    "line": 232,
+    "type": "function"
+  },
+  "migrate_v2_to_v3": {
+    "file": "src/ast_tools/database/schema.py",
+    "line": 250,
+    "type": "function"
+  },
+  "migrate_v3_to_v4": {
+    "file": "src/ast_tools/database/schema.py",
+    "line": 268,
+    "type": "function"
+  },
+  "get_migration_sql": {
+    "file": "src/ast_tools/database/schema.py",
+    "line": 325,
+    "type": "function"
+  },
+  "get_model": {
+    "file": "src/ast_tools/embeddings/model.py",
+    "line": 28,
+    "type": "function"
+  },
+  "generate_embedding": {
+    "file": "src/ast_tools/embeddings/model.py",
+    "line": 69,
+    "type": "function"
+  },
+  "generate_batch_embeddings": {
+    "file": "src/ast_tools/embeddings/model.py",
+    "line": 99,
+    "type": "function"
+  },
+  "unload_model": {
+    "file": "src/ast_tools/embeddings/model.py",
+    "line": 150,
+    "type": "function"
+  },
+  "load_vec_extension": {
+    "file": "src/ast_tools/embeddings/store.py",
+    "line": 27,
+    "type": "function"
+  },
+  "insert_embedding": {
+    "file": "src/ast_tools/embeddings/store.py",
+    "line": 55,
+    "type": "function"
+  },
+  "insert_embeddings_batch": {
+    "file": "src/ast_tools/embeddings/store.py",
+    "line": 88,
+    "type": "function"
+  },
+  "search_similar": {
+    "file": "src/ast_tools/embeddings/store.py",
+    "line": 130,
+    "type": "function"
+  },
+  "get_embedding_count": {
+    "file": "src/ast_tools/embeddings/store.py",
+    "line": 169,
+    "type": "function"
+  },
+  "get_symbols_without_embeddings": {
+    "file": "src/ast_tools/embeddings/store.py",
+    "line": 182,
+    "type": "function"
+  },
+  "delete_embedding": {
+    "file": "src/ast_tools/embeddings/store.py",
+    "line": 207,
+    "type": "function"
+  },
+  "delete_embeddings_for_file": {
+    "file": "src/ast_tools/embeddings/store.py",
+    "line": 218,
+    "type": "function"
+  },
+  "ASTNodeEncoder": {
+    "file": "src/ast_tools/indexer/cache.py",
+    "line": 34,
+    "type": "class"
+  },
+  "ASTCache": {
+    "file": "src/ast_tools/indexer/cache.py",
+    "line": 62,
+    "type": "class"
+  },
+  "DependencyMetricsCalculator": {
+    "file": "src/ast_tools/indexer/dependency_metrics.py",
+    "line": 24,
+    "type": "class"
+  },
+  "compute_metrics_for_symbols": {
+    "file": "src/ast_tools/indexer/dependency_metrics.py",
+    "line": 232,
+    "type": "function"
+  },
+  "insert_metrics_to_db": {
+    "file": "src/ast_tools/indexer/dependency_metrics.py",
+    "line": 251,
+    "type": "function"
+  },
+  "SymbolExtractor": {
+    "file": "src/ast_tools/indexer/extractor.py",
+    "line": 24,
+    "type": "class"
+  },
+  "TreeSitterSymbolExtractor": {
+    "file": "src/ast_tools/indexer/extractor.py",
+    "line": 424,
+    "type": "class"
+  },
+  "extract_symbols": {
+    "file": "src/ast_tools/indexer/extractor.py",
+    "line": 381,
+    "type": "function"
+  },
+  "extract_symbols_ts": {
+    "file": "src/ast_tools/indexer/extractor.py",
+    "line": 404,
+    "type": "function"
+  },
+  "ImplementsDetector": {
+    "file": "src/ast_tools/indexer/implements_detector.py",
+    "line": 22,
+    "type": "class"
+  },
+  "find_implements_relationships": {
+    "file": "src/ast_tools/indexer/implements_detector.py",
+    "line": 203,
+    "type": "function"
+  },
+  "KNNGraphBuilder": {
+    "file": "src/ast_tools/indexer/knn_builder.py",
+    "line": 30,
+    "type": "class"
+  },
+  "build_knn_graph_from_db": {
+    "file": "src/ast_tools/indexer/knn_builder.py",
+    "line": 191,
+    "type": "function"
+  },
+  "store_similarity_to_db": {
+    "file": "src/ast_tools/indexer/knn_builder.py",
+    "line": 230,
+    "type": "function"
+  },
+  "store_knn_to_db": {
+    "file": "src/ast_tools/indexer/knn_builder.py",
+    "line": 262,
+    "type": "function"
+  },
+  "ParseResult": {
+    "file": "src/ast_tools/indexer/parser.py",
+    "line": 23,
+    "type": "class"
+  },
+  "Parser": {
+    "file": "src/ast_tools/indexer/parser.py",
+    "line": 150,
+    "type": "class"
+  },
+  "compute_content_hash": {
+    "file": "src/ast_tools/indexer/parser.py",
+    "line": 48,
+    "type": "function"
+  },
+  "parse_file": {
+    "file": "src/ast_tools/indexer/parser.py",
+    "line": 60,
+    "type": "function"
+  },
+  "parse_source": {
+    "file": "src/ast_tools/indexer/parser.py",
+    "line": 120,
+    "type": "function"
+  },
+  "LSPClient": {
+    "file": "src/ast_tools/lsp_client.py",
+    "line": 69,
+    "type": "class"
+  },
+  "detect_language": {
+    "file": "src/ast_tools/lsp_client.py",
+    "line": 342,
+    "type": "function"
+  },
+  "get_lsp_client": {
+    "file": "src/ast_tools/lsp_client.py",
+    "line": 351,
+    "type": "function"
+  },
+  "register_tool": {
+    "file": "src/ast_tools/tools/__init__.py",
+    "line": 9,
+    "type": "function"
+  },
+  "get_tool_handler": {
+    "file": "src/ast_tools/tools/__init__.py",
+    "line": 14,
+    "type": "function"
+  },
+  "list_tool_names": {
+    "file": "src/ast_tools/tools/__init__.py",
+    "line": 21,
+    "type": "function"
+  },
+  "register_tools": {
+    "file": "src/ast_tools/tools/watcher.py",
+    "line": 157,
+    "type": "function"
+  },
+  "DependencyNode": {
+    "file": "src/ast_tools/tools/dependency.py",
+    "line": 20,
+    "type": "class"
+  },
+  "build_import_graph": {
+    "file": "src/ast_tools/tools/dependency.py",
+    "line": 31,
+    "type": "function"
+  },
+  "find_circular_dependencies": {
+    "file": "src/ast_tools/tools/dependency.py",
+    "line": 68,
+    "type": "function"
+  },
+  "get_external_dependencies": {
+    "file": "src/ast_tools/tools/dependency.py",
+    "line": 115,
+    "type": "function"
+  },
+  "find_dead_code": {
+    "file": "src/ast_tools/tools/dependency.py",
+    "line": 219,
+    "type": "function"
+  },
+  "get_dependency_chain": {
+    "file": "src/ast_tools/tools/dependency.py",
+    "line": 302,
+    "type": "function"
+  },
+  "circular_dependencies": {
+    "file": "src/ast_tools/tools/dependency_tools.py",
+    "line": 63,
+    "type": "function"
+  },
+  "external_dependencies": {
+    "file": "src/ast_tools/tools/dependency_tools.py",
+    "line": 76,
+    "type": "function"
+  },
+  "dead_code_detection": {
+    "file": "src/ast_tools/tools/dependency_tools.py",
+    "line": 89,
+    "type": "function"
+  },
+  "dependency_chain": {
+    "file": "src/ast_tools/tools/dependency_tools.py",
+    "line": 102,
+    "type": "function"
+  },
+  "api_surface_diff": {
+    "file": "src/ast_tools/tools/dependency_tools.py",
+    "line": 120,
+    "type": "function"
+  },
+  "lsp_definition": {
+    "file": "src/ast_tools/tools/lsp_tools.py",
+    "line": 13,
+    "type": "function"
+  },
+  "lsp_references": {
+    "file": "src/ast_tools/tools/lsp_tools.py",
+    "line": 51,
+    "type": "function"
+  },
+  "lsp_hover": {
+    "file": "src/ast_tools/tools/lsp_tools.py",
+    "line": 83,
+    "type": "function"
+  },
+  "lsp_symbols": {
+    "file": "src/ast_tools/tools/lsp_tools.py",
+    "line": 113,
+    "type": "function"
+  },
+  "lsp_call_hierarchy_in": {
+    "file": "src/ast_tools/tools/lsp_tools.py",
+    "line": 159,
+    "type": "function"
+  },
+  "lsp_call_hierarchy_out": {
+    "file": "src/ast_tools/tools/lsp_tools.py",
+    "line": 192,
+    "type": "function"
+  },
+  "lsp_diagnostics": {
+    "file": "src/ast_tools/tools/lsp_tools.py",
+    "line": 225,
+    "type": "function"
+  },
+  "lsp_format": {
+    "file": "src/ast_tools/tools/lsp_tools.py",
+    "line": 245,
+    "type": "function"
+  },
+  "lsp_available_languages": {
+    "file": "src/ast_tools/tools/lsp_tools.py",
+    "line": 286,
+    "type": "function"
+  },
+  "lsp_check_server": {
+    "file": "src/ast_tools/tools/lsp_tools.py",
+    "line": 302,
+    "type": "function"
+  },
+  "register_lsp_tools": {
+    "file": "src/ast_tools/tools/lsp_tools.py",
+    "line": 331,
+    "type": "function"
+  },
+  "compute_file_hash": {
+    "file": "src/ast_tools/tools/refresh_index.py",
+    "line": 42,
+    "type": "function"
+  },
+  "find_python_files": {
+    "file": "src/ast_tools/utils/file_utils.py",
+    "line": 8,
+    "type": "function"
+  },
+  "hybrid_search": {
+    "file": "src/ast_tools/tools/semantic_search.py",
+    "line": 20,
+    "type": "function"
+  },
+  "estimate_context_tokens": {
+    "file": "src/ast_tools/tools/semantic_search.py",
+    "line": 94,
+    "type": "function"
+  },
+  "format_context_result": {
+    "file": "src/ast_tools/tools/semantic_search.py",
+    "line": 114,
+    "type": "function"
+  },
+  "hybrid_search_with_context": {
+    "file": "src/ast_tools/tools/semantic_search.py",
+    "line": 143,
+    "type": "function"
+  },
+  "select_context_with_budget": {
+    "file": "src/ast_tools/tools/semantic_search.py",
+    "line": 208,
+    "type": "function"
+  },
+  "fallback_search": {
+    "file": "src/ast_tools/tools/semantic_search.py",
+    "line": 255,
+    "type": "function"
+  },
+  "watch_add": {
+    "file": "src/ast_tools/tools/watcher.py",
+    "line": 31,
+    "type": "function"
+  },
+  "watch_remove": {
+    "file": "src/ast_tools/tools/watcher.py",
+    "line": 58,
+    "type": "function"
+  },
+  "watch_status": {
+    "file": "src/ast_tools/tools/watcher.py",
+    "line": 91,
+    "type": "function"
+  },
+  "watch_start": {
+    "file": "src/ast_tools/tools/watcher.py",
+    "line": 109,
+    "type": "function"
+  },
+  "watch_stop": {
+    "file": "src/ast_tools/tools/watcher.py",
+    "line": 129,
+    "type": "function"
+  },
+  "reindex_path": {
+    "file": "src/ast_tools/tools/watcher.py",
+    "line": 145,
+    "type": "function"
+  },
+  "SymbolKind": {
+    "file": "src/ast_tools/types.py",
+    "line": 11,
+    "type": "class"
+  },
+  "EdgeKind": {
+    "file": "src/ast_tools/types.py",
+    "line": 22,
+    "type": "class"
+  },
+  "ResolutionState": {
+    "file": "src/ast_tools/types.py",
+    "line": 32,
+    "type": "class"
+  },
+  "Edge": {
+    "file": "src/ast_tools/types.py",
+    "line": 85,
+    "type": "class"
+  },
+  "FileCache": {
+    "file": "src/ast_tools/types.py",
+    "line": 113,
+    "type": "class"
+  },
+  "IndexStats": {
+    "file": "src/ast_tools/types.py",
+    "line": 134,
+    "type": "class"
+  },
+  "is_test_file": {
+    "file": "src/ast_tools/utils/file_utils.py",
+    "line": 43,
+    "type": "function"
+  },
+  "file_to_module": {
+    "file": "src/ast_tools/utils/file_utils.py",
+    "line": 54,
+    "type": "function"
+  },
+  "filter_top_level": {
+    "file": "src/ast_tools/utils/file_utils.py",
+    "line": 65,
+    "type": "function"
+  },
+  "build_reverse_deps": {
+    "file": "src/ast_tools/utils/impact.py",
+    "line": 5,
+    "type": "function"
+  },
+  "get_transitive_deps": {
+    "file": "src/ast_tools/utils/impact.py",
+    "line": 18,
+    "type": "function"
+  },
+  "classify_risk": {
+    "file": "src/ast_tools/utils/impact.py",
+    "line": 36,
+    "type": "function"
+  },
+  "SecretSanitizer": {
+    "file": "src/ast_tools/utils/secret_sanitizer.py",
+    "line": 24,
+    "type": "class"
+  },
+  "sanitize_for_audit": {
+    "file": "src/ast_tools/utils/secret_sanitizer.py",
+    "line": 226,
+    "type": "function"
+  },
+  "log_audit_event": {
+    "file": "src/ast_tools/utils/secret_sanitizer.py",
+    "line": 242,
+    "type": "function"
+  },
+  "IndexQueue": {
+    "file": "src/ast_tools/watcher/daemon.py",
+    "line": 32,
+    "type": "class"
+  },
+  "AstToolsHandler": {
+    "file": "src/ast_tools/watcher/daemon.py",
+    "line": 99,
+    "type": "class"
+  },
+  "WatcherDaemon": {
+    "file": "src/ast_tools/watcher/daemon.py",
+    "line": 180,
+    "type": "class"
+  },
+  "reindex_file": {
+    "file": "src/ast_tools/watcher/daemon.py",
+    "line": 297,
+    "type": "function"
+  },
+  "find_project_root": {
+    "file": "src/project_tools.py",
+    "line": 73,
+    "type": "function"
+  },
+  "read_project_json": {
+    "file": "src/project_tools.py",
+    "line": 90,
+    "type": "function"
+  },
+  "write_project_json": {
+    "file": "src/project_tools.py",
+    "line": 109,
+    "type": "function"
+  },
+  "generate_project_json": {
+    "file": "src/project_tools.py",
+    "line": 512,
+    "type": "function"
+  },
+  "project_info": {
+    "file": "src/project_tools.py",
+    "line": 644,
+    "type": "function"
+  },
+  "project_info_summary": {
+    "file": "src/project_tools.py",
+    "line": 652,
+    "type": "function"
+  },
+  "project_init": {
+    "file": "src/project_tools.py",
+    "line": 851,
+    "type": "function"
+  },
+  "project_verify": {
+    "file": "src/project_tools.py",
+    "line": 959,
+    "type": "function"
+  },
+  "cli_main": {
+    "file": "src/project_tools.py",
+    "line": 1051,
+    "type": "function"
+  },
+  "ts_parse": {
+    "file": "src/ts_backend.py",
+    "line": 107,
+    "type": "function"
+  },
+  "ts_grep": {
+    "file": "src/ts_backend.py",
+    "line": 130,
+    "type": "function"
+  },
+  "ts_grep_lang": {
+    "file": "src/ts_backend.py",
+    "line": 197,
+    "type": "function"
+  },
+  "ts_read": {
+    "file": "src/ts_backend.py",
+    "line": 335,
+    "type": "function"
+  },
+  "ts_read_lang": {
+    "file": "src/ts_backend.py",
+    "line": 449,
+    "type": "function"
+  },
+  "create_test_project": {
+    "file": "tests/conftest.py",
+    "line": 6,
+    "type": "function"
+  },
+  "TestTokenCounting": {
+    "file": "tests/context/test_formatters.py",
+    "line": 6,
+    "type": "class"
+  },
+  "TestMarkdownFormatter": {
+    "file": "tests/context/test_formatters.py",
+    "line": 40,
+    "type": "class"
+  },
+  "TestInjectionHistory": {
+    "file": "tests/context/test_history.py",
+    "line": 8,
+    "type": "class"
+  },
+  "TestRelevanceScoring": {
+    "file": "tests/context/test_injector_1.py",
+    "line": 12,
+    "type": "class"
+  },
+  "TestBudgetManagement": {
+    "file": "tests/context/test_injector_2.py",
+    "line": 12,
+    "type": "class"
+  },
+  "TestDiversityEnforcement": {
+    "file": "tests/context/test_injector_2.py",
+    "line": 84,
+    "type": "class"
+  },
+  "TestLLmCurator": {
+    "file": "tests/curator/test_curator.py",
+    "line": 9,
+    "type": "class"
+  },
+  "TestCuratorTools": {
+    "file": "tests/curator/test_curator.py",
+    "line": 75,
+    "type": "class"
+  },
+  "TestRetryDecorator": {
+    "file": "tests/database/test_connection.py",
+    "line": 16,
+    "type": "class"
+  },
+  "TestConnectionContextManager": {
+    "file": "tests/database/test_connection.py",
+    "line": 80,
+    "type": "class"
+  },
+  "TestGetConnection": {
+    "file": "tests/database/test_connection.py",
+    "line": 120,
+    "type": "class"
+  },
+  "fresh_db": {
+    "file": "tests/database/test_migration_009.py",
+    "line": 22,
+    "type": "function"
+  },
+  "test_migration_applies_successfully": {
+    "file": "tests/database/test_migration_009.py",
+    "line": 49,
+    "type": "function"
+  },
+  "test_dependency_metrics_table_created": {
+    "file": "tests/database/test_migration_009.py",
+    "line": 61,
+    "type": "function"
+  },
+  "test_embedding_similarity_table_created": {
+    "file": "tests/database/test_migration_009.py",
+    "line": 83,
+    "type": "function"
+  },
+  "test_knn_graph_table_created": {
+    "file": "tests/database/test_migration_009.py",
+    "line": 104,
+    "type": "function"
+  },
+  "test_audit_log_table_created": {
+    "file": "tests/database/test_migration_009.py",
+    "line": 115,
+    "type": "function"
+  },
+  "test_foreign_key_cascade": {
+    "file": "tests/database/test_migration_009.py",
+    "line": 133,
+    "type": "function"
+  },
+  "test_metadata_trigger": {
+    "file": "tests/database/test_migration_009.py",
+    "line": 175,
+    "type": "function"
+  },
+  "test_edge_type_trigger": {
+    "file": "tests/database/test_migration_009.py",
+    "line": 195,
+    "type": "function"
+  },
+  "test_composite_indexes_created": {
+    "file": "tests/database/test_migration_009.py",
+    "line": 215,
+    "type": "function"
+  },
+  "test_callgraph_edges_view_created": {
+    "file": "tests/database/test_migration_009.py",
+    "line": 239,
+    "type": "function"
+  },
+  "test_transaction_rollback_on_failure": {
+    "file": "tests/database/test_migration_009.py",
+    "line": 259,
+    "type": "function"
+  },
+  "migrated_db": {
+    "file": "tests/database/test_migration_009_rollback.py",
+    "line": 18,
+    "type": "function"
+  },
+  "test_rollback_removes_new_tables": {
+    "file": "tests/database/test_migration_009_rollback.py",
+    "line": 71,
+    "type": "function"
+  },
+  "test_rollback_removes_triggers": {
+    "file": "tests/database/test_migration_009_rollback.py",
+    "line": 99,
+    "type": "function"
+  },
+  "test_rollback_removes_indexes": {
+    "file": "tests/database/test_migration_009_rollback.py",
+    "line": 123,
+    "type": "function"
+  },
+  "test_rollback_removes_view": {
+    "file": "tests/database/test_migration_009_rollback.py",
+    "line": 159,
+    "type": "function"
+  },
+  "test_rollback_restores_schema_version": {
+    "file": "tests/database/test_migration_009_rollback.py",
+    "line": 177,
+    "type": "function"
+  },
+  "test_rollback_preserves_original_data": {
+    "file": "tests/database/test_migration_009_rollback.py",
+    "line": 189,
+    "type": "function"
+  },
+  "test_rollback_removes_dependency_metrics_data": {
+    "file": "tests/database/test_migration_009_rollback.py",
+    "line": 210,
+    "type": "function"
+  },
+  "rollback_v5_to_v4": {
+    "file": "tests/database/test_migration_009_rollback.py",
+    "line": 226,
+    "type": "function"
+  },
+  "TestInsertFunctions": {
+    "file": "tests/database/test_queries.py",
+    "line": 49,
+    "type": "class"
+  },
+  "TestGetFunctions": {
+    "file": "tests/database/test_queries.py",
+    "line": 169,
+    "type": "class"
+  },
+  "TestUpdateDeleteFunctions": {
+    "file": "tests/database/test_queries.py",
+    "line": 421,
+    "type": "class"
+  },
+  "db_conn": {
+    "file": "tests/database/test_queries_symbols.py",
+    "line": 23,
+    "type": "function"
+  },
+  "create_file_hash": {
+    "file": "tests/database/test_queries.py",
+    "line": 45,
+    "type": "function"
+  },
+  "TestEdgeQueries": {
+    "file": "tests/database/test_queries_edges.py",
+    "line": 32,
+    "type": "class"
+  },
+  "TestSymbolQueries": {
+    "file": "tests/database/test_queries_symbols.py",
+    "line": 34,
+    "type": "class"
+  },
+  "TestInitSchema": {
+    "file": "tests/database/test_schema.py",
+    "line": 14,
+    "type": "class"
+  },
+  "TestMigrate": {
+    "file": "tests/database/test_schema.py",
+    "line": 105,
+    "type": "class"
+  },
+  "TestModelLoading": {
+    "file": "tests/embeddings/test_model.py",
+    "line": 13,
+    "type": "class"
+  },
+  "TestGenerateEmbedding": {
+    "file": "tests/embeddings/test_model.py",
+    "line": 44,
+    "type": "class"
+  },
+  "TestGenerateBatchEmbeddings": {
+    "file": "tests/embeddings/test_model.py",
+    "line": 73,
+    "type": "class"
+  },
+  "TestModelConfiguration": {
+    "file": "tests/embeddings/test_model.py",
+    "line": 113,
+    "type": "class"
+  },
+  "TestFloatConversion": {
+    "file": "tests/embeddings/test_store.py",
+    "line": 50,
+    "type": "class"
+  },
+  "TestInsertEmbedding": {
+    "file": "tests/embeddings/test_store.py",
+    "line": 75,
+    "type": "class"
+  },
+  "TestInsertEmbeddingsBatch": {
+    "file": "tests/embeddings/test_store.py",
+    "line": 105,
+    "type": "class"
+  },
+  "TestSearchSimilar": {
+    "file": "tests/embeddings/test_store.py",
+    "line": 136,
+    "type": "class"
+  },
+  "TestGetEmbeddingCount": {
+    "file": "tests/embeddings/test_store.py",
+    "line": 177,
+    "type": "class"
+  },
+  "TestGetSymbolsWithoutEmbeddings": {
+    "file": "tests/embeddings/test_store.py",
+    "line": 193,
+    "type": "class"
+  },
+  "TestDeleteEmbedding": {
+    "file": "tests/embeddings/test_store.py",
+    "line": 218,
+    "type": "class"
+  },
+  "TestDeleteEmbeddingsForFile": {
+    "file": "tests/embeddings/test_store.py",
+    "line": 234,
+    "type": "class"
+  },
+  "vec_conn": {
+    "file": "tests/embeddings/test_store.py",
+    "line": 23,
+    "type": "function"
+  },
+  "TestASTNodeEncoder": {
+    "file": "tests/indexer/test_cache.py",
+    "line": 13,
+    "type": "class"
+  },
+  "TestASTCache": {
+    "file": "tests/indexer/test_cache.py",
+    "line": 30,
+    "type": "class"
+  },
+  "TestSymbolExtractor": {
+    "file": "tests/indexer/test_extractor.py",
+    "line": 12,
+    "type": "class"
+  },
+  "TestExtractEdges": {
+    "file": "tests/indexer/test_extractor.py",
+    "line": 138,
+    "type": "class"
+  },
+  "TestExtractSymbolsFunction": {
+    "file": "tests/indexer/test_extractor.py",
+    "line": 194,
+    "type": "class"
+  },
+  "TestComputeContentHash": {
+    "file": "tests/indexer/test_parser.py",
+    "line": 15,
+    "type": "class"
+  },
+  "TestParseSource": {
+    "file": "tests/indexer/test_parser.py",
+    "line": 38,
+    "type": "class"
+  },
+  "TestParseFile": {
+    "file": "tests/indexer/test_parser.py",
+    "line": 84,
+    "type": "class"
+  },
+  "TestParserClass": {
+    "file": "tests/indexer/test_parser.py",
+    "line": 128,
+    "type": "class"
+  },
+  "TestAstGrep": {
+    "file": "tests/test_e2e.py",
+    "line": 31,
+    "type": "class"
+  },
+  "TestAstRead": {
+    "file": "tests/test_e2e.py",
+    "line": 112,
+    "type": "class"
+  },
+  "TestAstEdit": {
+    "file": "tests/test_e2e.py",
+    "line": 178,
+    "type": "class"
+  },
+  "TestStructuralAnalysis": {
+    "file": "tests/test_e2e.py",
+    "line": 286,
+    "type": "class"
+  },
+  "TestCLI": {
+    "file": "tests/test_e2e.py",
+    "line": 362,
+    "type": "class"
+  },
+  "TestMCPServer": {
+    "file": "tests/test_e2e.py",
+    "line": 427,
+    "type": "class"
+  },
+  "test_project": {
+    "file": "tests/test_e2e.py",
+    "line": 23,
+    "type": "function"
+  },
+  "TestAllFiltering": {
+    "file": "tests/test_phase3_polish.py",
+    "line": 103,
+    "type": "class"
+  },
+  "TestErrorCodes": {
+    "file": "tests/test_phase3_polish.py",
+    "line": 230,
+    "type": "class"
+  },
+  "TestCLIPolish": {
+    "file": "tests/test_phase3_polish.py",
+    "line": 361,
+    "type": "class"
+  },
+  "tmp_proj": {
+    "file": "tests/test_phase3_polish.py",
+    "line": 49,
+    "type": "function"
+  },
+  "src_dir": {
+    "file": "tests/test_phase3_polish.py",
+    "line": 353,
+    "type": "function"
+  },
+  "TestDependencyGraphSrcLayout": {
+    "file": "tests/test_project_tools.py",
+    "line": 48,
+    "type": "class"
+  },
+  "TestProjectVerifyOutput": {
+    "file": "tests/test_project_tools.py",
+    "line": 133,
+    "type": "class"
+  },
+  "TestFrameworkDetection": {
+    "file": "tests/test_project_tools.py",
+    "line": 214,
+    "type": "class"
+  },
+  "TestEntryPointDetection": {
+    "file": "tests/test_project_tools.py",
+    "line": 280,
+    "type": "class"
+  },
+  "TestLanguageDetection": {
+    "file": "tests/test_project_tools.py",
+    "line": 345,
+    "type": "class"
+  },
+  "TestTreeSitterBackend": {
+    "file": "tests/test_project_tools.py",
+    "line": 424,
+    "type": "class"
+  },
+  "TestProjectInfoSummary": {
+    "file": "tests/test_project_tools.py",
+    "line": 489,
+    "type": "class"
+  },
+  "TestIncrementalScanning": {
+    "file": "tests/test_project_tools.py",
+    "line": 599,
+    "type": "class"
+  },
+  "TestChangeDetection": {
+    "file": "tests/test_project_tools.py",
+    "line": 679,
+    "type": "class"
+  },
+  "TestCodebaseSummary": {
+    "file": "tests/test_project_tools.py",
+    "line": 765,
+    "type": "class"
+  },
+  "TestFindReferences": {
+    "file": "tests/test_project_tools.py",
+    "line": 858,
+    "type": "class"
+  },
+  "TestImpactAnalysis": {
+    "file": "tests/test_project_tools.py",
+    "line": 958,
+    "type": "class"
+  },
+  "TestPythonValidation": {
+    "file": "tests/tools/test_code_validate.py",
+    "line": 35,
+    "type": "class"
+  },
+  "TestSQLValidation": {
+    "file": "tests/tools/test_code_validate.py",
+    "line": 100,
+    "type": "class"
+  },
+  "TestShellValidation": {
+    "file": "tests/tools/test_code_validate.py",
+    "line": 169,
+    "type": "class"
+  },
+  "TestJavaScriptValidation": {
+    "file": "tests/tools/test_code_validate.py",
+    "line": 225,
+    "type": "class"
+  },
+  "TestTypeScriptValidation": {
+    "file": "tests/tools/test_code_validate.py",
+    "line": 271,
+    "type": "class"
+  },
+  "TestRustValidation": {
+    "file": "tests/tools/test_code_validate.py",
+    "line": 309,
+    "type": "class"
+  },
+  "TestGoValidation": {
+    "file": "tests/tools/test_code_validate.py",
+    "line": 339,
+    "type": "class"
+  },
+  "TestCValidation": {
+    "file": "tests/tools/test_code_validate.py",
+    "line": 369,
+    "type": "class"
+  },
+  "TestCppValidation": {
+    "file": "tests/tools/test_code_validate.py",
+    "line": 406,
+    "type": "class"
+  },
+  "TestCSharpValidation": {
+    "file": "tests/tools/test_code_validate.py",
+    "line": 423,
+    "type": "class"
+  },
+  "TestErrorHandlerParsing": {
+    "file": "tests/tools/test_code_validate.py",
+    "line": 440,
+    "type": "class"
+  },
+  "TestToolInterface": {
+    "file": "tests/tools/test_code_validate.py",
+    "line": 482,
+    "type": "class"
+  },
+  "TestSecurityValidations": {
+    "file": "tests/tools/test_code_validate.py",
+    "line": 517,
+    "type": "class"
+  },
+  "TestBuildImportGraph": {
+    "file": "tests/tools/test_dependency.py",
+    "line": 15,
+    "type": "class"
+  },
+  "TestCircularDependencies": {
+    "file": "tests/tools/test_dependency.py",
+    "line": 42,
+    "type": "class"
+  },
+  "TestExternalDependencies": {
+    "file": "tests/tools/test_dependency.py",
+    "line": 76,
+    "type": "class"
+  },
+  "TestDeadCode": {
+    "file": "tests/tools/test_dependency.py",
+    "line": 110,
+    "type": "class"
+  },
+  "TestDependencyChain": {
+    "file": "tests/tools/test_dependency.py",
+    "line": 148,
+    "type": "class"
+  },
+  "TestIntegration": {
+    "file": "tests/tools/test_dependency.py",
+    "line": 184,
+    "type": "class"
+  },
+  "TestContextInjectionIntegration": {
+    "file": "tests/tools/test_semantic_search_context.py",
+    "line": 24,
+    "type": "class"
+  },
+  "TestDiversitySelection": {
+    "file": "tests/tools/test_semantic_search_context.py",
+    "line": 161,
+    "type": "class"
+  },
+  "TestTokenBudgetEnforcement": {
+    "file": "tests/tools/test_semantic_search_context.py",
+    "line": 212,
+    "type": "class"
+  },
+  "TestGracefulFallback": {
+    "file": "tests/tools/test_semantic_search_context.py",
+    "line": 246,
+    "type": "class"
+  },
+  "TestFallbackSearch": {
+    "file": "tests/tools/test_semantic_search_context.py",
+    "line": 283,
+    "type": "class"
+  },
+  "TestIndexQueue": {
+    "file": "tests/watcher/test_daemon.py",
+    "line": 14,
+    "type": "class"
+  },
+  "TestAstToolsHandler": {
+    "file": "tests/watcher/test_daemon.py",
+    "line": 82,
+    "type": "class"
+  },
+  "TestWatcherDaemon": {
+    "file": "tests/watcher/test_daemon.py",
+    "line": 159,
+    "type": "class"
+  },
+  "TestReindexFile": {
+    "file": "tests/watcher/test_daemon.py",
+    "line": 209,
+    "type": "class"
+  }
+}

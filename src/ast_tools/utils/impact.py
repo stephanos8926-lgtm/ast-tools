@@ -2,7 +2,6 @@
 """Impact analysis and dependency graph utilities."""
 
 
-
 def build_reverse_deps(dep_graph: dict[str, list[str]]) -> dict[str, list[str]]:
     """Build reverse dependency graph (who imports FROM each module)."""
     reverse: dict[str, list[str]] = {}
@@ -36,7 +35,7 @@ def get_transitive_deps(
 
 def classify_risk(fan_out: int) -> str:
     """Classify risk based on number of direct dependents.
-    
+
     Thresholds matching original implementation:
     - >= 10: high
     - >= 3: medium

@@ -16,10 +16,14 @@ def _tool_ast_read(args: dict[str, Any]) -> dict[str, Any]:
     file_path = Path(args["file"]).resolve()
     include_private = args.get("include_private", False)
     include_imports = args.get("include_imports", True)
-    filter_by_type = args.get("filter_by_type", None)
+    filter_by_type = args.get("filter_by_type")
 
     if not file_path.exists():
-        return {"error": f"File not found: {file_path}", "error_code": "NOT_FOUND", "tool": "ast_read"}
+        return {
+            "error": f"File not found: {file_path}",
+            "error_code": "NOT_FOUND",
+            "tool": "ast_read",
+        }
 
     source = file_path.read_text()
     try:
@@ -43,27 +47,28 @@ def _tool_ast_read(args: dict[str, Any]) -> dict[str, Any]:
         for node in ast.walk(tree):
             if isinstance(node, ast.Import):
                 for alias in node.names:
-                    imports.append({
-                        "module": alias.name,
-                        "alias": alias.asname,
-                        "line": node.lineno,
-                    })
+                    imports.append(
+                        {
+                            "module": alias.name,
+                            "alias": alias.asname,
+                            "line": node.lineno,
+                        }
+                    )
             elif isinstance(node, ast.ImportFrom) and _should_include("ImportFrom"):
-                imports.append({
-                    "module": node.module,
-                    "names": [a.name for a in node.names],
-                    "aliases": {a.name: a.asname for a in node.names if a.asname},
-                    "line": node.lineno,
-                })
+                imports.append(
+                    {
+                        "module": node.module,
+                        "names": [a.name for a in node.names],
+                        "aliases": {a.name: a.asname for a in node.names if a.asname},
+                        "line": node.lineno,
+                    }
+                )
         result["imports"] = imports
 
     # Check for __all__ export list
     all_names = _extract_all_names(tree)
     filtered_by_all = all_names is not None
-    if filtered_by_all:
-        all_set = set(all_names)
-    else:
-        all_set = set()
+    all_set = set(all_names) if filtered_by_all else set()
 
     classes = []
     functions = []
@@ -81,23 +86,27 @@ def _tool_ast_read(args: dict[str, Any]) -> dict[str, Any]:
                     if not include_private and item.name.startswith("_"):
                         continue
                     sig = _get_function_signature(item)
-                    methods.append({
-                        "name": item.name,
-                        "signature": sig,
-                        "line": item.lineno,
-                        "end_line": item.end_lineno,
-                        "docstring": ast.get_docstring(item),
-                        "decorators": [ast.dump(d) for d in item.decorator_list],
-                    })
-            classes.append({
-                "name": node.name,
-                "line": node.lineno,
-                "end_line": node.end_lineno,
-                "bases": [_annotation_to_str(b) for b in node.bases],
-                "docstring": ast.get_docstring(node),
-                "methods": methods,
-                "decorators": [ast.dump(d) for d in node.decorator_list],
-            })
+                    methods.append(
+                        {
+                            "name": item.name,
+                            "signature": sig,
+                            "line": item.lineno,
+                            "end_line": item.end_lineno,
+                            "docstring": ast.get_docstring(item),
+                            "decorators": [ast.dump(d) for d in item.decorator_list],
+                        }
+                    )
+            classes.append(
+                {
+                    "name": node.name,
+                    "line": node.lineno,
+                    "end_line": node.end_lineno,
+                    "bases": [_annotation_to_str(b) for b in node.bases],
+                    "docstring": ast.get_docstring(node),
+                    "methods": methods,
+                    "decorators": [ast.dump(d) for d in node.decorator_list],
+                }
+            )
         elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
             node_type = "FunctionDef" if isinstance(node, ast.FunctionDef) else "AsyncFunctionDef"
             if _should_include(node_type):
@@ -106,14 +115,16 @@ def _tool_ast_read(args: dict[str, Any]) -> dict[str, Any]:
                 if filtered_by_all and node.name not in all_set:
                     continue
                 sig = _get_function_signature(node)
-                functions.append({
-                    "name": node.name,
-                    "signature": sig,
-                    "line": node.lineno,
-                    "end_line": node.end_lineno,
-                    "docstring": ast.get_docstring(node),
-                    "decorators": [ast.dump(d) for d in node.decorator_list],
-                })
+                functions.append(
+                    {
+                        "name": node.name,
+                        "signature": sig,
+                        "line": node.lineno,
+                        "end_line": node.end_lineno,
+                        "docstring": ast.get_docstring(node),
+                        "decorators": [ast.dump(d) for d in node.decorator_list],
+                    }
+                )
         elif isinstance(node, ast.Assign) and _should_include("Assign"):
             for target in node.targets:
                 if isinstance(target, ast.Name):
@@ -123,11 +134,13 @@ def _tool_ast_read(args: dict[str, Any]) -> dict[str, Any]:
                         continue
                     if filtered_by_all and target.id not in all_set:
                         continue
-                    variables.append({
-                        "name": target.id,
-                        "line": node.lineno,
-                        "value_preview": ast.dump(node.value)[:100],
-                    })
+                    variables.append(
+                        {
+                            "name": target.id,
+                            "line": node.lineno,
+                            "value_preview": ast.dump(node.value)[:100],
+                        }
+                    )
 
     if _should_include("ClassDef"):
         result["classes"] = classes

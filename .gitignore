@@ -1,6 +1,80 @@
-project.json
-references/
+# Python
 __pycache__/
-*.pyc
-.pytest_cache/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
 .venv/
+venv/
+ENV/
+env/
+.venv-windows/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.project
+.pydevproject
+.settings/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Ruff
+.ruff_cache/
+
+# Project specific
+*.db
+*.sqlite
+*.vec
+data/
+artifacts/
+tmp/
+.tmp/
+test-fixtures/
+*.log
+logs/
+
+# Environment
+.env
+.env.local
+.env.*.local
+*.env
+
+# OS
+.DS_Store
+Thumbs.db
+*.lst

@@ -4,12 +4,13 @@ Handles SQLite connections with optimal pragmas for concurrent access,
 WAL mode for write concurrency, and automatic retry on lock timeouts.
 """
 
+import functools
 import sqlite3
 import time
-import functools
-from pathlib import Path
-from typing import Optional, Callable, Any, TypeVar
+from collections.abc import Callable
 from contextlib import contextmanager
+from pathlib import Path
+from typing import Any, TypeVar
 
 DEFAULT_DB_PATH = Path.home() / ".cache" / "ast-tools" / "codebase.db"
 
@@ -21,7 +22,9 @@ BACKOFF_MULTIPLIER = 2.0
 F = TypeVar("F", bound=Callable[..., Any])
 
 
-def retry_on_locked(max_attempts: int = MAX_RETRIES, initial_delay: float = RETRY_DELAY) -> Callable[[F], F]:
+def retry_on_locked(
+    max_attempts: int = MAX_RETRIES, initial_delay: float = RETRY_DELAY
+) -> Callable[[F], F]:
     """Decorator to retry database operations on "database is locked" errors.
 
     Uses exponential backoff: delay = initial_delay * (backoff_multiplier ^ attempt)
@@ -38,6 +41,7 @@ def retry_on_locked(max_attempts: int = MAX_RETRIES, initial_delay: float = RETR
         def insert_symbol(conn, symbol):
             ...
     """
+
     def decorator(func: F) -> F:
         @functools.wraps(func)
         def wrapper(*args: Any, **kwargs: Any) -> Any:
@@ -62,10 +66,11 @@ def retry_on_locked(max_attempts: int = MAX_RETRIES, initial_delay: float = RETR
             ) from last_exception
 
         return wrapper  # type: ignore
+
     return decorator
 
 
-def get_connection(db_path: Optional[Path] = None) -> sqlite3.Connection:
+def get_connection(db_path: Path | None = None) -> sqlite3.Connection:
     """Create a SQLite connection with optimal pragmas.
 
     Configures:
@@ -102,6 +107,7 @@ def get_connection(db_path: Optional[Path] = None) -> sqlite3.Connection:
     # Load sqlite-vec extension for vector similarity search
     try:
         from ast_tools.embeddings.store import load_vec_extension
+
         load_vec_extension(conn)
     except ImportError:
         # sqlite-vec not installed - vector search will be unavailable
@@ -109,6 +115,7 @@ def get_connection(db_path: Optional[Path] = None) -> sqlite3.Connection:
 
     # Initialize schema and run migrations
     from ast_tools.database.schema import init_schema, migrate
+
     init_schema(conn)
     migrate(conn)
 
@@ -116,7 +123,7 @@ def get_connection(db_path: Optional[Path] = None) -> sqlite3.Connection:
 
 
 @contextmanager
-def database_context(db_path: Optional[Path] = None):
+def database_context(db_path: Path | None = None):
     """Context manager for database connections with automatic cleanup.
 
     Usage:
