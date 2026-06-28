@@ -49,7 +49,7 @@ def _tool_ast_grep(args: dict[str, Any]) -> dict[str, Any]:
 
     if proc.returncode != 0 and not proc.stdout:
         stderr = proc.stderr.strip() or "ast-grep returned no output"
-        
+
         # Provide helpful pattern syntax hints
         hints = []
         if "$" not in pattern:
@@ -62,18 +62,18 @@ def _tool_ast_grep(args: dict[str, Any]) -> dict[str, Any]:
             hints.append("Common fixes: wrap strings in quotes, use $$$ for multiple nodes, ensure valid AST structure")
         if "no matches" in stderr.lower():
             hints.append("Try a simpler pattern first, or check that the language (--lang) matches your code")
-        
+
         error_response = {
             "error": stderr,
             "matches": [],
             "error_code": "PARSE_ERROR" if "parse" in stderr.lower() else "EXECUTION_ERROR",
             "tool": "ast_grep",
         }
-        
+
         if hints:
             error_response["hints"] = hints
             error_response["suggestion"] = "See https://ast-grep.github.io/guide/pattern-syntax.html for full syntax"
-        
+
         return error_response
 
     if json_output:

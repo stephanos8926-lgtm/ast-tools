@@ -10,6 +10,8 @@ import libcst as cst
 def _tool_ast_refactor_extract_interface(args: dict[str, Any]) -> dict[str, Any]:
     """Extract a public interface from a class and create an ABC or Protocol."""
     file_path = Path(args["file"]).resolve()
+    project_path_arg = args.get("project_path")
+    project_path = Path(project_path_arg).resolve() if project_path_arg else None
     class_name = args["class_name"]
     interface_name = args.get("interface_name", f"I{class_name}")
     interface_type = args.get("interface_type", "abc")
@@ -23,6 +25,14 @@ def _tool_ast_refactor_extract_interface(args: dict[str, Any]) -> dict[str, Any]
         return {
             "error": f"File not found: {file_path}",
             "error_code": "NOT_FOUND",
+            "tool": "ast_refactor_extract_interface",
+        }
+
+    # Security: Block path traversal only for existing files and when project_path is provided
+    if project_path and not file_path.is_relative_to(project_path):
+        return {
+            "error": "Path traversal attempt blocked",
+            "error_code": "PATH_TRAVERSAL",
             "tool": "ast_refactor_extract_interface",
         }
 

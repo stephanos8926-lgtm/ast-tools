@@ -145,7 +145,7 @@ def _private_func() -> int:
 PUBLIC_VALUE = 42
 ''',
         )
-        result = _tool_ast_read({"file": core})
+        result = _tool_ast_read({"file": core, "project_path": str(tmp_path)})
         assert result["filtered_by__all__"] is False
         class_names = [c["name"] for c in result["classes"]]
         assert "DataProcessor" in class_names
@@ -158,7 +158,7 @@ PUBLIC_VALUE = 42
     def test_all_filters_classes(self, tmp_proj):
         """With __all__, only listed classes appear."""
         core = os.path.join(tmp_proj, "core.py")
-        result = _tool_ast_read({"file": core})
+        result = _tool_ast_read({"file": core, "project_path": str(tmp_proj)})
         assert result["filtered_by__all__"] is True
         class_names = [c["name"] for c in result["classes"]]
         assert "DataProcessor" in class_names  # in __all__
@@ -168,7 +168,7 @@ PUBLIC_VALUE = 42
     def test_all_filters_functions(self, tmp_proj):
         """With __all__, only listed functions appear."""
         core = os.path.join(tmp_proj, "core.py")
-        result = _tool_ast_read({"file": core})
+        result = _tool_ast_read({"file": core, "project_path": str(tmp_proj)})
         func_names = [f["name"] for f in result["functions"]]
         assert "create_processor" in func_names  # in __all__
         assert "_private_func" not in func_names  # private AND not in __all__
@@ -176,7 +176,7 @@ PUBLIC_VALUE = 42
     def test_all_filters_variables(self, tmp_proj):
         """With __all__, only listed variables appear."""
         core = os.path.join(tmp_proj, "core.py")
-        result = _tool_ast_read({"file": core})
+        result = _tool_ast_read({"file": core, "project_path": str(tmp_proj)})
         var_names = [v["name"] for v in result["variables"]]
         assert "SECRET_VALUE" not in var_names  # not in __all__
         assert "PUBLIC_VALUE" not in var_names  # not in __all__
@@ -185,7 +185,7 @@ PUBLIC_VALUE = 42
     def test_all_with_include_private(self, tmp_proj):
         """__all__ filtering works alongside include_private."""
         core = os.path.join(tmp_proj, "core.py")
-        result = _tool_ast_read({"file": core, "include_private": True})
+        result = _tool_ast_read({"file": core, "project_path": str(tmp_proj), "include_private": True})
         assert result["filtered_by__all__"] is True
         class_names = [c["name"] for c in result["classes"]]
         assert "DataProcessor" in class_names  # in __all__ + public
@@ -209,7 +209,7 @@ def my_func():
 MY_VAR = 1
 """,
         )
-        result = _tool_ast_read({"file": core})
+        result = _tool_ast_read({"file": core, "project_path": str(tmp_path)})
         assert result["filtered_by__all__"] is True
         assert len(result["classes"]) == 0
         assert len(result["functions"]) == 0
@@ -218,7 +218,7 @@ MY_VAR = 1
     def test_all_without_imports(self, tmp_proj):
         """__all__ filtering works even without imports."""
         core = os.path.join(tmp_proj, "core.py")
-        result = _tool_ast_read({"file": core, "include_imports": False})
+        result = _tool_ast_read({"file": core, "project_path": str(tmp_proj), "include_imports": False})
         assert result["filtered_by__all__"] is True
         assert "imports" not in result
         assert len(result["classes"]) == 1  # only DataProcessor
@@ -235,14 +235,16 @@ class TestErrorCodes:
         assert result["tool"] == "ast_read"
 
     def test_ast_read_syntax_error(self):
-        with tempfile.NamedTemporaryFile(suffix=".py", mode="w", delete=False) as f:
+        """Syntax errors return parse_error key with fallback summary."""
+        with tempfile.NamedTemporaryFile(suffix=".py", mode="w", delete=False, dir="/tmp") as f:
             f.write("def broken(:\n  pass\n")
             f.flush()
-            result = _tool_ast_read({"file": f.name})
+            result = _tool_ast_read({"file": f.name, "project_path": "/tmp"})
             os.unlink(f.name)
-        assert "error" in result
-        assert result["error_code"] == "PARSE_ERROR"
+        # ast_read returns parse_error (not error) for syntax errors
+        assert "parse_error" in result
         assert result["tool"] == "ast_read"
+        assert "fallback_summary" in result
 
     def test_ast_edit_file_not_found(self):
         result = _tool_ast_edit(
@@ -257,12 +259,13 @@ class TestErrorCodes:
         assert result["tool"] == "ast_edit"
 
     def test_ast_edit_syntax_error(self):
-        with tempfile.NamedTemporaryFile(suffix=".py", mode="w", delete=False) as f:
+        with tempfile.NamedTemporaryFile(suffix=".py", mode="w", delete=False, dir="/tmp") as f:
             f.write("def broken(:\n  pass\n")
             f.flush()
             result = _tool_ast_edit(
                 {
                     "file": f.name,
+                    "project_path": "/tmp",
                     "operation": "rename_function",
                     "params": {"old_name": "foo", "new_name": "bar"},
                 }
@@ -273,12 +276,13 @@ class TestErrorCodes:
         assert result["tool"] == "ast_edit"
 
     def test_ast_edit_unknown_operation(self):
-        with tempfile.NamedTemporaryFile(suffix=".py", mode="w", delete=False) as f:
+        with tempfile.NamedTemporaryFile(suffix=".py", mode="w", delete=False, dir="/tmp") as f:
             f.write("def foo(): pass\n")
             f.flush()
             result = _tool_ast_edit(
                 {
                     "file": f.name,
+                    "project_path": "/tmp",
                     "operation": "nonexistent_op",
                     "params": {},
                 }
@@ -312,13 +316,14 @@ class TestErrorCodes:
         assert result["tool"] == "structural_analysis"
 
     def test_structural_analysis_missing_symbol(self):
-        with tempfile.NamedTemporaryFile(suffix=".py", mode="w", delete=False) as f:
+        with tempfile.NamedTemporaryFile(suffix=".py", mode="w", delete=False, dir="/tmp") as f:
             f.write("x = 1\n")
             f.flush()
             result = _tool_structural_analysis(
                 {
                     "analysis_type": "callers",
                     "file": f.name,
+                    "project_path": "/tmp",
                 }
             )
             os.unlink(f.name)

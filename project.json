@@ -1,7 +1,7 @@
 {
   "name": "ast-tools",
   "version": "0.1.0",
-  "generated": "2026-06-28T09:27:31.174459+00:00",
+  "generated": "2026-06-28T20:12:51.413392+00:00",
   "generator": "ast-tools-project-v1",
   "languages": {
     "yaml": {
@@ -9,12 +9,12 @@
       "lines": 71
     },
     "markdown": {
-      "files": 56,
-      "lines": 20341
+      "files": 57,
+      "lines": 20551
     },
     "toml": {
       "files": 1,
-      "lines": 134
+      "lines": 139
     },
     "shell": {
       "files": 4,
@@ -22,7 +22,7 @@
     },
     "python": {
       "files": 93,
-      "lines": 21451
+      "lines": 21498
     },
     "text": {
       "files": 5,
@@ -32,7 +32,7 @@
   "code_languages": {
     "python": {
       "files": 93,
-      "lines": 21451
+      "lines": 21498
     }
   },
   "config_languages": {
@@ -41,12 +41,12 @@
       "lines": 71
     },
     "markdown": {
-      "files": 56,
-      "lines": 20341
+      "files": 57,
+      "lines": 20551
     },
     "toml": {
       "files": 1,
-      "lines": 134
+      "lines": 139
     },
     "shell": {
       "files": 4,
@@ -710,7 +710,7 @@
     },
     {
       "path": "tests/test_e2e.py",
-      "lines": 496,
+      "lines": 502,
       "classes": [
         "TestAstGrep",
         "TestAstRead",
@@ -725,7 +725,7 @@
     },
     {
       "path": "tests/test_phase3_polish.py",
-      "lines": 416,
+      "lines": 421,
       "classes": [
         "TestAllFiltering",
         "TestErrorCodes",

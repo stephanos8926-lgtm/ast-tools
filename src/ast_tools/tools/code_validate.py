@@ -46,14 +46,12 @@ def _tool_code_validate(params: dict[str, Any]) -> dict[str, Any]:
     if file_path:
         try:
             resolved = Path(file_path).resolve()
-            # Basic sanity check: should be an absolute path within Reasonable filesystem
-            if not resolved.is_relative_to(Path("/home")) and not resolved.is_relative_to(
-                Path("/tmp")
-            ):
+            project_path = Path(params.get("project_path", ".")).resolve()
+            if not resolved.is_relative_to(project_path):
                 return {
                     "valid": False,
                     "errors": [
-                        {"line": 0, "column": 0, "message": "file_path must be under /home or /tmp"}
+                        {"line": 0, "column": 0, "message": "file_path outside project boundary"}
                     ],
                     "warnings": [],
                     "parser_used": "none",

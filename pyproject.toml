@@ -47,6 +47,10 @@ dev = [
     "ruff>=0.4.0",
     "pre-commit>=3.6",
     "hnswlib>=0.8.0",
+    "tree-sitter-python>=0.23",
+    "tree-sitter-c>=0.24",
+    "tree-sitter-cpp>=0.23",
+    "tree-sitter-c-sharp>=0.23",
 ]
 tree-sitter = [
     "tree-sitter>=0.23",
@@ -93,6 +97,7 @@ ignore = [
 "__init__.py" = ["F401", "F403"]  # star imports in compat shims
 "tests/**/*.py" = ["ARG001", "S101"]  # unused args in tests, assert allowed
 "**/fixtures/*.py" = ["ALL"]
+"src/ast_tools/tools/*.py" = ["ARG001", "ARG002"]  # MCP tool handlers require args dict
 
 [tool.ruff.lint.isort]
 known-first-party = ["ast_tools"]

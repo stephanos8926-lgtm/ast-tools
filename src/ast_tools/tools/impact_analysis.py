@@ -18,7 +18,7 @@ def _tool_impact_analysis(args: dict[str, Any]) -> dict[str, Any]:
             "error_code": "INVALID_INPUT",
             "tool": "impact_analysis",
         }
-    
+
     cwd = args.get("cwd", ".")
 
     from project_tools import find_project_root

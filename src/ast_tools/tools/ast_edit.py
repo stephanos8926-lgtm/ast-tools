@@ -14,12 +14,12 @@ def _build_transformer(operation: str, params: dict):
         new_name = params["new_name"]
 
         class RenameTransformer(cst.CSTTransformer):
-            def leave_FunctionDef(self, original_node, updated_node):  # noqa: ARG002
+            def leave_FunctionDef(self, original_node, updated_node):
                 if updated_node.name.value == old_name:
                     return updated_node.with_changes(name=cst.Name(new_name))
                 return updated_node
 
-            def leave_Call(self, original_node, updated_node):  # noqa: ARG002
+            def leave_Call(self, original_node, updated_node):
                 if isinstance(updated_node.func, cst.Name) and updated_node.func.value == old_name:
                     return updated_node.with_changes(func=cst.Name(new_name))
                 return updated_node
@@ -53,7 +53,7 @@ def _build_transformer(operation: str, params: dict):
         new_params = params["parameters"]  # list of {"name": str, "default": str|None}
 
         class ChangeSigTransformer(cst.CSTTransformer):
-            def leave_FunctionDef(self, original_node, updated_node):  # noqa: ARG002
+            def leave_FunctionDef(self, original_node, updated_node):
                 if updated_node.name.value == func_name:
                     new_params_list = []
                     for p in new_params:
@@ -78,7 +78,7 @@ def _build_transformer(operation: str, params: dict):
             def __init__(self):
                 self._replacement_nodes = list(cst.parse_module(replacement).body)
 
-            def leave_Module(self, original_node, updated_node):  # noqa: ARG002
+            def leave_Module(self, original_node, updated_node):
                 if start_line is None:
                     return updated_node
                 new_body = []
@@ -105,7 +105,7 @@ def _build_transformer(operation: str, params: dict):
         class RemoveTransformer(cst.CSTTransformer):
             METADATA_DEPENDENCIES = (cst.metadata.PositionProvider,)
 
-            def leave_Module(self, original_node, updated_node):  # noqa: ARG002
+            def leave_Module(self, original_node, updated_node):
                 if start_line is None:
                     return updated_node
                 new_body = []
@@ -128,6 +128,8 @@ def _build_transformer(operation: str, params: dict):
 def _tool_ast_edit(args: dict[str, Any]) -> dict[str, Any]:
     """Perform surgical AST-based code modification."""
     file_path = Path(args["file"]).resolve()
+    project_path_arg = args.get("project_path")
+    project_path = Path(project_path_arg).resolve() if project_path_arg else None
     operation = args["operation"]
     params = args.get("params", {})
     dry_run = args.get("dry_run", False)
@@ -136,6 +138,14 @@ def _tool_ast_edit(args: dict[str, Any]) -> dict[str, Any]:
         return {
             "error": f"File not found: {file_path}",
             "error_code": "NOT_FOUND",
+            "tool": "ast_edit",
+        }
+
+    # Security: Block path traversal only for existing files and when project_path is provided
+    if project_path and not file_path.is_relative_to(project_path):
+        return {
+            "error": "Path traversal attempt blocked",
+            "error_code": "PATH_TRAVERSAL",
             "tool": "ast_edit",
         }
 

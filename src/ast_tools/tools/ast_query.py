@@ -6,34 +6,33 @@ Routes natural language intents to the best ast-tools capability.
 
 from typing import Any
 
-
 # Intent patterns → tool mapping
 _INTENT_PATTERNS = {
     # Symbol discovery
     "find_symbol": ["find", "locate", "where is", "show me", "what does", "list"],
     "find_symbol_keywords": ["function", "class", "method", "variable", "constant", "interface", "type"],
-    
+
     # Usage tracking
     "find_usage": ["used by", "usage", "callers", "references", "who calls", "where used"],
-    
+
     # Structural search
     "structural_search": ["pattern", "structure", "all imports", "all decorators", "all returns"],
-    
+
     # Refactoring
     "refactor": ["rename", "replace", "change", "modify", "update", "refactor"],
-    
+
     # Impact analysis
     "impact": ["impact", "affect", "break", "depend", "dependency", "blast radius"],
-    
+
     # Semantic search
     "semantic": ["similar", "like", "meaning", "concept", "find by meaning"],
-    
+
     # Definition
     "definition": ["definition", "defined", "implementation", "source"],
-    
+
     # Documentation
     "docs": ["document", "docstring", "signature", "overview", "summary"],
-    
+
     # Validation
     "validate": ["validate", "check", "lint", "syntax", "error"],
 }
@@ -55,51 +54,50 @@ _INTENT_PRIORITY = [
 def _detect_intent(query: str) -> str:
     """Detect user intent from natural language query with tie-breaking."""
     query_lower = query.lower()
-    
+
     # Score each intent category
     scores = {}
-    
+
     for intent, keywords in _INTENT_PATTERNS.items():
         if intent == "find_symbol_keywords":
             continue
-            
+
         score = sum(1 for kw in keywords if kw in query_lower)
         if score > 0:
             scores[intent] = score
-    
+
     # Boost with keyword patterns
-    if any(kw in query_lower for kw in _INTENT_PATTERNS["find_symbol_keywords"]):
-        if "find" in query_lower or "where" in query_lower:
-            scores["find_symbol"] = scores.get("find_symbol", 0) + 2
-    
+    if any(kw in query_lower for kw in _INTENT_PATTERNS["find_symbol_keywords"]) and ("find" in query_lower or "where" in query_lower):
+        scores["find_symbol"] = scores.get("find_symbol", 0) + 2
+
     # Return highest scoring intent with tie-breaking
     if not scores:
         return "unknown"
-    
+
     top_score = max(scores.values())
     tied_intents = [intent for intent, score in scores.items() if score == top_score]
-    
+
     if len(tied_intents) == 1:
         return tied_intents[0]
-    
+
     # Break ties using priority order (more specific wins)
     for priority_intent in _INTENT_PRIORITY:
         if priority_intent in tied_intents:
             return priority_intent
-    
+
     return tied_intents[0]
 
 
 def _tool_ast_query(args: dict[str, Any]) -> dict[str, Any]:
     """
     Smart router: describe what you want, get the best tool recommendation.
-    
+
     Args:
         intent: Natural language description of what you want to do
         file: Optional file path to focus on
         symbol: Optional symbol name to search for
         language: Optional language filter (python, typescript, etc.)
-    
+
     Returns:
         Recommended tool name, parameters, and explanation
     """
@@ -107,16 +105,16 @@ def _tool_ast_query(args: dict[str, Any]) -> dict[str, Any]:
     file_path = args.get("file")
     symbol = args.get("symbol")
     language = args.get("language")
-    
+
     if not intent and not symbol:
         return {
             "error": "Either 'intent' or 'symbol' must be provided",
             "example": "ast_query(intent='find all callers of authenticate function')",
         }
-    
+
     # Detect intent
     detected_intent = _detect_intent(intent or f"find {symbol}")
-    
+
     # Route to appropriate tool
     routing = {
         "find_symbol": {
@@ -142,7 +140,7 @@ def _tool_ast_query(args: dict[str, Any]) -> dict[str, Any]:
         "structural_search": {
             "tool": "ast_grep",
             "params": {
-                "pattern": f"$SYMBOL",  # Generic pattern
+                "pattern": "$SYMBOL",  # Generic pattern
                 "path": file_path or ".",
                 "lang": language or "python",
             },
@@ -214,11 +212,11 @@ def _tool_ast_query(args: dict[str, Any]) -> dict[str, Any]:
             "suggestion": "Try being more specific: 'find callers', 'rename function', 'find imports'",
         },
     }
-    
+
     recommendation = routing.get(detected_intent, routing["unknown"])
-    
+
     # Fix C: Removed dead override block - params are set correctly per-branch now
-    
+
     return {
         "detected_intent": detected_intent,
         "confidence": "high" if detected_intent != "unknown" else "low",
@@ -252,7 +250,7 @@ def _get_alternatives(intent: str) -> list[str]:
 ast_query_tool = {
     "name": "ast_query",
     "description": """Smart router for code intelligence: describe what you want in natural language, get the best tool recommendation.
-    
+
 Examples:
 - "find all callers of authenticate function" → find_references
 - "rename this function everywhere" → ast_edit (with dry_run)

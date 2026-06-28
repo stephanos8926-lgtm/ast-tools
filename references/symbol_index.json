@@ -1196,17 +1196,17 @@
   },
   "TestStructuralAnalysis": {
     "file": "tests/test_e2e.py",
-    "line": 286,
+    "line": 292,
     "type": "class"
   },
   "TestCLI": {
     "file": "tests/test_e2e.py",
-    "line": 362,
+    "line": 368,
     "type": "class"
   },
   "TestMCPServer": {
     "file": "tests/test_e2e.py",
-    "line": 427,
+    "line": 433,
     "type": "class"
   },
   "test_project": {
@@ -1226,7 +1226,7 @@
   },
   "TestCLIPolish": {
     "file": "tests/test_phase3_polish.py",
-    "line": 361,
+    "line": 366,
     "type": "class"
   },
   "tmp_proj": {
@@ -1236,7 +1236,7 @@
   },
   "src_dir": {
     "file": "tests/test_phase3_polish.py",
-    "line": 353,
+    "line": 358,
     "type": "function"
   },
   "TestDependencyGraphSrcLayout": {

@@ -14,6 +14,8 @@ from ast_tools.utils.annotations import (
 def _tool_ast_read(args: dict[str, Any]) -> dict[str, Any]:
     """Extract API surface from a Python file."""
     file_path = Path(args["file"]).resolve()
+    project_path_arg = args.get("project_path")
+    project_path = Path(project_path_arg).resolve() if project_path_arg else None
     include_private = args.get("include_private", False)
     include_imports = args.get("include_imports", True)
     filter_by_type = args.get("filter_by_type")
@@ -25,6 +27,14 @@ def _tool_ast_read(args: dict[str, Any]) -> dict[str, Any]:
             "tool": "ast_read",
         }
 
+    # Security: Block path traversal only for existing files and when project_path is provided
+    if project_path and not file_path.is_relative_to(project_path):
+        return {
+            "error": "Path traversal attempt blocked",
+            "error_code": "PATH_TRAVERSAL",
+            "tool": "ast_read",
+        }
+
     try:
         source = file_path.read_text(encoding='utf-8')
     except UnicodeDecodeError as e:
@@ -33,7 +43,7 @@ def _tool_ast_read(args: dict[str, Any]) -> dict[str, Any]:
             "error_code": "ENCODING_ERROR",
             "tool": "ast_read",
         }
-    
+
     try:
         tree = ast.parse(source, filename=str(file_path))
     except SyntaxError as e:
@@ -45,7 +55,7 @@ def _tool_ast_read(args: dict[str, Any]) -> dict[str, Any]:
             "parse_error": f"AST parse failed: {e}",
             "fallback_summary": {
                 "total_lines": len(lines),
-                "non_empty_lines": sum(1 for l in lines if l.strip()),
+                "non_empty_lines": sum(1 for line in lines if line.strip()),
                 "has_unicode": any(ord(c) > 127 for line in lines for c in line),
                 "first_50_lines": lines[:50],
             },

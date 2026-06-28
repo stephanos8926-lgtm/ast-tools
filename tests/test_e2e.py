@@ -113,7 +113,7 @@ class TestAstRead:
     def test_read_core_module(self, test_project):
         """Extract structure from core.py."""
         core_file = os.path.join(test_project, "src", "mypackage", "core.py")
-        result = _tool_ast_read({"file": core_file})
+        result = _tool_ast_read({"file": core_file, "project_path": test_project})
         assert "error" not in result
         assert result["language"] == "python"
         assert result["summary"]["total_classes"] == 2
@@ -123,7 +123,7 @@ class TestAstRead:
     def test_read_class_details(self, test_project):
         """Verify class structure extraction."""
         core_file = os.path.join(test_project, "src", "mypackage", "core.py")
-        result = _tool_ast_read({"file": core_file, "include_private": True})
+        result = _tool_ast_read({"file": core_file, "include_private": True, "project_path": test_project})
         classes = {c["name"]: c for c in result["classes"]}
         assert "DataProcessor" in classes
         assert "AdvancedProcessor" in classes
@@ -134,7 +134,7 @@ class TestAstRead:
     def test_read_function_signatures(self, test_project):
         """Verify function signature extraction."""
         core_file = os.path.join(test_project, "src", "mypackage", "core.py")
-        result = _tool_ast_read({"file": core_file})
+        result = _tool_ast_read({"file": core_file, "project_path": test_project})
         funcs = {f["name"]: f for f in result["functions"]}
         assert "create_processor" in funcs
         assert "helper_function" in funcs
@@ -145,7 +145,7 @@ class TestAstRead:
     def test_read_exclude_private(self, test_project):
         """Private members excluded by default."""
         core_file = os.path.join(test_project, "src", "mypackage", "core.py")
-        result = _tool_ast_read({"file": core_file, "include_private": False})
+        result = _tool_ast_read({"file": core_file, "include_private": False, "project_path": test_project})
         all_methods = []
         for c in result["classes"]:
             all_methods.extend(m["name"] for m in c["methods"])
@@ -154,21 +154,21 @@ class TestAstRead:
     def test_read_include_private(self, test_project):
         """Private members included when requested."""
         core_file = os.path.join(test_project, "src", "mypackage", "core.py")
-        result = _tool_ast_read({"file": core_file, "include_private": True})
+        result = _tool_ast_read({"file": core_file, "include_private": True, "project_path": test_project})
         all_methods = []
         for c in result["classes"]:
             all_methods.extend(m["name"] for m in c["methods"])
         assert "_transform" in all_methods
 
-    def test_read_nonexistent_file(self):
+    def test_read_nonexistent_file(self, test_project):
         """Read a file that doesn't exist."""
-        result = _tool_ast_read({"file": "/nonexistent/file.py"})
+        result = _tool_ast_read({"file": "/nonexistent/file.py", "project_path": test_project})
         assert "error" in result
 
     def test_read_no_imports(self, test_project):
         """Read without imports."""
         core_file = os.path.join(test_project, "src", "mypackage", "core.py")
-        result = _tool_ast_read({"file": core_file, "include_imports": False})
+        result = _tool_ast_read({"file": core_file, "include_imports": False, "project_path": test_project})
         assert "imports" not in result
 
 
@@ -185,6 +185,7 @@ class TestAstEdit:
 
         result = _tool_ast_edit(
             {
+                "project_path": test_project,
                 "file": core_file,
                 "operation": "rename_function",
                 "params": {"old_name": "helper_function", "new_name": "utility_function"},
@@ -200,6 +201,7 @@ class TestAstEdit:
         core_file = os.path.join(test_project, "src", "mypackage", "core.py")
         result = _tool_ast_edit(
             {
+                "project_path": test_project,
                 "file": core_file,
                 "operation": "add_parameter",
                 "params": {
@@ -218,6 +220,7 @@ class TestAstEdit:
         core_file = os.path.join(test_project, "src", "mypackage", "core.py")
         result = _tool_ast_edit(
             {
+                "project_path": test_project,
                 "file": core_file,
                 "operation": "change_signature",
                 "params": {
@@ -242,6 +245,7 @@ class TestAstEdit:
 
         result = _tool_ast_edit(
             {
+                "project_path": test_project,
                 "file": core_file,
                 "operation": "remove_node",
                 "params": {"start_line": 7, "end_line": 10},
@@ -250,10 +254,11 @@ class TestAstEdit:
         )
         assert "error" not in result
 
-    def test_edit_nonexistent_file(self):
+    def test_edit_nonexistent_file(self, test_project):
         """Edit a file that doesn't exist."""
         result = _tool_ast_edit(
             {
+                "project_path": test_project,
                 "file": "/nonexistent/file.py",
                 "operation": "rename_function",
                 "params": {"old_name": "foo", "new_name": "bar"},
@@ -269,6 +274,7 @@ class TestAstEdit:
 
         result = _tool_ast_edit(
             {
+                "project_path": test_project,
                 "file": core_file,
                 "operation": "rename_function",
                 "params": {"old_name": "helper_function", "new_name": "utility_function"},

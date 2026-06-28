@@ -10,6 +10,8 @@ from ast_tools.utils import _annotation_to_str, _extract_all_names
 def _tool_ast_generate_stub(args: dict[str, Any]) -> dict[str, Any]:
     """Generate a .pyi stub file or interface summary from a Python source file."""
     file_path = Path(args["file"]).resolve()
+    project_path_arg = args.get("project_path")
+    project_path = Path(project_path_arg).resolve() if project_path_arg else None
     include_private = args.get("include_private", False)
     include_docstrings = args.get("include_docstrings", True)
     output_format = args.get("output_format", "stub")
@@ -18,6 +20,14 @@ def _tool_ast_generate_stub(args: dict[str, Any]) -> dict[str, Any]:
         return {
             "error": f"File not found: {file_path}",
             "error_code": "NOT_FOUND",
+            "tool": "ast_generate_stub",
+        }
+
+    # Security: Block path traversal only for existing files and when project_path is provided
+    if project_path and not file_path.is_relative_to(project_path):
+        return {
+            "error": "Path traversal attempt blocked",
+            "error_code": "PATH_TRAVERSAL",
             "tool": "ast_generate_stub",
         }
 
