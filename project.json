@@ -1,7 +1,7 @@
 {
   "name": "ast-tools",
   "version": "0.1.0",
-  "generated": "2026-06-28T03:42:43.210189+00:00",
+  "generated": "2026-06-28T05:36:29.674388+00:00",
   "generator": "ast-tools-project-v1",
   "languages": {
     "yaml": {
@@ -22,7 +22,7 @@
     },
     "python": {
       "files": 91,
-      "lines": 20805
+      "lines": 20891
     },
     "text": {
       "files": 5,
@@ -32,7 +32,7 @@
   "code_languages": {
     "python": {
       "files": 91,
-      "lines": 20805
+      "lines": 20891
     }
   },
   "config_languages": {
@@ -401,7 +401,7 @@
     },
     {
       "path": "src/ast_tools/tools/semantic_search.py",
-      "lines": 432,
+      "lines": 475,
       "classes": [],
       "functions": [
         "hybrid_search",

@@ -25,11 +25,33 @@ def _tool_ast_read(args: dict[str, Any]) -> dict[str, Any]:
             "tool": "ast_read",
         }
 
-    source = file_path.read_text()
+    try:
+        source = file_path.read_text(encoding='utf-8')
+    except UnicodeDecodeError as e:
+        return {
+            "error": f"File encoding error: {e}. Try saving as UTF-8.",
+            "error_code": "ENCODING_ERROR",
+            "tool": "ast_read",
+        }
+    
     try:
         tree = ast.parse(source, filename=str(file_path))
     except SyntaxError as e:
-        return {"error": f"Syntax error: {e}", "error_code": "PARSE_ERROR", "tool": "ast_read"}
+        # Fallback: if AST parse fails, return line-based summary
+        lines = source.splitlines()
+        return {
+            "file": str(file_path),
+            "language": "python",
+            "parse_error": f"AST parse failed: {e}",
+            "fallback_summary": {
+                "total_lines": len(lines),
+                "non_empty_lines": sum(1 for l in lines if l.strip()),
+                "has_unicode": any(ord(c) > 127 for line in lines for c in line),
+                "first_50_lines": lines[:50],
+            },
+            "suggestion": "File may contain Unicode decoration or non-standard syntax. Try ast_grep for structural search, or read_file for raw content.",
+            "tool": "ast_read",
+        }
 
     result: dict[str, Any] = {
         "file": str(file_path),

@@ -337,7 +337,33 @@ async def _tool_semantic_search(
 
     try:
         conn = get_connection(Path(db_path) if db_path else None)
-
+        
+        # Check if index is empty and auto-refresh
+        stats = conn.execute("SELECT COUNT(*) as cnt FROM symbols").fetchone()
+        symbol_count = stats["cnt"] if stats else 0
+        
+        if symbol_count == 0:
+            # Index is empty - auto-refresh with a clear message
+            conn.close()
+            from .refresh_index import _tool_refresh_index
+            refresh_result = _tool_refresh_index({
+                "project_path": str(Path(db_path).parent.parent if db_path else Path.cwd()),
+                "languages": ["python"] if not lang else [lang]
+            })
+            
+            if refresh_result.get("error"):
+                return json.dumps({
+                    "error": "Index is empty and auto-refresh failed",
+                    "details": refresh_result.get("error"),
+                    "hint": "Run refresh_index manually: call_tool('refresh_index', {'project_path': '/path/to/project'})",
+                }, indent=2)
+            
+            # Retry search after refresh
+            conn = get_connection(Path(db_path) if db_path else None)
+            auto_refresh_note = f"Index was empty — auto-refreshed {refresh_result.get('indexed', 0)} symbols. "
+        else:
+            auto_refresh_note = ""
+        
         if inject_context:
             results, context_info = hybrid_search_with_context(
                 conn,
@@ -353,13 +379,30 @@ async def _tool_semantic_search(
             conn.close()
             # Add diversity_applied to context_info
             context_info["diversity_applied"] = True
+            
+            # Add auto-refresh note if applicable
+            if auto_refresh_note and "context_injection" not in context_info:
+                context_info["note"] = auto_refresh_note
+            
             return json.dumps(
-                {"results": results, "context_injection": context_info}, indent=2, default=str
+                {
+                    "results": results,
+                    "context_injection": context_info,
+                    "meta": {"note": auto_refresh_note} if auto_refresh_note else {}
+                },
+                indent=2,
+                default=str
             )
         else:
             results = hybrid_search(conn, query, k, kind, lang)
             conn.close()
-            return json.dumps(results, indent=2, default=str)
+            
+            # Add meta note if auto-refresh happened
+            response = {"results": results}
+            if auto_refresh_note:
+                response["meta"] = {"note": auto_refresh_note}
+            
+            return json.dumps(response, indent=2, default=str)
     except Exception as e:
         logger.error(f"Semantic search failed: {e}")
         return json.dumps({"error": str(e)}, indent=2)
