@@ -4,8 +4,6 @@ Inspired by code-intel-plugin's code_capsule.
 Combines: signature + docstring + references + imports + callers in one call.
 """
 
-import json
-from pathlib import Path
 from typing import Any
 
 
@@ -92,18 +90,21 @@ def _tool_ast_capsule(args: dict[str, Any]) -> dict[str, Any]:
             from .find_references import _tool_find_references
             
             refs_result = _tool_find_references({
-                "symbol": symbol_name,  # Fixed: use 'symbol' not 'symbol_name'
+                "symbol": symbol_name,
                 "file_path": file_path,
             })
             
-            if "matches" in refs_result and refs_result["matches"]:
+            # Fix B: Check actual return shape - "references" not "matches"
+            if refs_result.get("references"):
                 capsule["sections"]["references"] = {
-                    "count": len(refs_result["matches"]),
-                    "locations": refs_result["matches"][:10],  # Limit to 10
+                    "count": refs_result.get("count", len(refs_result["references"])),
+                    "locations": refs_result["references"][:10],
                 }
-                capsule["summary"].append(f"🔗 Found {len(refs_result['matches'])} references")
-            else:
+                capsule["summary"].append(f"🔗 Found {refs_result.get('count', len(refs_result['references']))} references")
+            elif "error" not in refs_result:
                 capsule["sections"]["references"] = {"count": 0, "note": "No references found"}
+            else:
+                capsule["sections"]["references_error"] = refs_result["error"]
                 
         except ImportError:
             capsule["sections"]["references_error"] = "find_references not available"

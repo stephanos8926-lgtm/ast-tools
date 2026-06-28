@@ -8,18 +8,18 @@ from ast_tools.tools.structural_analysis import _ast_find_references
 
 def _tool_find_references(args: dict[str, Any]) -> dict[str, Any]:
     """Find all references to a symbol across the codebase."""
-    symbol = args["symbol"]
-    cwd = args.get("cwd", ".")
-    file_filter = args.get("file")
-    limit = int(args.get("limit", 100))
-
+    symbol = args.get("symbol")
     if not symbol:
         return {
             "error": "symbol is required",
             "error_code": "INVALID_INPUT",
             "tool": "find_references",
         }
-
+    
+    cwd = args.get("cwd", ".")
+    file_filter = args.get("file")
+    limit = int(args.get("limit", 100))
+    
     try:
         refs = _ast_find_references(symbol, cwd)
     except Exception as e:

@@ -11,7 +11,14 @@ from ast_tools.utils.impact import build_reverse_deps, classify_risk, get_transi
 
 def _tool_impact_analysis(args: dict[str, Any]) -> dict[str, Any]:
     """Analyze the impact of changing a file or symbol."""
-    target = args["target"]
+    target = args.get("target")
+    if not target:
+        return {
+            "error": "target is required",
+            "error_code": "INVALID_INPUT",
+            "tool": "impact_analysis",
+        }
+    
     cwd = args.get("cwd", ".")
 
     from project_tools import find_project_root

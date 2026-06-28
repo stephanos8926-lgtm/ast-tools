@@ -4,8 +4,6 @@ Inspired by code-intel-plugin's code_query.
 Routes natural language intents to the best ast-tools capability.
 """
 
-import json
-from pathlib import Path
 from typing import Any
 
 
@@ -41,8 +39,21 @@ _INTENT_PATTERNS = {
 }
 
 
+# Ordered by specificity (more specific = higher priority in ties)
+_INTENT_PRIORITY = [
+    "find_usage",      # "callers", "references" - very specific
+    "impact",          # "break", "depend" - specific
+    "refactor",        # "rename", "replace" - specific
+    "semantic",        # "similar", "meaning" - medium
+    "definition",      # "defined", "implementation" - medium
+    "validate",        # "validate", "check" - medium
+    "docs",            # "document", "signature" - medium
+    "structural_search",  # "pattern", "structure" - general
+    "find_symbol",     # "find", "show" - most general
+]
+
 def _detect_intent(query: str) -> str:
-    """Detect user intent from natural language query."""
+    """Detect user intent from natural language query with tie-breaking."""
     query_lower = query.lower()
     
     # Score each intent category
@@ -61,11 +72,22 @@ def _detect_intent(query: str) -> str:
         if "find" in query_lower or "where" in query_lower:
             scores["find_symbol"] = scores.get("find_symbol", 0) + 2
     
-    # Return highest scoring intent
-    if scores:
-        return max(scores, key=scores.get)
+    # Return highest scoring intent with tie-breaking
+    if not scores:
+        return "unknown"
     
-    return "unknown"
+    top_score = max(scores.values())
+    tied_intents = [intent for intent, score in scores.items() if score == top_score]
+    
+    if len(tied_intents) == 1:
+        return tied_intents[0]
+    
+    # Break ties using priority order (more specific wins)
+    for priority_intent in _INTENT_PRIORITY:
+        if priority_intent in tied_intents:
+            return priority_intent
+    
+    return tied_intents[0]
 
 
 def _tool_ast_query(args: dict[str, Any]) -> dict[str, Any]:
@@ -112,7 +134,7 @@ def _tool_ast_query(args: dict[str, Any]) -> dict[str, Any]:
         "find_usage": {
             "tool": "find_references",
             "params": {
-                "symbol_name": symbol or "",
+                "symbol": symbol or "",  # Fix C: use 'symbol' not 'symbol_name'
                 "file_path": file_path or ".",
             },
             "explanation": "Finding all references/usages of a symbol",
@@ -143,8 +165,8 @@ def _tool_ast_query(args: dict[str, Any]) -> dict[str, Any]:
         "impact": {
             "tool": "impact_analysis",
             "params": {
-                "symbol_name": symbol or "",
-                "file_path": file_path or ".",
+                "target": symbol or "",  # Fix C: use 'target' not 'symbol_name'
+                "cwd": file_path or ".",
             },
             "explanation": "Analyzing impact/dependencies of changes",
         },
@@ -195,12 +217,7 @@ def _tool_ast_query(args: dict[str, Any]) -> dict[str, Any]:
     
     recommendation = routing.get(detected_intent, routing["unknown"])
     
-    # Override file/language if provided
-    if file_path and "file" in recommendation["params"]:
-        recommendation["params"]["file"] = file_path
-    
-    if language and "lang" in recommendation["params"]:
-        recommendation["params"]["lang"] = language
+    # Fix C: Removed dead override block - params are set correctly per-branch now
     
     return {
         "detected_intent": detected_intent,

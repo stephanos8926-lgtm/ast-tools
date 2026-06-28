@@ -20,8 +20,8 @@
   "src/ast_tools/tools/ast_edit.py": "af35bbdc0a958eb1cbc6bb5d0eaf0848",
   "src/ast_tools/tools/ast_grep.py": "da182aaebdfd4b76d4a99e61c16a8d70",
   "src/ast_tools/tools/ast_read.py": "fecb76a2badf955286b1a01571c0ae8d",
-  "src/ast_tools/tools/find_references.py": "4137910066332de995420301dd9cd7df",
-  "src/ast_tools/tools/impact_analysis.py": "0e30f8342396c8f32ef38fa1420df8f3",
+  "src/ast_tools/tools/find_references.py": "6163502df644c7d609d579b8d9a6a323",
+  "src/ast_tools/tools/impact_analysis.py": "f3cce9607b994222e112983395856a44",
   "src/ast_tools/tools/module_imports.py": "b8ca967b3646f0c19b0d668c7fefd1f4",
   "src/ast_tools/tools/structural_analysis.py": "0ae5922a1f8ae141286934b1621cb871",
   "src/ast_tools/database/__init__.py": "49a4dbade4727dc7fbfdd198b60dcfef",
@@ -90,6 +90,6 @@
   "src/ast_tools/tools/context_tools.py": "3219147a8f68bddfcc9b84a63e597147",
   "src/ast_tools/tools/code_validate.py": "4e9ec71bbb891364aec626f150703dcc",
   "tests/tools/test_code_validate.py": "c22a56a4c26eebf041834b242249d8f6",
-  "src/ast_tools/tools/ast_capsule.py": "0c0e603577c2175e7ed5410cbe3d4b9d",
-  "src/ast_tools/tools/ast_query.py": "d046c936f7885460110a9d7bbc542f7a"
+  "src/ast_tools/tools/ast_capsule.py": "2a761d56c206450533a1989f487d482f",
+  "src/ast_tools/tools/ast_query.py": "b8be9967c5892fd83a078251166794f3"
 }
