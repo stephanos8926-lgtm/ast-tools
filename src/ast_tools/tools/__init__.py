@@ -25,9 +25,11 @@ def list_tool_names() -> list[str]:
 
 # Import and register all tools (imports after code is intentional for tool registration)
 # ruff: noqa: E402
+from .ast_capsule import _tool_ast_capsule
 from .ast_edit import _tool_ast_edit
 from .ast_generate_stub import _tool_ast_generate_stub
 from .ast_grep import _tool_ast_grep
+from .ast_query import _tool_ast_query
 from .ast_read import _tool_ast_read
 from .ast_refactor_extract_interface import _tool_ast_refactor_extract_interface
 from .code_validate import _tool_code_validate
@@ -59,6 +61,8 @@ register_tool("ast_refactor_extract_interface", _tool_ast_refactor_extract_inter
 register_tool("ast_grep", _tool_ast_grep)
 register_tool("ast_edit", _tool_ast_edit)
 register_tool("ast_read", _tool_ast_read)
+register_tool("ast_query", _tool_ast_query)  # Smart router
+register_tool("ast_capsule", _tool_ast_capsule)  # Consolidated view
 register_tool("codebase_summary", _tool_codebase_summary)
 register_tool("project_info", _tool_project_info)
 register_tool("structural_analysis", _tool_structural_analysis)

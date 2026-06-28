@@ -8,7 +8,7 @@
   "tests/test_phase3_polish.py": "dd58766f0a748368bc109b1f87e294b3",
   "src/ast_tools/__init__.py": "d41d8cd98f00b204e9800998ecf8427e",
   "src/ast_tools/core/__init__.py": "d41d8cd98f00b204e9800998ecf8427e",
-  "src/ast_tools/tools/__init__.py": "325d60a70c52773b8657943d7576ae1c",
+  "src/ast_tools/tools/__init__.py": "250aa1413f89fa1891fe53e970ab2e78",
   "src/ast_tools/utils/__init__.py": "19ae765aadd9666932e3572bcb6f350c",
   "src/ast_tools/utils/annotations.py": "181f7f33e49881494cd3b8afa708447f",
   "src/ast_tools/utils/file_utils.py": "701ce3db13c9fc90dc54f951953645e6",
@@ -89,5 +89,7 @@
   "tests/watcher/test_daemon.py": "4de91833b095cb1008e866a0b152dd5e",
   "src/ast_tools/tools/context_tools.py": "3219147a8f68bddfcc9b84a63e597147",
   "src/ast_tools/tools/code_validate.py": "4e9ec71bbb891364aec626f150703dcc",
-  "tests/tools/test_code_validate.py": "c22a56a4c26eebf041834b242249d8f6"
+  "tests/tools/test_code_validate.py": "c22a56a4c26eebf041834b242249d8f6",
+  "src/ast_tools/tools/ast_capsule.py": "d984cdb6d66d4f0ed6e3e6e6b6d07642",
+  "src/ast_tools/tools/ast_query.py": "d046c936f7885460110a9d7bbc542f7a"
 }
