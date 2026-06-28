@@ -8,9 +8,9 @@ import logging
 from pathlib import Path
 from typing import Any
 
-from src.ast_tools.context import ContextInjector, MarkdownFormatter
-from src.ast_tools.database.connection import get_connection
-from src.ast_tools.embeddings import generate_embedding, search_similar
+from ..context import ContextInjector, MarkdownFormatter
+from ..database.connection import get_connection
+from ..embeddings import generate_embedding, search_similar
 
 logger = logging.getLogger(__name__)
 

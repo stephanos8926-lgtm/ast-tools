@@ -170,9 +170,7 @@
     "src/ast_tools/database/connection.py"
   ],
   "src/ast_tools/tools/semantic_search.py": [
-    "src/ast_tools/__init__.py",
     "src/ast_tools/context/__init__.py",
-    "src/ast_tools/database/__init__.py",
     "src/ast_tools/database/connection.py",
     "src/ast_tools/embeddings/__init__.py"
   ],
