@@ -90,6 +90,6 @@
   "src/ast_tools/tools/context_tools.py": "3219147a8f68bddfcc9b84a63e597147",
   "src/ast_tools/tools/code_validate.py": "4e9ec71bbb891364aec626f150703dcc",
   "tests/tools/test_code_validate.py": "c22a56a4c26eebf041834b242249d8f6",
-  "src/ast_tools/tools/ast_capsule.py": "d984cdb6d66d4f0ed6e3e6e6b6d07642",
+  "src/ast_tools/tools/ast_capsule.py": "0c0e603577c2175e7ed5410cbe3d4b9d",
   "src/ast_tools/tools/ast_query.py": "d046c936f7885460110a9d7bbc542f7a"
 }

@@ -33,17 +33,18 @@ def _tool_ast_capsule(args: dict[str, Any]) -> dict[str, Any]:
         Consolidated capsule with all symbol information
     """
     symbol_name = args.get("symbol_name")
-    file_path = args.get("file_path", ".")
-    language = args.get("language", "python")
-    include_callers = args.get("include_callers", True)
-    include_callees = args.get("include_callees", True)
-    include_docs = args.get("include_docs", True)
     
     if not symbol_name:
         return {
             "error": "symbol_name is required",
             "example": "ast_capsule(symbol_name='authenticate', file_path='src/auth.py')",
         }
+    
+    file_path = args.get("file_path", ".")
+    language = args.get("language", "python")
+    include_callers = args.get("include_callers", True)
+    include_callees = args.get("include_callees", True)
+    include_docs = args.get("include_docs", True)
     
     capsule = {
         "symbol": symbol_name,
@@ -91,7 +92,7 @@ def _tool_ast_capsule(args: dict[str, Any]) -> dict[str, Any]:
             from .find_references import _tool_find_references
             
             refs_result = _tool_find_references({
-                "symbol_name": symbol_name,
+                "symbol": symbol_name,  # Fixed: use 'symbol' not 'symbol_name'
                 "file_path": file_path,
             })
             
@@ -155,19 +156,20 @@ def _tool_ast_capsule(args: dict[str, Any]) -> dict[str, Any]:
         from .impact_analysis import _tool_impact_analysis
         
         impact_result = _tool_impact_analysis({
-            "symbol_name": symbol_name,
-            "file_path": file_path,
+            "target": symbol_name,  # Fixed: use 'target'
+            "cwd": file_path,
         })
         
         if "affected_files" in impact_result:
             capsule["sections"]["impact"] = {
                 "affected_files": impact_result["affected_files"],
-                "risk_level": impact_result.get("risk_level", "unknown"),
+                "risk_level": impact_result.get("risk_level", impact_result.get("risk", "unknown")),
             }
-            capsule["summary"].append(f"⚠️ Impact: {impact_result.get('risk_level', 'unknown')} risk")
+            capsule["summary"].append(f"⚠️ Impact: {impact_result.get('risk', 'unknown')} risk")
             
-    except ImportError:
-        pass
+    except (ImportError, KeyError, TypeError) as e:
+        # Impact analysis may not be available or params may differ
+        capsule["sections"]["impact_note"] = f"Impact analysis unavailable: {type(e).__name__}"
     
     # 6. Generate quick summary
     if not capsule["summary"]:
