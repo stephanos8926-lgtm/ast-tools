@@ -66,6 +66,10 @@ dev = [
     { name = "pytest-asyncio" },
     { name = "pytest-cov" },
     { name = "ruff" },
+    { name = "tree-sitter-c" },
+    { name = "tree-sitter-c-sharp" },
+    { name = "tree-sitter-cpp" },
+    { name = "tree-sitter-python" },
 ]
 tree-sitter = [
     { name = "tree-sitter" },
@@ -93,9 +97,13 @@ requires-dist = [
     { name = "tiktoken", specifier = ">=0.7.0" },
     { name = "tree-sitter", specifier = ">=0.23" },
     { name = "tree-sitter", marker = "extra == 'tree-sitter'", specifier = ">=0.23" },
+    { name = "tree-sitter-c", marker = "extra == 'dev'", specifier = ">=0.24" },
     { name = "tree-sitter-c", marker = "extra == 'tree-sitter'", specifier = ">=0.24" },
+    { name = "tree-sitter-c-sharp", marker = "extra == 'dev'", specifier = ">=0.23" },
     { name = "tree-sitter-c-sharp", marker = "extra == 'tree-sitter'", specifier = ">=0.23" },
+    { name = "tree-sitter-cpp", marker = "extra == 'dev'", specifier = ">=0.23" },
     { name = "tree-sitter-cpp", marker = "extra == 'tree-sitter'", specifier = ">=0.23" },
+    { name = "tree-sitter-python", marker = "extra == 'dev'", specifier = ">=0.23" },
     { name = "tree-sitter-python", marker = "extra == 'tree-sitter'", specifier = ">=0.23" },
     { name = "watchdog", specifier = ">=4.0.0" },
 ]

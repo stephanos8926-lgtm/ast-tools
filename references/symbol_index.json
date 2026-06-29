@@ -154,124 +154,129 @@
     "line": 294,
     "type": "function"
   },
+  "sanitize_fts5_query": {
+    "file": "src/ast_tools/utils/security.py",
+    "line": 173,
+    "type": "function"
+  },
   "search_symbols": {
     "file": "src/ast_tools/database/queries.py",
-    "line": 24,
+    "line": 53,
     "type": "function"
   },
   "find_symbol_definition": {
     "file": "src/ast_tools/database/queries.py",
-    "line": 77,
+    "line": 109,
     "type": "function"
   },
   "list_symbols_by_file": {
     "file": "src/ast_tools/database/queries.py",
-    "line": 103,
+    "line": 135,
     "type": "function"
   },
   "get_symbol_by_id": {
     "file": "src/ast_tools/database/queries.py",
-    "line": 124,
+    "line": 156,
     "type": "function"
   },
   "find_references": {
     "file": "src/ast_tools/database/queries.py",
-    "line": 150,
+    "line": 182,
     "type": "function"
   },
   "get_symbol_edges": {
     "file": "src/ast_tools/database/queries.py",
-    "line": 173,
+    "line": 205,
     "type": "function"
   },
   "insert_symbol": {
     "file": "src/ast_tools/database/queries.py",
-    "line": 198,
+    "line": 230,
     "type": "function"
   },
   "insert_symbols_batch": {
     "file": "src/ast_tools/database/queries.py",
-    "line": 233,
+    "line": 265,
     "type": "function"
   },
   "insert_edge": {
     "file": "src/ast_tools/database/queries.py",
-    "line": 280,
+    "line": 312,
     "type": "function"
   },
   "insert_edges_batch": {
     "file": "src/ast_tools/database/queries.py",
-    "line": 308,
+    "line": 340,
     "type": "function"
   },
   "insert_symbol_embedding": {
     "file": "src/ast_tools/database/queries.py",
-    "line": 339,
+    "line": 371,
     "type": "function"
   },
   "insert_symbol_embeddings_batch": {
     "file": "src/ast_tools/database/queries.py",
-    "line": 356,
+    "line": 388,
     "type": "function"
   },
   "generate_embeddings": {
     "file": "src/ast_tools/database/queries.py",
-    "line": 395,
+    "line": 427,
     "type": "function"
   },
   "get_cached_hash": {
     "file": "src/ast_tools/database/queries.py",
-    "line": 415,
+    "line": 447,
     "type": "function"
   },
   "update_file_cache": {
     "file": "src/ast_tools/database/queries.py",
-    "line": 431,
+    "line": 463,
     "type": "function"
   },
   "get_file_cache": {
     "file": "src/ast_tools/database/queries.py",
-    "line": 452,
+    "line": 484,
     "type": "function"
   },
   "get_index_stats": {
     "file": "src/ast_tools/database/queries.py",
-    "line": 476,
+    "line": 508,
     "type": "function"
   },
   "insert_file_cache_entry": {
     "file": "src/ast_tools/database/queries.py",
-    "line": 511,
+    "line": 543,
     "type": "function"
   },
   "get_file_cache_entry": {
     "file": "src/ast_tools/database/queries.py",
-    "line": 538,
+    "line": 570,
     "type": "function"
   },
   "update_file_cache_entry_hash": {
     "file": "src/ast_tools/database/queries.py",
-    "line": 543,
+    "line": 575,
     "type": "function"
   },
   "delete_file_cache_entry": {
     "file": "src/ast_tools/database/queries.py",
-    "line": 548,
+    "line": 580,
     "type": "function"
   },
   "search_symbols_fts": {
     "file": "src/ast_tools/database/queries.py",
-    "line": 554,
+    "line": 586,
     "type": "function"
   },
   "get_symbols_in_file": {
     "file": "src/ast_tools/database/queries.py",
-    "line": 563,
+    "line": 595,
     "type": "function"
   },
   "count_symbols_by_kind": {
     "file": "src/ast_tools/database/queries.py",
-    "line": 572,
+    "line": 604,
     "type": "function"
   },
   "init_schema": {
@@ -767,6 +772,26 @@
   "log_audit_event": {
     "file": "src/ast_tools/utils/secret_sanitizer.py",
     "line": 242,
+    "type": "function"
+  },
+  "validate_project_path": {
+    "file": "src/ast_tools/utils/security.py",
+    "line": 9,
+    "type": "function"
+  },
+  "sanitize_search_query": {
+    "file": "src/ast_tools/utils/security.py",
+    "line": 97,
+    "type": "function"
+  },
+  "validate_limit": {
+    "file": "src/ast_tools/utils/security.py",
+    "line": 128,
+    "type": "function"
+  },
+  "validate_timeout": {
+    "file": "src/ast_tools/utils/security.py",
+    "line": 150,
     "type": "function"
   },
   "IndexQueue": {
@@ -1297,6 +1322,31 @@
   "TestImpactAnalysis": {
     "file": "tests/test_project_tools.py",
     "line": 958,
+    "type": "class"
+  },
+  "TestValidateProjectPath": {
+    "file": "tests/test_security.py",
+    "line": 16,
+    "type": "class"
+  },
+  "TestSanitizeSearchQuery": {
+    "file": "tests/test_security.py",
+    "line": 80,
+    "type": "class"
+  },
+  "TestValidateLimit": {
+    "file": "tests/test_security.py",
+    "line": 119,
+    "type": "class"
+  },
+  "TestValidateTimeout": {
+    "file": "tests/test_security.py",
+    "line": 144,
+    "type": "class"
+  },
+  "TestSanitizeFts5Query": {
+    "file": "tests/test_security.py",
+    "line": 160,
     "type": "class"
   },
   "TestPythonValidation": {

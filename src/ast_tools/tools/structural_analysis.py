@@ -14,10 +14,10 @@ def _find_python_files(project_root: str, max_files: int | None = None) -> list[
     return find_python_files(project_root, max_files)
 
 
-def _ast_find_references(symbol: str, project_root: str) -> list[dict]:
+def _ast_find_references(symbol: str, project_root: str, max_files: int | None = None) -> list[dict]:
     """Find all references to `symbol` across the project using AST."""
     results = []
-    for py_file in _find_python_files(project_root):
+    for py_file in _find_python_files(project_root, max_files):
         try:
             source = py_file.read_text(encoding="utf-8", errors="replace")
             lines = source.splitlines()
@@ -41,17 +41,19 @@ def _ast_find_references(symbol: str, project_root: str) -> list[dict]:
     return results
 
 
-def _ast_find_callers(symbol: str, project_root: str) -> list[dict]:
+def _ast_find_callers(symbol: str, project_root: str, max_files: int | None = None, max_depth: int = 50) -> list[dict]:
     """Find all functions/methods that call `symbol`."""
     callers = []
-    for py_file in _find_python_files(project_root):
+    for py_file in _find_python_files(project_root, max_files):
         try:
             source = py_file.read_text(encoding="utf-8", errors="replace")
             tree = ast.parse(source, filename=str(py_file))
         except (SyntaxError, OSError):
             continue
 
-        def _walk_calls(node, enclosing_name=None):
+        def _walk_calls(node, enclosing_name=None, depth=0):
+            if depth > max_depth:
+                return
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
                 enclosing_name = node.name
             elif isinstance(node, ast.Call):
@@ -70,7 +72,7 @@ def _ast_find_callers(symbol: str, project_root: str) -> list[dict]:
                         }
                     )
             for child in ast.iter_child_nodes(node):
-                _walk_calls(child, enclosing_name)
+                _walk_calls(child, enclosing_name, depth + 1)
 
         _walk_calls(tree)
     return callers
@@ -136,7 +138,7 @@ def _tool_structural_analysis(args: dict[str, Any]) -> dict[str, Any]:
         }
 
     if analysis_type == "references" and symbol:
-        refs = _ast_find_references(symbol, project_root)
+        refs = _ast_find_references(symbol, project_root, max_files=100)
         return {
             "analysis": "references",
             "symbol": symbol,
@@ -145,7 +147,7 @@ def _tool_structural_analysis(args: dict[str, Any]) -> dict[str, Any]:
         }
 
     if analysis_type == "callers" and symbol:
-        callers = _ast_find_callers(symbol, project_root)
+        callers = _ast_find_callers(symbol, project_root, max_files=100, max_depth=50)
         return {
             "analysis": "callers",
             "symbol": symbol,

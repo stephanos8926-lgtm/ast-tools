@@ -5,6 +5,7 @@ Batch operations use executemany() for 10x performance improvement over single i
 """
 
 import logging
+import re
 import sqlite3
 from datetime import datetime
 from typing import Any
@@ -15,11 +16,39 @@ from .connection import retry_on_locked
 
 logger = logging.getLogger(__name__)
 
-# ──────────────────────────────────────────────────────────────────────────────
-# Symbol Queries
-# ──────────────────────────────────────────────────────────────────────────────
+# FTS5 special characters and operators that need escaping
+_FTS5_SPECIAL_CHARS = re.compile(r'[\\"()+\-*:<>^@]')
+_FTS5_BOOL_OPERATORS = re.compile(r'\b(OR|AND|NOT|NEAR)\b', re.IGNORECASE)
 
 
+def sanitize_fts5_query(query: str) -> str:
+    """Sanitize FTS5 query to prevent operator injection.
+
+    Removes or escapes FTS5 special characters and boolean operators.
+    Limits query length to 500 characters for DoS protection.
+    """
+    if not query:
+        return ""
+
+    # Limit query length
+    query = query[:500]
+
+    # Escape quotes
+    query = query.replace('"', '""')
+
+    # Remove boolean operators (replace with space to maintain word boundaries)
+    query = _FTS5_BOOL_OPERATORS.sub(' ', query)
+
+    # Escape special characters
+    query = _FTS5_SPECIAL_CHARS.sub(' ', query)
+
+    # Clean up multiple spaces
+    query = re.sub(r'\s+', ' ', query).strip()
+
+    return query
+
+
+@retry_on_locked()
 @retry_on_locked()
 def search_symbols(
     conn: sqlite3.Connection, query: str, kind_filter: list[str] | None = None, limit: int = 50
@@ -39,9 +68,12 @@ def search_symbols(
         >>> search_symbols(conn, "database OR query", kind_filter=['function'])
         [{'id': '...', 'name': 'query_db', ...}, ...]
     """
+    # Sanitize query to prevent FTS5 operator injection
+    sanitized_query = sanitize_fts5_query(query)
+    
     # Build FTS5 query
     fts_query = "SELECT rowid FROM symbols_fts WHERE symbols_fts MATCH ? LIMIT ?"
-    fts_params: list[Any] = [query, limit]
+    fts_params: list[Any] = [sanitized_query, limit]
 
     # Get matching rowids from FTS5
     fts_results = conn.execute(fts_query, fts_params).fetchall()

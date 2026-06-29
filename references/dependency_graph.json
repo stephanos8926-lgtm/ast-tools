@@ -202,6 +202,7 @@
   "src/ast_tools/utils/file_utils.py": [],
   "src/ast_tools/utils/impact.py": [],
   "src/ast_tools/utils/secret_sanitizer.py": [],
+  "src/ast_tools/utils/security.py": [],
   "src/ast_tools/watcher/__init__.py": [
     "src/ast_tools/watcher/daemon.py"
   ],
@@ -338,6 +339,10 @@
     "src/ast_tools/tools/impact_analysis.py",
     "src/project_tools.py",
     "src/ts_backend.py"
+  ],
+  "tests/test_security.py": [
+    "src/ast_tools/utils/__init__.py",
+    "src/ast_tools/utils/security.py"
   ],
   "tests/tools/test_code_validate.py": [
     "src/ast_tools/tools/__init__.py",
