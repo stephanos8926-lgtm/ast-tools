@@ -566,27 +566,42 @@
   },
   "circular_dependencies": {
     "file": "src/ast_tools/tools/dependency_tools.py",
-    "line": 63,
+    "line": 80,
     "type": "function"
   },
   "external_dependencies": {
     "file": "src/ast_tools/tools/dependency_tools.py",
-    "line": 76,
+    "line": 93,
     "type": "function"
   },
   "dead_code_detection": {
     "file": "src/ast_tools/tools/dependency_tools.py",
-    "line": 89,
+    "line": 106,
     "type": "function"
   },
   "dependency_chain": {
     "file": "src/ast_tools/tools/dependency_tools.py",
-    "line": 102,
+    "line": 119,
     "type": "function"
   },
   "api_surface_diff": {
     "file": "src/ast_tools/tools/dependency_tools.py",
-    "line": 120,
+    "line": 137,
+    "type": "function"
+  },
+  "DeadCodeFinding": {
+    "file": "src/ast_tools/tools/enhanced_dead_code.py",
+    "line": 28,
+    "type": "class"
+  },
+  "EnhancedDeadCodeDetector": {
+    "file": "src/ast_tools/tools/enhanced_dead_code.py",
+    "line": 40,
+    "type": "class"
+  },
+  "find_dead_code_enhanced": {
+    "file": "src/ast_tools/tools/enhanced_dead_code.py",
+    "line": 504,
     "type": "function"
   },
   "lsp_definition": {
@@ -1248,6 +1263,11 @@
     "file": "tests/test_e2e.py",
     "line": 23,
     "type": "function"
+  },
+  "TestEnhancedDeadCode": {
+    "file": "tests/test_enhanced_dead_code.py",
+    "line": 12,
+    "type": "class"
   },
   "TestAllFiltering": {
     "file": "tests/test_phase3_polish.py",

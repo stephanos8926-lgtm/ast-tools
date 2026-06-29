@@ -34,6 +34,23 @@ def _tool_dead_code_detection(args: dict[str, Any]) -> dict[str, Any]:
     return dead_code_detection(project_root, entry_points)
 
 
+def _tool_dead_code_enhanced(args: dict[str, Any]) -> dict[str, Any]:
+    """MCP tool wrapper for enhanced dead code detection.
+    
+    Enhanced version with:
+    - Polymorphism tracking
+    - Framework decorator detection
+    - Entry point analysis
+    - SCC cluster detection
+    - __all__ exports check
+    - Confidence scoring
+    """
+    project_root = args.get("project_root", ".")
+    entry_points = args.get("entry_points")
+    from .enhanced_dead_code import find_dead_code_enhanced
+    return find_dead_code_enhanced(project_root, entry_points)
+
+
 def _tool_dependency_chain(args: dict[str, Any]) -> dict[str, Any]:
     """MCP tool wrapper for dependency_chain."""
     symbol = args.get("symbol")

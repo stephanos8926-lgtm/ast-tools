@@ -87,6 +87,7 @@
     "src/ast_tools/tools/context_tools.py",
     "src/ast_tools/tools/curator.py",
     "src/ast_tools/tools/dependency_tools.py",
+    "src/ast_tools/tools/enhanced_dead_code.py",
     "src/ast_tools/tools/find_references.py",
     "src/ast_tools/tools/find_symbol_definition.py",
     "src/ast_tools/tools/impact_analysis.py",
@@ -135,8 +136,10 @@
   ],
   "src/ast_tools/tools/dependency.py": [],
   "src/ast_tools/tools/dependency_tools.py": [
-    "src/ast_tools/tools/dependency.py"
+    "src/ast_tools/tools/dependency.py",
+    "src/ast_tools/tools/enhanced_dead_code.py"
   ],
+  "src/ast_tools/tools/enhanced_dead_code.py": [],
   "src/ast_tools/tools/find_references.py": [
     "src/ast_tools/tools/__init__.py",
     "src/ast_tools/tools/structural_analysis.py"
@@ -326,6 +329,10 @@
     "src/ast_tools_server.py",
     "tests/__init__.py",
     "tests/conftest.py"
+  ],
+  "tests/test_enhanced_dead_code.py": [
+    "src/ast_tools/tools/__init__.py",
+    "src/ast_tools/tools/enhanced_dead_code.py"
   ],
   "tests/test_phase3_polish.py": [
     "src/ast_tools/tools/__init__.py",

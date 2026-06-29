@@ -8,7 +8,7 @@
   "tests/test_phase3_polish.py": "2e2081e870a7b6bccad7e676864371bf",
   "src/ast_tools/__init__.py": "d41d8cd98f00b204e9800998ecf8427e",
   "src/ast_tools/core/__init__.py": "d41d8cd98f00b204e9800998ecf8427e",
-  "src/ast_tools/tools/__init__.py": "250aa1413f89fa1891fe53e970ab2e78",
+  "src/ast_tools/tools/__init__.py": "8a3935dfb2d0fc740d6f6ea22e4775c3",
   "src/ast_tools/utils/__init__.py": "19ae765aadd9666932e3572bcb6f350c",
   "src/ast_tools/utils/annotations.py": "181f7f33e49881494cd3b8afa708447f",
   "src/ast_tools/utils/file_utils.py": "e1af9abc5db3bc6e76dde8901e3a8224",
@@ -71,7 +71,7 @@
   "src/ast_tools/lsp_client.py": "8b549b95ef5c9e19a9d2bcfa5f7690c0",
   "src/ast_tools/tools/curator.py": "187a0cfaa5d2c785f767655ecf636ea8",
   "src/ast_tools/tools/dependency.py": "c4ea230565a3f138aa5b500d10f19322",
-  "src/ast_tools/tools/dependency_tools.py": "7517fe47ec350c0fd7fb10deef346468",
+  "src/ast_tools/tools/dependency_tools.py": "e4369f06a417238a2feab9bc068fc288",
   "src/ast_tools/tools/lsp_tools.py": "7a536b0abb5c0a5d93cefd20e2ab7240",
   "src/ast_tools/tools/watcher.py": "79a5f91339ac3514c1932be1161e081d",
   "src/ast_tools/utils/secret_sanitizer.py": "6aad9e262636e1cb90940a6b72efb7fa",
@@ -93,5 +93,7 @@
   "src/ast_tools/tools/ast_capsule.py": "f7bc21ee233fce6b9be493cf9cef7dd4",
   "src/ast_tools/tools/ast_query.py": "0f8b2ddae96c3a2afad886c56fb6b039",
   "src/ast_tools/utils/security.py": "cc80305f9b1bec3a439ee68268b92209",
-  "tests/test_security.py": "9295f216c34cf5b504725702d6d4b98a"
+  "tests/test_security.py": "9295f216c34cf5b504725702d6d4b98a",
+  "src/ast_tools/tools/enhanced_dead_code.py": "afc657938d2ce5bf8c26e9af28a4bd8d",
+  "tests/test_enhanced_dead_code.py": "ea555f0fbe2c772bb33f2bf6a4bcbec6"
 }

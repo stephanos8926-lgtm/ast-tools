@@ -1,7 +1,7 @@
 {
   "name": "ast-tools",
   "version": "0.1.0",
-  "generated": "2026-06-29T02:58:22.420139+00:00",
+  "generated": "2026-06-29T03:16:18.990037+00:00",
   "generator": "ast-tools-project-v1",
   "languages": {
     "yaml": {
@@ -21,8 +21,8 @@
       "lines": 170
     },
     "python": {
-      "files": 95,
-      "lines": 22031
+      "files": 97,
+      "lines": 22798
     },
     "text": {
       "files": 5,
@@ -31,8 +31,8 @@
   },
   "code_languages": {
     "python": {
-      "files": 95,
-      "lines": 22031
+      "files": 97,
+      "lines": 22798
     }
   },
   "config_languages": {
@@ -71,11 +71,12 @@
     "src/project_tools.py#if-__name__",
     "src/project_tools.py#main",
     "src/project_tools.py#argparse",
+    "tests/test_enhanced_dead_code.py#if-__name__",
     "tests/tools/test_semantic_search_context.py#if-__name__",
     "tests/watcher/test_daemon.py#if-__name__"
   ],
   "test_framework": "pytest",
-  "test_files": 29,
+  "test_files": 30,
   "test_command": "python3 -m pytest",
   "modules": [
     {
@@ -334,7 +335,7 @@
     },
     {
       "path": "src/ast_tools/tools/__init__.py",
-      "lines": 103,
+      "lines": 105,
       "classes": [],
       "functions": [
         "register_tool",
@@ -366,7 +367,7 @@
     },
     {
       "path": "src/ast_tools/tools/dependency_tools.py",
-      "lines": 233,
+      "lines": 250,
       "classes": [],
       "functions": [
         "circular_dependencies",
@@ -374,6 +375,17 @@
         "dead_code_detection",
         "dependency_chain",
         "api_surface_diff"
+      ]
+    },
+    {
+      "path": "src/ast_tools/tools/enhanced_dead_code.py",
+      "lines": 524,
+      "classes": [
+        "DeadCodeFinding",
+        "EnhancedDeadCodeDetector"
+      ],
+      "functions": [
+        "find_dead_code_enhanced"
       ]
     },
     {
@@ -739,6 +751,14 @@
       "functions": [
         "test_project"
       ]
+    },
+    {
+      "path": "tests/test_enhanced_dead_code.py",
+      "lines": 224,
+      "classes": [
+        "TestEnhancedDeadCode"
+      ],
+      "functions": []
     },
     {
       "path": "tests/test_phase3_polish.py",

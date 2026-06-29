@@ -42,6 +42,7 @@ from .dependency_tools import (
     _tool_dependency_chain,
     _tool_external_dependencies,
 )
+from .enhanced_dead_code import _tool_dead_code_enhanced
 from .find_references import _tool_find_references
 from .find_symbol_definition import _tool_find_symbol_definition
 from .impact_analysis import _tool_impact_analysis
@@ -83,6 +84,7 @@ register_tool("reindex_path", _tool_reindex_path)
 register_tool("circular_dependencies", _tool_circular_dependencies)
 register_tool("external_dependencies", _tool_external_dependencies)
 register_tool("dead_code_detection", _tool_dead_code_detection)
+register_tool("dead_code_enhanced", _tool_dead_code_enhanced)
 register_tool("dependency_chain", _tool_dependency_chain)
 register_tool("api_surface_diff", _tool_api_surface_diff)
 
