@@ -36,7 +36,7 @@ def _tool_dead_code_detection(args: dict[str, Any]) -> dict[str, Any]:
 
 def _tool_dead_code_enhanced(args: dict[str, Any]) -> dict[str, Any]:
     """MCP tool wrapper for enhanced dead code detection.
-    
+
     Enhanced version with:
     - Polymorphism tracking
     - Framework decorator detection

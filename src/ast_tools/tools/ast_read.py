@@ -1,7 +1,6 @@
 """ast_read tool — extract API surface from Python files using AST."""
 
 import ast
-from pathlib import Path
 from typing import Any
 
 from ast_tools.utils.annotations import (

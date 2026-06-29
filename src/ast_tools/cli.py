@@ -22,21 +22,18 @@ import argparse
 import asyncio
 import json
 import sys
-from pathlib import Path
-from typing import Any
 
 # Import tool functions
 from ast_tools.tools.dependency_tools import dead_code_detection
 from ast_tools.tools.enhanced_dead_code import find_dead_code_enhanced
 from ast_tools.tools.find_references import _tool_find_references
 from ast_tools.tools.find_symbol_definition import _tool_find_symbol_definition
+from ast_tools.tools.impact_analysis import _tool_impact_analysis
 from ast_tools.tools.list_symbols import _tool_list_symbols
 from ast_tools.tools.module_imports import _tool_module_imports
 from ast_tools.tools.project_info import _tool_project_info
-from ast_tools.tools.search_symbols import _tool_search_symbols
-from ast_tools.tools.impact_analysis import _tool_impact_analysis
 from ast_tools.tools.semantic_search import _tool_semantic_search
-from ast_tools.tools.structural_analysis import _ast_find_callers, _ast_find_callees
+from ast_tools.tools.structural_analysis import _ast_find_callees, _ast_find_callers
 
 
 def cmd_search(args: argparse.Namespace) -> int:
@@ -56,8 +53,11 @@ def cmd_search(args: argparse.Namespace) -> int:
         import json
         try:
             result = json.loads(result)
-        except:
-            print(f"Error: Unexpected result type: {type(result)}", file=sys.stderr)
+        except json.JSONDecodeError as e:
+            print(f"Error: Invalid JSON in result: {e}", file=sys.stderr)
+            return 1
+        except Exception as e:
+            print(f"Error: Unexpected result type: {type(result)}, error: {e}", file=sys.stderr)
             return 1
 
     if "error" in result:
@@ -356,7 +356,7 @@ def cmd_deps(args: argparse.Namespace) -> int:
         print(f"Dependencies of `{file_path}`\n")
         print(f"Fan-out (imports): {len(fan_out)}")
         print(f"Fan-in (imported by): {len(fan_in)}\n")
-        
+
         if fan_out:
             print("Imports:")
             print(f"  {'Module':<40} {'File':<40}")
@@ -367,7 +367,7 @@ def cmd_deps(args: argparse.Namespace) -> int:
                 print(f"  {mod:<40} {file_path_imp:<40}")
             if len(fan_out) > 10:
                 print(f"  ... and {len(fan_out) - 10} more")
-        
+
         if fan_in:
             print(f"\nImported by ({len(fan_in)}):")
             print(f"  {'File':<60} {'Line':<8}")
@@ -413,7 +413,7 @@ def cmd_browse(args: argparse.Namespace) -> int:
         if lang != "all":
             print(f"*(lang={lang})*")
         print(f"\n**Found {len(symbols)} symbols**\n")
-        
+
         for sym in symbols:
             name = sym.get("name", "")
             kind_sym = sym.get("kind", "")
@@ -449,24 +449,24 @@ def cmd_browse(args: argparse.Namespace) -> int:
 def _print_search_table(result: dict) -> None:
     """Print search results in table format."""
     symbols = result.get("symbols", [])
-    
+
     if not symbols:
         print("No results found")
         return
-    
+
     from ast_tools.context.formatters import count_tokens
-    
+
     print(f"Found {len(symbols)} symbol(s) [~{count_tokens(str(symbols))} tokens]\n")
     print(f"{'Symbol':<30} {'Kind':<12} {'File':<40} {'Line':<6}")
     print("-" * 90)
-    
+
     for sym in symbols[:20]:
         name = sym.get("name", "")[:28]
         kind = sym.get("kind", "")[:10]
         file_path = sym.get("file", "")[:38]
         line = str(sym.get("line", ""))
         print(f"{name:<30} {kind:<12} {file_path:<40} {line:<6}")
-    
+
     if len(symbols) > 20:
         print(f"\n... and {len(symbols) - 20} more")
 
@@ -474,20 +474,20 @@ def _print_search_table(result: dict) -> None:
 def _print_search_markdown(result: dict) -> None:
     """Print search results in markdown format."""
     symbols = result.get("symbols", [])
-    
+
     if not symbols:
         print("No results found")
         return
-    
+
     print(f"## Found {len(symbols)} symbol(s)\n")
-    
+
     for sym in symbols[:20]:
         name = sym.get("name", "")
         kind = sym.get("kind", "")
         file_path = sym.get("file", "")
         line = sym.get("line", "")
         print(f"- **{name}** (`{kind}`) — `{file_path}:{line}`")
-    
+
     if len(symbols) > 20:
         print(f"\n_... and {len(symbols) - 20} more_")
 
@@ -496,11 +496,11 @@ def _print_impact_table(result: dict) -> None:
     """Print impact analysis in table format."""
     direct = result.get("direct_dependents", [])
     transitive = result.get("transitive_dependents", [])
-    
-    print(f"🎯 Impact Analysis\n")
+
+    print("🎯 Impact Analysis\n")
     print(f"Direct dependents: {len(direct)}")
     print(f"Transitive dependents: {len(transitive)}\n")
-    
+
     if direct:
         print("Direct dependents:")
         print(f"  {'Symbol':<30} {'File':<40}")
@@ -517,11 +517,11 @@ def _print_impact_markdown(result: dict) -> None:
     """Print impact analysis in markdown format."""
     direct = result.get("direct_dependents", [])
     transitive = result.get("transitive_dependents", [])
-    
-    print(f"## 🎯 Impact Analysis\n")
+
+    print("## 🎯 Impact Analysis\n")
     print(f"- **Direct dependents:** {len(direct)}")
     print(f"- **Transitive dependents:** {len(transitive)}\n")
-    
+
     if direct:
         print("### Direct dependents\n")
         for dep in direct[:10]:
@@ -537,19 +537,19 @@ def _print_dead_code_table(result: dict) -> None:
     funcs = result.get("dead_functions", [])
     classes = result.get("dead_classes", [])
     methods = result.get("dead_methods", [])
-    
+
     total = len(funcs) + len(classes) + len(methods)
     print(f"🔍 Dead Code Detection — {total} findings\n")
-    
+
     if result.get("summary", {}).get("false_positive_mitigations"):
         mits = result["summary"]["false_positive_mitigations"]
-        print(f"Excluded via:")
+        print("Excluded via:")
         print(f"  • Framework decorators: {mits.get('framework_decorators', 0)}")
         print(f"  • Entry point reachable: {mits.get('entry_point_symbols', 0)}")
         print(f"  • Exported in __all__: {mits.get('exported_symbols', 0)}")
         print(f"  • SCC clusters: {mits.get('scc_cluster_members', 0)}")
         print(f"  • Interface impls: {mits.get('interface_implementations', 0)}\n")
-    
+
     # High confidence first
     high_conf = [f for f in funcs if f.get("confidence") == "high"][:15]
     if high_conf:
@@ -562,7 +562,7 @@ def _print_dead_code_table(result: dict) -> None:
             sym_type = item.get("symbol_type", "")[:8]
             print(f"  {name:<30} {file_path:<40} {sym_type:<10}")
         print()
-    
+
     # Summary stats
     summary = result.get("summary", {})
     print(f"Total: {summary.get('total_dead_functions', 0)} functions, "
@@ -575,10 +575,10 @@ def _print_dead_code_markdown(result: dict) -> None:
     funcs = result.get("dead_functions", [])
     classes = result.get("dead_classes", [])
     methods = result.get("dead_methods", [])
-    
+
     total = len(funcs) + len(classes) + len(methods)
     print(f"## 🔍 Dead Code Detection — {total} findings\n")
-    
+
     # High confidence first
     high_conf = [f for f in funcs if f.get("confidence") == "high"][:15]
     if high_conf:
@@ -593,10 +593,10 @@ def _print_dead_code_markdown(result: dict) -> None:
 def _print_summary_markdown(result: dict) -> None:
     """Print project summary in markdown format."""
     print(f"# 📦 {result.get('name', 'Project')}\n")
-    
+
     print(f"**Version:** {result.get('version', 'N/A')}")
     print(f"**Test framework:** {result.get('test_framework', 'N/A')}\n")
-    
+
     # Languages
     langs = result.get("languages", {})
     if langs:
@@ -606,7 +606,7 @@ def _print_summary_markdown(result: dict) -> None:
             lines = stats.get("lines", 0)
             print(f"- **{lang}:** {files} files, {lines:,} lines")
         print()
-    
+
     # Modules
     modules = result.get("modules", [])
     if modules:
@@ -623,16 +623,16 @@ def _print_summary_concise(result: dict) -> None:
     """Print project summary in concise format."""
     name = result.get("name", "Project")
     version = result.get("version", "")
-    
+
     # Count files and lines
     total_files = 0
     total_lines = 0
     for lang, stats in result.get("languages", {}).items():
         total_files += stats.get("files", 0)
         total_lines += stats.get("lines", 0)
-    
+
     modules = result.get("modules", [])
-    
+
     print(f"{name} v{version} — {total_files:,} files, {total_lines:,} lines, {len(modules):,} modules")
 
 
@@ -641,17 +641,17 @@ def _print_symbols_table(symbols: list) -> None:
     if not symbols:
         print("No symbols found")
         return
-    
+
     print(f"{'Name':<30} {'Kind':<12} {'Line':<8} {'Signature':<50}")
     print("-" * 102)
-    
+
     for sym in symbols[:30]:
         name = sym.get("name", "")[:28]
         kind = sym.get("kind", "")[:10]
         line = str(sym.get("line", ""))[:6]
         sig = sym.get("signature", "")[:48]
         print(f"{name:<30} {kind:<12} {line:<8} {sig:<50}")
-    
+
     if len(symbols) > 30:
         print(f"\n... and {len(symbols) - 30} more")
 
@@ -661,16 +661,16 @@ def _print_symbols_markdown(symbols: list) -> None:
     if not symbols:
         print("No symbols found")
         return
-    
+
     print(f"## Found {len(symbols)} symbol(s)\n")
-    
+
     for sym in symbols[:30]:
         name = sym.get("name", "")
         kind = sym.get("kind", "")
         line = sym.get("line", "")
         sig = sym.get("signature", "")
         print(f"- **{name}** (`{kind}`) line {line}: `{sig}`")
-    
+
     if len(symbols) > 30:
         print(f"\n_... and {len(symbols) - 30} more_")
 
@@ -680,16 +680,16 @@ def _print_refs_table(refs: list) -> None:
     if not refs:
         print("No references found")
         return
-    
+
     print(f"{'File':<50} {'Line':<8} {'Context':<40}")
     print("-" * 100)
-    
+
     for ref in refs[:20]:
         file_path = ref.get("file", "")[:48]
         line = str(ref.get("line", ""))[:6]
         ctx = ref.get("context", "")[:38]
         print(f"{file_path:<50} {line:<8} {ctx:<40}")
-    
+
     if len(refs) > 20:
         print(f"\n... and {len(refs) - 20} more")
 
@@ -699,15 +699,15 @@ def _print_refs_markdown(refs: list) -> None:
     if not refs:
         print("No references found")
         return
-    
+
     print(f"## Found {len(refs)} reference(s)\n")
-    
+
     for ref in refs[:20]:
         file_path = ref.get("file", "")
         line = ref.get("line", "")
         ctx = ref.get("context", "")
         print(f"- `{file_path}:{line}` — `{ctx}`")
-    
+
     if len(refs) > 20:
         print(f"\n_... and {len(refs) - 20} more_")
 
@@ -719,21 +719,21 @@ def main() -> int:
         description="AST Tools CLI — Structural code analysis workflows",
         epilog="Run 'ast <command> --help' for more info on a specific command.",
     )
-    
+
     parser.add_argument(
         "--version",
         action="version",
         version="ast-tools 0.1.0",
     )
-    
+
     parser.add_argument(
         "--project-root", "-p",
         default=".",
         help="Project root directory (default: current directory)",
     )
-    
+
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
-    
+
     # ——————————————————
     # Command: search
     # ——————————————————
@@ -751,7 +751,7 @@ def main() -> int:
         help="Output format",
     )
     search_p.set_defaults(func=cmd_search)
-    
+
     # ——————————————————
     # Command: navigate
     # ——————————————————
@@ -768,7 +768,7 @@ def main() -> int:
         help="Output format",
     )
     nav_p.set_defaults(func=cmd_navigate)
-    
+
     # ——————————————————
     # Command: blast-radius
     # ——————————————————
@@ -793,7 +793,7 @@ def main() -> int:
         help="Output format",
     )
     blast_p.set_defaults(func=cmd_blast_radius)
-    
+
     # ——————————————————
     # Command: find-dead
     # ——————————————————
@@ -818,7 +818,7 @@ def main() -> int:
         help="Output format",
     )
     dead_p.set_defaults(func=cmd_find_dead)
-    
+
     # ——————————————————
     # Command: summary
     # ——————————————————
@@ -834,7 +834,7 @@ def main() -> int:
         help="Output format",
     )
     sum_p.set_defaults(func=cmd_summary)
-    
+
     # ——————————————————
     # Command: symbols
     # ——————————————————
@@ -857,7 +857,7 @@ def main() -> int:
         help="Output format",
     )
     sym_p.set_defaults(func=cmd_symbols)
-    
+
     # ——————————————————
     # Command: refs
     # ——————————————————
@@ -878,7 +878,7 @@ def main() -> int:
         help="Output format",
     )
     refs_p.set_defaults(func=cmd_refs)
-    
+
     # ——————————————————
     # Command: callers
     # ——————————————————
@@ -896,7 +896,7 @@ def main() -> int:
         help="Output format",
     )
     callers_p.set_defaults(func=cmd_callers)
-    
+
     # ——————————————————
     # Command: callees
     # ——————————————————
@@ -914,7 +914,7 @@ def main() -> int:
         help="Output format",
     )
     callees_p.set_defaults(func=cmd_callees)
-    
+
     # ——————————————————
     # Command: deps
     # ——————————————————
@@ -931,7 +931,7 @@ def main() -> int:
         help="Output format",
     )
     deps_p.set_defaults(func=cmd_deps)
-    
+
     # ——————————————————
     # Command: browse
     # ——————————————————
@@ -960,16 +960,16 @@ def main() -> int:
         help="Output format",
     )
     browse_p.set_defaults(func=cmd_browse)
-    
+
     # ——————————————————
     # Dispatch
     # ——————————————————
     args = parser.parse_args()
-    
+
     if not args.command:
         parser.print_help()
         return 1
-    
+
     return args.func(args)
 
 

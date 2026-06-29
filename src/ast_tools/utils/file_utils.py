@@ -3,12 +3,11 @@
 
 import os
 from pathlib import Path
-from typing import Optional
 
 
 def validate_file_path(
     file_path: str,
-    project_path: Optional[str] = None,
+    project_path: str | None = None,
     allow_nonexistent: bool = False,
 ) -> Path:
     """Validate a file path against project boundaries for security.

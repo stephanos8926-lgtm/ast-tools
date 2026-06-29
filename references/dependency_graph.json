@@ -23,7 +23,6 @@
     "src/ast_tools/tools/list_symbols.py",
     "src/ast_tools/tools/module_imports.py",
     "src/ast_tools/tools/project_info.py",
-    "src/ast_tools/tools/search_symbols.py",
     "src/ast_tools/tools/semantic_search.py",
     "src/ast_tools/tools/structural_analysis.py"
   ],

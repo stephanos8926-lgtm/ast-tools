@@ -88,7 +88,7 @@ def _get_language(lang: str):
                     _LANGUAGE_MAP[lang] = ts.Language(module.language_tsx())
                 else:
                     raise ImportError(
-                        f"tree-sitter-typescript module doesn't have language_tsx(). "
+                        "tree-sitter-typescript module doesn't have language_tsx(). "
                         "Try: pip install --upgrade tree-sitter-typescript"
                     )
             elif lang == "javascript":

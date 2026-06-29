@@ -1,7 +1,7 @@
 {
   "name": "ast-tools",
   "version": "0.1.0",
-  "generated": "2026-06-29T09:38:30.802749+00:00",
+  "generated": "2026-06-29T19:39:40.377171+00:00",
   "generator": "ast-tools-project-v1",
   "languages": {
     "yaml": {
@@ -22,7 +22,7 @@
     },
     "python": {
       "files": 100,
-      "lines": 24614
+      "lines": 24609
     },
     "text": {
       "files": 5,
@@ -32,7 +32,7 @@
   "code_languages": {
     "python": {
       "files": 100,
-      "lines": 24614
+      "lines": 24609
     }
   },
   "config_languages": {
@@ -497,7 +497,7 @@
     },
     {
       "path": "src/ast_tools/utils/file_utils.py",
-      "lines": 131,
+      "lines": 130,
       "classes": [],
       "functions": [
         "validate_file_path",
@@ -530,7 +530,7 @@
     },
     {
       "path": "src/ast_tools/utils/security.py",
-      "lines": 178,
+      "lines": 175,
       "classes": [],
       "functions": [
         "validate_project_path",

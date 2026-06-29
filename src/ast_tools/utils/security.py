@@ -1,9 +1,8 @@
 """Security utilities for path validation and input sanitization."""
 
-import os
+import contextlib
 import re
 from pathlib import Path
-from typing import List, Optional
 
 
 def validate_project_path(
@@ -43,10 +42,8 @@ def validate_project_path(
         roots.extend([r.resolve() for r in allowed_roots])
 
     if allow_cwd:
-        try:
+        with contextlib.suppress(OSError, ValueError):
             roots.append(Path.cwd().resolve())
-        except (OSError, ValueError):
-            pass
 
     # Add temp directories as allowed (for testing)
     import tempfile

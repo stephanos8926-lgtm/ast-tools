@@ -66,7 +66,7 @@
   },
   "cmd_search": {
     "file": "src/ast_tools/cli.py",
-    "line": 42,
+    "line": 39,
     "type": "function"
   },
   "cmd_navigate": {
@@ -221,17 +221,17 @@
   },
   "sanitize_fts5_query": {
     "file": "src/ast_tools/utils/security.py",
-    "line": 173,
+    "line": 170,
     "type": "function"
   },
   "validate_limit": {
     "file": "src/ast_tools/utils/security.py",
-    "line": 128,
+    "line": 125,
     "type": "function"
   },
   "validate_timeout": {
     "file": "src/ast_tools/utils/security.py",
-    "line": 150,
+    "line": 147,
     "type": "function"
   },
   "search_symbols": {
@@ -726,7 +726,7 @@
   },
   "find_python_files": {
     "file": "src/ast_tools/utils/file_utils.py",
-    "line": 53,
+    "line": 52,
     "type": "function"
   },
   "hybrid_search": {
@@ -856,22 +856,22 @@
   },
   "validate_file_path": {
     "file": "src/ast_tools/utils/file_utils.py",
-    "line": 9,
+    "line": 8,
     "type": "function"
   },
   "is_test_file": {
     "file": "src/ast_tools/utils/file_utils.py",
-    "line": 88,
+    "line": 87,
     "type": "function"
   },
   "file_to_module": {
     "file": "src/ast_tools/utils/file_utils.py",
-    "line": 99,
+    "line": 98,
     "type": "function"
   },
   "filter_top_level": {
     "file": "src/ast_tools/utils/file_utils.py",
-    "line": 110,
+    "line": 109,
     "type": "function"
   },
   "build_reverse_deps": {
@@ -906,12 +906,12 @@
   },
   "validate_project_path": {
     "file": "src/ast_tools/utils/security.py",
-    "line": 9,
+    "line": 8,
     "type": "function"
   },
   "sanitize_search_query": {
     "file": "src/ast_tools/utils/security.py",
-    "line": 97,
+    "line": 94,
     "type": "function"
   },
   "IndexQueue": {

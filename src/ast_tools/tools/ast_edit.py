@@ -1,9 +1,9 @@
 """ast_edit tool — surgical AST-based code modification using libcst."""
 
-from pathlib import Path
 from typing import Any
 
 import libcst as cst
+
 from ast_tools.utils.file_utils import validate_file_path
 
 

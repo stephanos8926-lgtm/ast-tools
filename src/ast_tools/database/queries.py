@@ -167,7 +167,7 @@ def search_symbols(
     """
     # Sanitize query to prevent FTS5 operator injection
     sanitized_query = sanitize_fts5_query(query)
-    
+
     # Build FTS5 query
     fts_query = "SELECT rowid FROM symbols_fts WHERE symbols_fts MATCH ? LIMIT ?"
     fts_params: list[Any] = [sanitized_query, limit]
