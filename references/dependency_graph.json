@@ -107,7 +107,10 @@
     "src/ast_tools/tools/impact_analysis.py",
     "src/ast_tools/tools/structural_analysis.py"
   ],
-  "src/ast_tools/tools/ast_edit.py": [],
+  "src/ast_tools/tools/ast_edit.py": [
+    "src/ast_tools/utils/__init__.py",
+    "src/ast_tools/utils/file_utils.py"
+  ],
   "src/ast_tools/tools/ast_generate_stub.py": [
     "src/ast_tools/__init__.py",
     "src/ast_tools/utils/__init__.py"
@@ -116,7 +119,8 @@
   "src/ast_tools/tools/ast_query.py": [],
   "src/ast_tools/tools/ast_read.py": [
     "src/ast_tools/utils/__init__.py",
-    "src/ast_tools/utils/annotations.py"
+    "src/ast_tools/utils/annotations.py",
+    "src/ast_tools/utils/file_utils.py"
   ],
   "src/ast_tools/tools/ast_refactor_extract_interface.py": [],
   "src/ast_tools/tools/code_validate.py": [],

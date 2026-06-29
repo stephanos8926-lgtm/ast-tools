@@ -1,7 +1,7 @@
 {
   "name": "ast-tools",
   "version": "0.1.0",
-  "generated": "2026-06-29T02:33:08.835715+00:00",
+  "generated": "2026-06-29T02:47:18.152836+00:00",
   "generator": "ast-tools-project-v1",
   "languages": {
     "yaml": {
@@ -10,7 +10,7 @@
     },
     "markdown": {
       "files": 69,
-      "lines": 24220
+      "lines": 24223
     },
     "toml": {
       "files": 1,
@@ -22,7 +22,7 @@
     },
     "python": {
       "files": 95,
-      "lines": 21877
+      "lines": 21934
     },
     "text": {
       "files": 5,
@@ -32,7 +32,7 @@
   "code_languages": {
     "python": {
       "files": 95,
-      "lines": 21877
+      "lines": 21934
     }
   },
   "config_languages": {
@@ -42,7 +42,7 @@
     },
     "markdown": {
       "files": 69,
-      "lines": 24220
+      "lines": 24223
     },
     "toml": {
       "files": 1,
@@ -443,9 +443,10 @@
     },
     {
       "path": "src/ast_tools/utils/file_utils.py",
-      "lines": 86,
+      "lines": 131,
       "classes": [],
       "functions": [
+        "validate_file_path",
         "find_python_files",
         "is_test_file",
         "file_to_module",

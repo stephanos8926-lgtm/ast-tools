@@ -636,7 +636,7 @@
   },
   "find_python_files": {
     "file": "src/ast_tools/utils/file_utils.py",
-    "line": 8,
+    "line": 53,
     "type": "function"
   },
   "hybrid_search": {
@@ -729,19 +729,24 @@
     "line": 134,
     "type": "class"
   },
+  "validate_file_path": {
+    "file": "src/ast_tools/utils/file_utils.py",
+    "line": 9,
+    "type": "function"
+  },
   "is_test_file": {
     "file": "src/ast_tools/utils/file_utils.py",
-    "line": 43,
+    "line": 88,
     "type": "function"
   },
   "file_to_module": {
     "file": "src/ast_tools/utils/file_utils.py",
-    "line": 54,
+    "line": 99,
     "type": "function"
   },
   "filter_top_level": {
     "file": "src/ast_tools/utils/file_utils.py",
-    "line": 65,
+    "line": 110,
     "type": "function"
   },
   "build_reverse_deps": {

@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Any
 
 import libcst as cst
+from ast_tools.utils.file_utils import validate_file_path
 
 
 def _build_transformer(operation: str, params: dict):
@@ -127,25 +128,30 @@ def _build_transformer(operation: str, params: dict):
 
 def _tool_ast_edit(args: dict[str, Any]) -> dict[str, Any]:
     """Perform surgical AST-based code modification."""
-    file_path = Path(args["file"]).resolve()
+    file_path = args["file"]
     project_path_arg = args.get("project_path")
-    project_path = Path(project_path_arg).resolve() if project_path_arg else None
     operation = args["operation"]
     params = args.get("params", {})
     dry_run = args.get("dry_run", False)
 
-    if not file_path.exists():
+    # Validate file path with security checks
+    try:
+        file_path = validate_file_path(
+            file_path,
+            project_path=project_path_arg,
+            allow_nonexistent=False,
+        )
+    except ValueError as e:
+        error_str = str(e)
+        if "not found" in error_str.lower() or "exists" in error_str.lower():
+            error_code = "NOT_FOUND"
+        elif "traversal" in error_str.lower() or "outside" in error_str.lower():
+            error_code = "PATH_TRAVERSAL"
+        else:
+            error_code = "INVALID_PATH"
         return {
-            "error": f"File not found: {file_path}",
-            "error_code": "NOT_FOUND",
-            "tool": "ast_edit",
-        }
-
-    # Security: Block path traversal only for existing files and when project_path is provided
-    if project_path and not file_path.is_relative_to(project_path):
-        return {
-            "error": "Path traversal attempt blocked",
-            "error_code": "PATH_TRAVERSAL",
+            "error": str(e),
+            "error_code": error_code,
             "tool": "ast_edit",
         }
 

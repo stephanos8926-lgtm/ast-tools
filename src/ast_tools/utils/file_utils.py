@@ -3,6 +3,51 @@
 
 import os
 from pathlib import Path
+from typing import Optional
+
+
+def validate_file_path(
+    file_path: str,
+    project_path: Optional[str] = None,
+    allow_nonexistent: bool = False,
+) -> Path:
+    """Validate a file path against project boundaries for security.
+
+    Args:
+        file_path: Path to validate
+        project_path: Optional project root to constrain to
+        allow_nonexistent: If True, allow paths that don't exist yet
+
+    Returns:
+        Resolved Path object
+
+    Raises:
+        ValueError: If path is outside project boundaries or attempts traversal
+    """
+    if not file_path:
+        raise ValueError("File path cannot be empty")
+
+    path = Path(file_path).resolve()
+
+    # Check for traversal in original input
+    if ".." in file_path:
+        raise ValueError("Path traversal (..) not allowed")
+
+    # If project_path provided, ensure file is within project
+    if project_path:
+        project_root = Path(project_path).resolve()
+        try:
+            if not path.is_relative_to(project_root):
+                raise ValueError(f"Path {path} is outside project root {project_root}")
+        except ValueError:
+            # is_relative_to raises ValueError on Python < 3.9, or if not relative
+            raise ValueError(f"Path {path} is outside project root {project_root}")
+
+    # Check existence if required
+    if not allow_nonexistent and not path.exists():
+        raise ValueError(f"File not found: {path}")
+
+    return path
 
 
 def find_python_files(project_root: str, max_files: int | None = None) -> list[Path]:

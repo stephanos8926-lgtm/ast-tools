@@ -9,29 +9,35 @@ from ast_tools.utils.annotations import (
     _extract_all_names,
     _get_function_signature,
 )
+from ast_tools.utils.file_utils import validate_file_path
 
 
 def _tool_ast_read(args: dict[str, Any]) -> dict[str, Any]:
     """Extract API surface from a Python file."""
-    file_path = Path(args["file"]).resolve()
+    file_path = args["file"]
     project_path_arg = args.get("project_path")
-    project_path = Path(project_path_arg).resolve() if project_path_arg else None
     include_private = args.get("include_private", False)
     include_imports = args.get("include_imports", True)
     filter_by_type = args.get("filter_by_type")
 
-    if not file_path.exists():
+    # Validate file path with security checks
+    try:
+        file_path = validate_file_path(
+            file_path,
+            project_path=project_path_arg,
+            allow_nonexistent=False,
+        )
+    except ValueError as e:
+        error_str = str(e)
+        if "not found" in error_str.lower() or "exists" in error_str.lower():
+            error_code = "NOT_FOUND"
+        elif "traversal" in error_str.lower() or "outside" in error_str.lower():
+            error_code = "PATH_TRAVERSAL"
+        else:
+            error_code = "INVALID_PATH"
         return {
-            "error": f"File not found: {file_path}",
-            "error_code": "NOT_FOUND",
-            "tool": "ast_read",
-        }
-
-    # Security: Block path traversal only for existing files and when project_path is provided
-    if project_path and not file_path.is_relative_to(project_path):
-        return {
-            "error": "Path traversal attempt blocked",
-            "error_code": "PATH_TRAVERSAL",
+            "error": str(e),
+            "error_code": error_code,
             "tool": "ast_read",
         }
 
