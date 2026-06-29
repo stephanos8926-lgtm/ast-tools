@@ -759,6 +759,41 @@
     "line": 255,
     "type": "function"
   },
+  "ts_parse_ts": {
+    "file": "src/ast_tools/tools/ts_edit.py",
+    "line": 20,
+    "type": "function"
+  },
+  "find_node_by_name": {
+    "file": "src/ast_tools/tools/ts_edit.py",
+    "line": 26,
+    "type": "function"
+  },
+  "find_function_node": {
+    "file": "src/ast_tools/tools/ts_edit.py",
+    "line": 44,
+    "type": "function"
+  },
+  "find_class_node": {
+    "file": "src/ast_tools/tools/ts_edit.py",
+    "line": 50,
+    "type": "function"
+  },
+  "get_node_range": {
+    "file": "src/ast_tools/tools/ts_edit.py",
+    "line": 55,
+    "type": "function"
+  },
+  "calculate_line_col": {
+    "file": "src/ast_tools/tools/ts_edit.py",
+    "line": 60,
+    "type": "function"
+  },
+  "ts_edit": {
+    "file": "src/ast_tools/tools/ts_edit.py",
+    "line": 205,
+    "type": "function"
+  },
   "watch_add": {
     "file": "src/ast_tools/tools/watcher.py",
     "line": 31,
@@ -946,27 +981,27 @@
   },
   "ts_parse": {
     "file": "src/ts_backend.py",
-    "line": 107,
+    "line": 125,
     "type": "function"
   },
   "ts_grep": {
     "file": "src/ts_backend.py",
-    "line": 130,
+    "line": 148,
     "type": "function"
   },
   "ts_grep_lang": {
     "file": "src/ts_backend.py",
-    "line": 197,
+    "line": 215,
     "type": "function"
   },
   "ts_read": {
     "file": "src/ts_backend.py",
-    "line": 335,
+    "line": 376,
     "type": "function"
   },
   "ts_read_lang": {
     "file": "src/ts_backend.py",
-    "line": 449,
+    "line": 490,
     "type": "function"
   },
   "create_test_project": {

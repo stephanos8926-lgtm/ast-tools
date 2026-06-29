@@ -54,7 +54,8 @@ from .project_info import _tool_project_info
 from .refresh_index import _tool_refresh_index
 from .search_symbols import _tool_search_symbols
 from .semantic_search import _tool_semantic_search
-from .structural_analysis import _tool_structural_analysis
+from .structural_analysis import _ast_find_callers, _ast_find_callees
+from .ts_edit import _tool_ts_edit
 from .watcher import _tool_reindex_path, _tool_watch_add, _tool_watch_status
 
 register_tool("ast_generate_stub", _tool_ast_generate_stub)
@@ -103,3 +104,6 @@ register_lsp_tools(TOOL_REGISTRY)
 from .context_tools import register_tools as register_context_tools
 
 register_context_tools(register_tool)
+
+# Register TypeScript editing tool
+register_tool("ts_edit", _tool_ts_edit)

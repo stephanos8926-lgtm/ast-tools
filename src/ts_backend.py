@@ -27,7 +27,9 @@ _LANGUAGE_MAP = {
     "rust": None,
     "go": None,
     "typescript": None,
+    "tsx": None,  # TSX for React components
     "javascript": None,
+    "jsx": None,  # JSX for JavaScript React
     "cpp": None,
     "c": None,
     "json": None,
@@ -80,9 +82,25 @@ def _get_language(lang: str):
             # Special handling for tree-sitter-typescript which has separate languages
             if lang == "typescript":
                 _LANGUAGE_MAP[lang] = ts.Language(module.language_typescript())
+            elif lang == "tsx":
+                # TSX needs the tsx language function
+                if hasattr(module, "language_tsx"):
+                    _LANGUAGE_MAP[lang] = ts.Language(module.language_tsx())
+                else:
+                    raise ImportError(
+                        f"tree-sitter-typescript module doesn't have language_tsx(). "
+                        "Try: pip install --upgrade tree-sitter-typescript"
+                    )
             elif lang == "javascript":
                 # JavaScript uses standard language()
                 _LANGUAGE_MAP[lang] = ts.Language(module.language())
+            elif lang == "jsx":
+                # JSX needs language_jsx if available, otherwise fall back to javascript
+                if hasattr(module, "language_jsx"):
+                    _LANGUAGE_MAP[lang] = ts.Language(module.language_jsx())
+                else:
+                    # Fallback to regular JS parser (will parse JSX as ERROR nodes)
+                    _LANGUAGE_MAP[lang] = ts.Language(module.language())
             else:
                 _LANGUAGE_MAP[lang] = ts.Language(module.language())
         except ImportError as e:
@@ -243,11 +261,34 @@ def ts_grep_lang(tree, pattern: str, lang: str) -> list[dict[str, Any]]:
             "import": "(import_statement) @match",
             "call": "(call_expression) @match",
         },
+        "tsx": {
+            # TSX = TypeScript + React JSX
+            "function": "(function_declaration) @match (arrow_function) @match",
+            "class": "(class_declaration) @match",
+            "interface": "(interface_declaration) @match",
+            "import": "(import_statement) @match",
+            "call": "(call_expression) @match",
+            # React/JSX specific
+            "jsx_element": "(jsx_element) @match",
+            "jsx_self_closing": "(jsx_self_closing_element) @match",
+            "component": "(jsx_element opening: (jsx_opening_element name: (identifier) @name)) @match",
+        },
         "javascript": {
             "function": "(function_declaration) @match (arrow_function) @match",
             "class": "(class_declaration) @match",
             "import": "(import_statement) @match",
             "call": "(call_expression) @match",
+        },
+        "jsx": {
+            # JSX = JavaScript + React JSX
+            "function": "(function_declaration) @match (arrow_function) @match",
+            "class": "(class_declaration) @match",
+            "import": "(import_statement) @match",
+            "call": "(call_expression) @match",
+            # React/JSX specific
+            "jsx_element": "(jsx_element) @match",
+            "jsx_self_closing": "(jsx_self_closing_element) @match",
+            "component": "(jsx_element opening: (jsx_opening_element name: (identifier) @name)) @match",
         },
         "cpp": {
             "function": "(function_definition) @match",

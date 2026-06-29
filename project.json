@@ -1,7 +1,7 @@
 {
   "name": "ast-tools",
   "version": "0.1.0",
-  "generated": "2026-06-29T04:48:42.252099+00:00",
+  "generated": "2026-06-29T09:20:14.694499+00:00",
   "generator": "ast-tools-project-v1",
   "languages": {
     "yaml": {
@@ -21,8 +21,8 @@
       "lines": 170
     },
     "python": {
-      "files": 99,
-      "lines": 24293
+      "files": 100,
+      "lines": 24614
     },
     "text": {
       "files": 5,
@@ -31,8 +31,8 @@
   },
   "code_languages": {
     "python": {
-      "files": 99,
-      "lines": 24293
+      "files": 100,
+      "lines": 24614
     }
   },
   "config_languages": {
@@ -360,7 +360,7 @@
     },
     {
       "path": "src/ast_tools/tools/__init__.py",
-      "lines": 105,
+      "lines": 109,
       "classes": [],
       "functions": [
         "register_tool",
@@ -451,6 +451,20 @@
         "hybrid_search_with_context",
         "select_context_with_budget",
         "fallback_search"
+      ]
+    },
+    {
+      "path": "src/ast_tools/tools/ts_edit.py",
+      "lines": 276,
+      "classes": [],
+      "functions": [
+        "ts_parse_ts",
+        "find_node_by_name",
+        "find_function_node",
+        "find_class_node",
+        "get_node_range",
+        "calculate_line_col",
+        "ts_edit"
       ]
     },
     {
@@ -556,7 +570,7 @@
     },
     {
       "path": "src/ts_backend.py",
-      "lines": 608,
+      "lines": 649,
       "classes": [],
       "functions": [
         "ts_parse",

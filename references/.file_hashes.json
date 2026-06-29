@@ -1,14 +1,14 @@
 {
   "src/ast_tools_server.py": "1fb97d6ac82ceb506c378698d2c41784",
   "src/project_tools.py": "83e060152e27e2f7e8eaf08f9cdf26bb",
-  "src/ts_backend.py": "6c980092bffa50fdd5af9ac87511ae5f",
+  "src/ts_backend.py": "95295bdf4c3a82da533b8985e8e079e4",
   "tests/conftest.py": "416fe23aa2d83edaa9f6ceffefccc174",
   "tests/test_e2e.py": "3a335aad52ad7bbec10f81dc8f41551d",
   "tests/test_project_tools.py": "4c4672fd03a635b515271c25ff71a7bc",
   "tests/test_phase3_polish.py": "2e2081e870a7b6bccad7e676864371bf",
   "src/ast_tools/__init__.py": "d41d8cd98f00b204e9800998ecf8427e",
   "src/ast_tools/core/__init__.py": "d41d8cd98f00b204e9800998ecf8427e",
-  "src/ast_tools/tools/__init__.py": "8a3935dfb2d0fc740d6f6ea22e4775c3",
+  "src/ast_tools/tools/__init__.py": "360b47a18067551697a852c31f642bf4",
   "src/ast_tools/utils/__init__.py": "19ae765aadd9666932e3572bcb6f350c",
   "src/ast_tools/utils/annotations.py": "181f7f33e49881494cd3b8afa708447f",
   "src/ast_tools/utils/file_utils.py": "e1af9abc5db3bc6e76dde8901e3a8224",
@@ -97,5 +97,6 @@
   "src/ast_tools/tools/enhanced_dead_code.py": "afc657938d2ce5bf8c26e9af28a4bd8d",
   "tests/test_enhanced_dead_code.py": "ea555f0fbe2c772bb33f2bf6a4bcbec6",
   "src/ast_tools/cli.py": "74afdc947a80f531853334713124d74c",
-  "tests/test_cli.py": "33b943a305c02bf7fb5aa6f85fbafbd8"
+  "tests/test_cli.py": "33b943a305c02bf7fb5aa6f85fbafbd8",
+  "src/ast_tools/tools/ts_edit.py": "bc25bf73a75ae59652fbefd5f5da29d1"
 }

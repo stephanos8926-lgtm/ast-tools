@@ -116,6 +116,7 @@
     "src/ast_tools/tools/search_symbols.py",
     "src/ast_tools/tools/semantic_search.py",
     "src/ast_tools/tools/structural_analysis.py",
+    "src/ast_tools/tools/ts_edit.py",
     "src/ast_tools/tools/watcher.py"
   ],
   "src/ast_tools/tools/ast_capsule.py": [
@@ -210,6 +211,9 @@
   "src/ast_tools/tools/structural_analysis.py": [
     "src/ast_tools/utils/__init__.py",
     "src/ast_tools/utils/file_utils.py"
+  ],
+  "src/ast_tools/tools/ts_edit.py": [
+    "src/ts_backend.py"
   ],
   "src/ast_tools/tools/watcher.py": [
     "src/ast_tools/tools/__init__.py",
