@@ -21,6 +21,59 @@ _FTS5_SPECIAL_CHARS = re.compile(r'[\\"()+\-*:<>^@]')
 _FTS5_BOOL_OPERATORS = re.compile(r'\b(OR|AND|NOT|NEAR)\b', re.IGNORECASE)
 
 
+def sanitize_error_message(error: Exception, user_facing: bool = True) -> tuple[str, str]:
+    """Sanitize error messages to prevent information leakage.
+
+    Args:
+        error: Exception to sanitize
+        user_facing: If True, return generic message; if False, return detailed
+
+    Returns:
+        Tuple of (user_message, log_message)
+    """
+    error_str = str(error)
+    error_type = type(error).__name__
+
+    # Common patterns that leak sensitive info
+    sensitive_patterns = [
+        (r'File ".*?", line', "Internal file path"),
+        (r'/home/[^/]+/[^/\s]+', "Internal path"),
+        (r'/tmp/[^/\s]+', "Temporary path"),
+        (r'sqlite3\.[A-Z]+Error: .*', "Database error"),
+        (r'Traceback.*', "Internal error"),
+        (r'column ".*?" does not exist', "Database schema error"),
+        (r'table ".*?" does not exist', "Database schema error"),
+    ]
+
+    if user_facing:
+        # Return generic message
+        generic_messages = {
+            "sqlite3.OperationalError": "Database operation failed",
+            "sqlite3.IntegrityError": "Data integrity constraint violated",
+            "sqlite3.DatabaseError": "Database error occurred",
+            "FileNotFoundError": "Requested resource not found",
+            "PermissionError": "Access denied",
+            "SyntaxError": "Invalid syntax in query",
+            "ValueError": "Invalid input provided",
+            "KeyError": "Required field missing",
+            "TypeError": "Invalid data type provided",
+            "TimeoutError": "Operation timed out",
+        }
+
+        for exc_type, msg in generic_messages.items():
+            if exc_type in error_str or exc_type == error_type:
+                return msg, error_str
+
+        # Default generic message
+        return "An internal error occurred", error_str
+    else:
+        # Detailed message for logging (sanitize paths)
+        log_msg = error_str
+        for pattern, replacement in sensitive_patterns:
+            log_msg = re.sub(pattern, f"[{replacement}]", log_msg)
+        return log_msg, log_msg
+
+
 def sanitize_fts5_query(query: str) -> str:
     """Sanitize FTS5 query to prevent operator injection.
 
@@ -46,6 +99,50 @@ def sanitize_fts5_query(query: str) -> str:
     query = re.sub(r'\s+', ' ', query).strip()
 
     return query
+
+
+def validate_limit(limit: int | None, max_limit: int = 1000, default: int = 50) -> int:
+    """Validate and clamp limit parameter for DoS protection.
+
+    Args:
+        limit: Requested limit
+        max_limit: Maximum allowed limit (default: 1000)
+        default: Default if None or invalid
+
+    Returns:
+        Validated limit value
+    """
+    if limit is None:
+        return default
+
+    try:
+        limit = int(limit)
+    except (ValueError, TypeError):
+        return default
+
+    return max(1, min(limit, max_limit))
+
+
+def validate_timeout(timeout: int | None, max_timeout: int = 300, default: int = 30) -> int:
+    """Validate and clamp timeout parameter for DoS protection.
+
+    Args:
+        timeout: Requested timeout in seconds
+        max_timeout: Maximum allowed timeout (default: 300s = 5min)
+        default: Default if None or invalid
+
+    Returns:
+        Validated timeout value
+    """
+    if timeout is None:
+        return default
+
+    try:
+        timeout = int(timeout)
+    except (ValueError, TypeError):
+        return default
+
+    return max(1, min(timeout, max_timeout))
 
 
 @retry_on_locked()
