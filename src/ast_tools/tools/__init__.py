@@ -54,7 +54,7 @@ from .project_info import _tool_project_info
 from .refresh_index import _tool_refresh_index
 from .search_symbols import _tool_search_symbols
 from .semantic_search import _tool_semantic_search
-from .structural_analysis import _ast_find_callers, _ast_find_callees
+from .structural_analysis import _tool_structural_analysis, _ast_find_callers, _ast_find_callees
 from .ts_edit import _tool_ts_edit
 from .watcher import _tool_reindex_path, _tool_watch_add, _tool_watch_status
 
