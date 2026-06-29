@@ -1,7 +1,7 @@
 {
   "name": "ast-tools",
   "version": "0.1.0",
-  "generated": "2026-06-29T03:17:42.396802+00:00",
+  "generated": "2026-06-29T04:48:42.252099+00:00",
   "generator": "ast-tools-project-v1",
   "languages": {
     "yaml": {
@@ -9,20 +9,20 @@
       "lines": 71
     },
     "markdown": {
-      "files": 70,
-      "lines": 24485
+      "files": 73,
+      "lines": 25984
     },
     "toml": {
       "files": 1,
-      "lines": 139
+      "lines": 140
     },
     "shell": {
       "files": 4,
       "lines": 170
     },
     "python": {
-      "files": 97,
-      "lines": 22798
+      "files": 99,
+      "lines": 24293
     },
     "text": {
       "files": 5,
@@ -31,8 +31,8 @@
   },
   "code_languages": {
     "python": {
-      "files": 97,
-      "lines": 22798
+      "files": 99,
+      "lines": 24293
     }
   },
   "config_languages": {
@@ -41,12 +41,12 @@
       "lines": 71
     },
     "markdown": {
-      "files": 70,
-      "lines": 24485
+      "files": 73,
+      "lines": 25984
     },
     "toml": {
       "files": 1,
-      "lines": 139
+      "lines": 140
     },
     "shell": {
       "files": 4,
@@ -60,7 +60,12 @@
   "entry_points": [
     "ast_tools_server:main",
     "project_tools:cli_main",
+    "ast_tools.cli:main",
+    "src/ast_tools/cli.py",
     "src/ast_tools/benchmarks/phase9_benchmark.py#if-__name__",
+    "src/ast_tools/cli.py#if-__name__",
+    "src/ast_tools/cli.py#main",
+    "src/ast_tools/cli.py#argparse",
     "src/ast_tools/curator/daemon.py#if-__name__",
     "src/ast_tools/curator/daemon.py#sys.argv",
     "src/ast_tools/lsp_client.py#if-__name__",
@@ -71,12 +76,13 @@
     "src/project_tools.py#if-__name__",
     "src/project_tools.py#main",
     "src/project_tools.py#argparse",
+    "tests/test_cli.py#if-__name__",
     "tests/test_enhanced_dead_code.py#if-__name__",
     "tests/tools/test_semantic_search_context.py#if-__name__",
     "tests/watcher/test_daemon.py#if-__name__"
   ],
   "test_framework": "pytest",
-  "test_files": 30,
+  "test_files": 31,
   "test_command": "python3 -m pytest",
   "modules": [
     {
@@ -112,6 +118,25 @@
         "benchmark_audit_log_writes",
         "benchmark_index_effectiveness",
         "run_benchmarks"
+      ]
+    },
+    {
+      "path": "src/ast_tools/cli.py",
+      "lines": 977,
+      "classes": [],
+      "functions": [
+        "cmd_search",
+        "cmd_navigate",
+        "cmd_blast_radius",
+        "cmd_find_dead",
+        "cmd_summary",
+        "cmd_symbols",
+        "cmd_refs",
+        "cmd_callers",
+        "cmd_callees",
+        "cmd_deps",
+        "cmd_browse",
+        "main"
       ]
     },
     {
@@ -736,6 +761,23 @@
         "TestParserClass"
       ],
       "functions": []
+    },
+    {
+      "path": "tests/test_cli.py",
+      "lines": 518,
+      "classes": [
+        "TestCLIHelp",
+        "TestCLIProjectCommands",
+        "TestCLICallersCallees",
+        "TestCLIDeps",
+        "TestCLISemanticSearch",
+        "TestCLIOutputFormats",
+        "TestCLIErrorHandling",
+        "TestCLIE2E"
+      ],
+      "functions": [
+        "run_cli"
+      ]
     },
     {
       "path": "tests/test_e2e.py",

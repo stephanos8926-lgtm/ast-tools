@@ -64,6 +64,66 @@
     "line": 221,
     "type": "function"
   },
+  "cmd_search": {
+    "file": "src/ast_tools/cli.py",
+    "line": 42,
+    "type": "function"
+  },
+  "cmd_navigate": {
+    "file": "src/ast_tools/cli.py",
+    "line": 78,
+    "type": "function"
+  },
+  "cmd_blast_radius": {
+    "file": "src/ast_tools/cli.py",
+    "line": 114,
+    "type": "function"
+  },
+  "cmd_find_dead": {
+    "file": "src/ast_tools/cli.py",
+    "line": 146,
+    "type": "function"
+  },
+  "cmd_summary": {
+    "file": "src/ast_tools/cli.py",
+    "line": 167,
+    "type": "function"
+  },
+  "cmd_symbols": {
+    "file": "src/ast_tools/cli.py",
+    "line": 186,
+    "type": "function"
+  },
+  "cmd_refs": {
+    "file": "src/ast_tools/cli.py",
+    "line": 214,
+    "type": "function"
+  },
+  "cmd_callers": {
+    "file": "src/ast_tools/cli.py",
+    "line": 242,
+    "type": "function"
+  },
+  "cmd_callees": {
+    "file": "src/ast_tools/cli.py",
+    "line": 281,
+    "type": "function"
+  },
+  "cmd_deps": {
+    "file": "src/ast_tools/cli.py",
+    "line": 319,
+    "type": "function"
+  },
+  "cmd_browse": {
+    "file": "src/ast_tools/cli.py",
+    "line": 385,
+    "type": "function"
+  },
+  "main": {
+    "file": "src/ast_tools/cli.py",
+    "line": 715,
+    "type": "function"
+  },
   "MarkdownFormatter": {
     "file": "src/ast_tools/context/formatters.py",
     "line": 35,
@@ -1228,6 +1288,51 @@
     "file": "tests/indexer/test_parser.py",
     "line": 128,
     "type": "class"
+  },
+  "TestCLIHelp": {
+    "file": "tests/test_cli.py",
+    "line": 35,
+    "type": "class"
+  },
+  "TestCLIProjectCommands": {
+    "file": "tests/test_cli.py",
+    "line": 66,
+    "type": "class"
+  },
+  "TestCLICallersCallees": {
+    "file": "tests/test_cli.py",
+    "line": 178,
+    "type": "class"
+  },
+  "TestCLIDeps": {
+    "file": "tests/test_cli.py",
+    "line": 247,
+    "type": "class"
+  },
+  "TestCLISemanticSearch": {
+    "file": "tests/test_cli.py",
+    "line": 281,
+    "type": "class"
+  },
+  "TestCLIOutputFormats": {
+    "file": "tests/test_cli.py",
+    "line": 319,
+    "type": "class"
+  },
+  "TestCLIErrorHandling": {
+    "file": "tests/test_cli.py",
+    "line": 371,
+    "type": "class"
+  },
+  "TestCLIE2E": {
+    "file": "tests/test_cli.py",
+    "line": 391,
+    "type": "class"
+  },
+  "run_cli": {
+    "file": "tests/test_cli.py",
+    "line": 23,
+    "type": "function"
   },
   "TestAstGrep": {
     "file": "tests/test_e2e.py",

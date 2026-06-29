@@ -95,5 +95,7 @@
   "src/ast_tools/utils/security.py": "cc80305f9b1bec3a439ee68268b92209",
   "tests/test_security.py": "9295f216c34cf5b504725702d6d4b98a",
   "src/ast_tools/tools/enhanced_dead_code.py": "afc657938d2ce5bf8c26e9af28a4bd8d",
-  "tests/test_enhanced_dead_code.py": "ea555f0fbe2c772bb33f2bf6a4bcbec6"
+  "tests/test_enhanced_dead_code.py": "ea555f0fbe2c772bb33f2bf6a4bcbec6",
+  "src/ast_tools/cli.py": "74afdc947a80f531853334713124d74c",
+  "tests/test_cli.py": "33b943a305c02bf7fb5aa6f85fbafbd8"
 }
