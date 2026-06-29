@@ -62,23 +62,34 @@
 
 ### 🔴 Critical
 
-(Blocking issues — must fix before implementation)
+1. **Path traversal vulnerability** — CLI `--path` accepts any directory with no validation
+2. **Dead code false positives >40%** — Missing polymorphism, dynamic dispatch, framework detection
 
 ### 🟠 High
 
-(Serious concerns — should fix)
+1. **Dynamic dispatch not tracked** — `getattr()`, `importlib` calls create false positives
+2. **Polymorphism & inheritance** — `is_override()` not implemented
+3. **Framework detection incomplete** — Only Flask/FastAPI, missing Django/Celery/Click/pytest
+4. **SQL query optimization needed** — No limits, poor index usage, `LIKE '%/test%'` anti-pattern
 
 ### 🟡 Medium
 
-(Worth addressing — can defer to next iteration)
+1. **Large codebases (>50K files)** — No pagination, streaming, or progress indicators
+2. **Orphan clusters** — Circular dead code not detected (A→B→A with no entry point)
+3. **No caching** — Results not cached between runs
+4. **Missing competitive analysis** — No comparison to nervx/GitNexus features
+5. **Entry point detection incomplete** — Only checks `main`/`setup`/`run`
+6. **Test file patterns incomplete** — Misses `tests/`, `*_test.py`, `conftest.py`
 
 ### 🔵 Low
 
-(Nice to have — polish)
+1. **No CI/CD integration** — `--ci` flag for exit codes
+2. **No progress indicators** — Long operations show no feedback
+3. **Exit codes not documented** — What does exit 0 vs 2 mean?
 
 ### 📋 Full List
 
-(Complete findings log)
+See `docs/EASY_WINS_REVERSE_AUDIT.md` for complete findings (651 lines, 17KB)
 
 ---
 

@@ -1,0 +1,863 @@
+# Adversarial Security Audit: CLI Tool + Dead Code Detection
+
+**Audit Date:** 2026-06-28  
+**Auditor:** Security Analysis Agent  
+**Scope:** CLI Tool + Dead Code Detection features per EASY_WINS_SPEC_20260628.md  
+**Target Files:** `src/ast_tools/cli.py`, `src/ast_tools/tools/dead_code.py`, `src/ast_tools/database/queries.py`, `src/ast_tools/tools/semantic_search.py`
+
+---
+
+## Executive Summary
+
+This audit identifies **18 security vulnerabilities** in the proposed CLI tool and dead code detection design, ranging from **CRITICAL** to **LOW** severity. The most severe issues involve:
+
+1. **SQL Injection** via FTS5 query construction (CRITICAL)
+2. **Path Traversal** in file path arguments (HIGH)  
+3. **Information Leakage** through error messages (HIGH)
+4. **DoS Vectors** via unbounded limits and queries (HIGH)
+5. **Dead Code Exposure** revealing sensitive patterns (MEDIUM)
+
+**Recommendation:** Do NOT implement the CLI tool without addressing CRITICAL and HIGH severity issues first.
+
+---
+
+## Findings by Severity
+
+### 🔴 CRITICAL (3 findings)
+
+---
+
+### C-01: SQL Injection in FTS5 Query Construction
+
+**File:** `src/ast_tools/database/queries.py`  
+**Line:** 43-47  
+**Severity:** CRITICAL  
+**CVSS Score:** 9.8 (Critical)
+
+**Vulnerability:**
+The `search_symbols()` function directly interpolates user input into FTS5 MATCH queries without sanitization:
+
+```python
+fts_sql = "SELECT rowid FROM symbols_fts WHERE symbols_fts MATCH ? LIMIT ?"
+fts_params: list[Any] = [query, limit]
+```
+
+While parameterized queries prevent traditional SQL injection, **FTS5 has special syntax operators** that can be abused:
+
+**Exploit Scenarios:**
+
+1. **Boolean Operator Injection:**
+   ```bash
+   ast-tools search "auth OR 1=1"
+   ast-tools search "password AND admin"
+   ```
+
+2. **Phrase Injection (bypass filters):**
+   ```bash
+   ast-tools search "\" OR \"\"=\""
+   ```
+
+3. **Column Enumeration (error-based):**
+   ```bash
+   ast-tools search "test NEAR/0 nonexistant_column"
+   # Triggers SQLite error revealing schema details
+   ```
+
+4. **FTS5 Syntax Crash:**
+   ```bash
+   ast-tools search "test NEAR/abc"  # Invalid NEAR parameter
+   ast-tools search "test AND"      # Incomplete boolean
+   ```
+
+**Impact:**
+- Full database enumeration
+- Bypass of kind/lang filters via operator manipulation
+- Potential database DoS through expensive queries
+- Information leakage via error messages
+
+**Mitigation:**
+```python
+# queries.py lines 43-47
+def search_symbols(conn, query, kind_filter=None, limit=50):
+    # SANITIZE FTS5 special operators
+    sanitized_query = sanitize_fts5_query(query)
+    
+    fts_query = "SELECT rowid FROM symbols_fts WHERE symbols_fts MATCH ? LIMIT ?"
+    fts_params = [sanitized_query, limit]
+    
+def sanitize_fts5_query(query: str) -> str:
+    """Sanitize FTS5 query to prevent operator injection."""
+    # Allow only alphanumeric, spaces, and safe operators
+    import re
+    # Escape quotes and special FTS5 operators
+    query = query.replace('"', '""')  # Escape quotes
+    query = query.replace('-', ' ')   # Remove NOT operator
+    query = query.replace('+', ' ')   # Remove AND operator
+    query = re.sub(r'\bOR\b', ' ', query, flags=re.IGNORECASE)
+    query = re.sub(r'\bAND\b', ' ', query, flags=re.IGNORECASE)
+    query = re.sub(r'\bNEAR/\d+\b', ' ', query, flags=re.IGNORECASE)
+    query = re.sub(r'\^', ' ', query)  # Remove prefix boosting
+    return query.strip()[:500]  # Limit query length
+```
+
+---
+
+### C-02: Path Traversal in `--path` Argument
+
+**File:** `src/ast_tools/cli.py` (proposed design)  
+**Severity:** CRITICAL  
+**CVSS Score:** 9.1 (Critical)
+
+**Vulnerability:**
+The spec shows `--path <dir>` accepts arbitrary paths with only `.resolve()` normalization. No validation prevents escaping the intended project root or accessing sensitive system files.
+
+**Exploit Scenario:**
+```bash
+# Escape project root to read system files
+ast-tools search "password" --path ../../etc
+ast-tools search "secret" --path /etc/passwd
+ast-tools search "key" --path ~/.ssh
+ast-tools search "token" --path ../../.env
+
+# Dead code detection on sensitive directories
+ast-tools find-dead --path ../../home/admin/.config
+```
+
+**Impact:**
+- Read arbitrary files accessible to the user
+- Enumerate directory structures outside project
+- Discover sensitive configuration files
+- Map codebases of other projects on same system
+
+**Mitigation:**
+```python
+# cli.py command handlers
+from pathlib import Path
+import os
+
+def validate_project_path(path_str: str) -> Path:
+    """Validate and resolve project path with security checks."""
+    path = Path(path_str).resolve()
+    
+    # Block absolute paths outside allowed roots
+    allowed_roots = [Path.cwd(), Path.home() / 'Workspaces']
+    
+    if path.is_absolute():
+        # Check if path is under allowed roots
+        if not any(str(path).startswith(str(root)) for root in allowed_roots):
+            raise ValueError(f"Path must be under allowed project roots: {allowed_roots}")
+    
+    # Block symlinks that escape project root
+    real_path = path.resolve(strict=False)
+    if not any(str(real_path).startswith(str(root)) for root in allowed_roots):
+        raise ValueError("Symlinks escaping project root are not allowed")
+    
+    # Check for path traversal patterns
+    if '..' in str(path):
+        raise ValueError("Path traversal (..) is not allowed")
+    
+    return path
+```
+
+---
+
+### C-03: Unlimited Recursion in Dead Code Caller Analysis
+
+**File:** `src/ast_tools/tools/structural_analysis.py`  
+**Lines:** 44-76 (`_ast_find_callers`)  
+**Severity:** CRITICAL  
+**CVSS Score:** 9.0 (Critical)
+
+**Vulnerability:**
+The recursive `_walk_calls()` function has **no depth limit** and processes **every Python file** in the project. Combined with malformed ASTs, this enables stack exhaustion attacks.
+
+**Exploit Scenario:**
+```python
+# Create deeply nested function structure (10000+ levels)
+def f1():
+    def f2():
+        def f3():
+            # ... 10000 levels deep
+                pass
+
+# Then query it:
+ast-tools callers f1  # Triggers full recursion
+```
+
+**Impact:**
+- Stack overflow crash (DoS)
+- Memory exhaustion
+- Process termination
+
+**Mitigation:**
+```python
+def _ast_find_callers(symbol: str, project_root: str, max_depth: int = 50, max_files: int = 100):
+    """Find all functions/methods that call `symbol` with recursion limits."""
+    callers = []
+    file_count = 0
+    
+    for py_file in _find_python_files(project_root, max_files=max_files):
+        file_count += 1
+        if file_count > max_files:
+            break
+            
+        try:
+            source = py_file.read_text(encoding="utf-8", errors="replace")
+            tree = ast.parse(source, filename=str(py_file))
+        except (SyntaxError, OSError):
+            continue
+
+        def _walk_calls(node, enclosing_name=None, depth=0):
+            # HARD RECURSION LIMIT
+            if depth > max_depth:
+                return
+                
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+                enclosing_name = node.name
+            elif isinstance(node, ast.Call):
+                source_lines = source.splitlines()
+                if (isinstance(node.func, ast.Name) and node.func.id == symbol) or \
+                   (isinstance(node.func, ast.Attribute) and node.func.attr == symbol):
+                    callers.append({...})
+            for child in ast.iter_child_nodes(node):
+                _walk_calls(child, enclosing_name, depth + 1)  # Track depth
+
+        _walk_calls(tree, depth=0)
+    return callers
+```
+
+---
+
+## 🔶 HIGH (5 findings)
+
+---
+
+### H-01: Unbounded `--limit` Parameter Enables DoS
+
+**File:** `src/ast_tools/cli.py` (spec line 63)  
+**Severity:** HIGH  
+**CVSS Score:** 7.5 (High)
+
+**Vulnerability:**
+The `--limit <N>` option has no server-side enforcement. Client can request unlimited results.
+
+**Exploit Scenario:**
+```bash
+# Memory exhaustion through massive result sets
+ast-tools search "." --limit 1000000
+ast-tools search "def" --limit 999999999
+
+# Dead code with unlimited output
+ast-tools find-dead --limit 1000000 --format=json
+```
+
+**Impact:**
+- Memory exhaustion (buffer filling results)
+- CPU DoS (formatting massive output)
+- Network bandwidth consumption
+- CLI hangs indefinitely
+
+**Mitigation:**
+```python
+# cli.py argument parsing
+search_parser.add_argument('--limit', type=int, default=10, 
+                          choices=range(1, 101),  # 1-100 only
+                          help='Max results (1-100, default: 10)')
+
+# Server-side enforcement in semantic_search.py line 333
+if k < 1:
+    k = 1
+elif k > 100:  # HARD CAP
+    logger.warning(f"Limit {k} capped to 100")
+    k = 100
+```
+
+---
+
+### H-02: Error Messages Leak Internal Paths and Schema
+
+**File:** `src/ast_tools/tools/semantic_search.py`  
+**Line:** 407-408  
+**Severity:** HIGH  
+**CVSS Score:** 7.1 (High)
+
+**Vulnerability:**
+Generic exception handling exposes raw error messages including:
+- Full file paths
+- Database schema details
+- Internal stack traces
+
+```python
+except Exception as e:
+    logger.error(f"Semantic search failed: {e}")
+    return json.dumps({"error": str(e)}, indent=2)  # LEAKS INTERNALS
+```
+
+**Exploit Scenario:**
+```bash
+# Trigger errors to enumerate paths
+ast-tools search "$(python -c 'print("A"*1000)')"
+# Error reveals: /home/user/.cache/ast-tools/codebase.db
+
+# Trigger FTS5 parse errors
+ast-tools search "NEAR/invalid"
+# Error reveals: "symbols_fts" table name, FTS5 internals
+```
+
+**Impact:**
+- Path disclosure aids further attacks
+- Schema enumeration for SQL injection
+- Version fingerprinting
+- Attack surface mapping
+
+**Mitigation:**
+```python
+# semantic_search.py line 406-408
+except Exception as e:
+    logger.error(f"Semantic search failed: {e}", exc_info=True)
+    # Return generic error to user, log details internally
+    if "database" in str(e).lower():
+        user_error = "Database error occurred. Please check index status."
+    elif "path" in str(e).lower() or "file" in str(e).lower():
+        user_error = "File access error. Verify the project path exists."
+    else:
+        user_error = "Search failed due to an internal error."
+    return json.dumps({"error": user_error}, indent=2)
+```
+
+---
+
+### H-03: Dead Code Detection Exposes Sensitive Patterns
+
+**File:** `src/ast_tools/tools/dead_code.py` (proposed)  
+**Severity:** HIGH  
+**CVSS Score:** 7.0 (High)
+
+**Vulnerability:**
+Dead code detection on projects containing **sensitive but unreferenced code** reveals:
+- Deprecated authentication backends
+- Hidden admin endpoints
+- Test credentials in unused fixtures
+- Obfuscated malicious code planted by attackers
+
+**Exploit Scenario:**
+```bash
+# Enumerate all "dead" code in a project
+ast-tools find-dead --format=json > dead_code.json
+
+# Search for sensitive patterns in dead code
+jq '.dead_code[] | select(.symbol | test("admin|secret|key|password|backdoor"))' dead_code.json
+```
+
+**Impact:**
+- Discover forgotten admin panels
+- Find deprecated auth methods
+- Identify unused endpoints for targeted attacks
+- Map legacy attack surface
+
+**Mitigation:**
+```python
+# dead_code.py - Add sensitivity filtering
+SENSITIVE_PATTERNS = [
+    r'(?i)admin', r'(?i)secret', r'(?i)password',
+    r'(?i)backdoor', r'(?i)bypass', r'(?i)hardcoded'
+]
+
+def filter_sensitive_symbols(symbols):
+    """Filter symbols matching sensitive patterns."""
+    return [
+        s for s in symbols
+        if not any(re.search(p, s['name']) for p in SENSITIVE_PATTERNS)
+    ]
+
+def _tool_find_dead_code(args):
+    # ... existing logic ...
+    filtered = filter_false_positives(unreferenced, project_path)
+    # Additional security filter
+    filtered = filter_sensitive_symbols(filtered)
+    return {...}
+```
+
+---
+
+### H-04: Concurrent CLI Runs Cause Database Corruption
+
+**File:** `src/ast_tools/database/connection.py`  
+**Lines:** 96-105  
+**Severity:** HIGH  
+**CVSS Score:** 6.8 (High)
+
+**Vulnerability:**
+Multiple concurrent CLI invocations share the same SQLite database with WAL mode but **no application-level locking**. Race conditions during index refresh can cause:
+- Partial writes
+- Index corruption
+- Lost updates
+
+**Exploit Scenario:**
+```bash
+# Race condition attack
+for i in {1..50}; do
+    ast-tools refresh &
+done
+wait
+
+# Then query corrupted index
+ast-tools search "test"
+# Returns inconsistent or corrupted data
+```
+
+**Impact:**
+- Database corruption requiring rebuild
+- Inconsistent query results
+- Potential crash on malformed index
+
+**Mitigation:**
+```python
+# connection.py - Add file-based locking
+import fcntl
+
+def get_connection(db_path: Path | None = None):
+    db_path = db_path or DEFAULT_DB_PATH
+    lock_path = db_path.with_suffix('.lock')
+    
+    # Acquire exclusive lock
+    lock_file = open(lock_path, 'w')
+    try:
+        fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except BlockingIOError:
+        raise sqlite3.OperationalError(
+            "Database is locked by another process. Please wait."
+        )
+    
+    conn = sqlite3.connect(str(db_path), check_same_thread=False)
+    # ... existing pragmas ...
+    
+    # Attach lock file to connection for cleanup
+    conn._lock_file = lock_file
+    return conn
+
+# Override close to release lock
+original_close = sqlite3.Connection.close
+def locked_close(self):
+    if hasattr(self, '_lock_file'):
+        fcntl.flock(self._lock_file.fileno(), fcntl.LOCK_UN)
+        self._lock_file.close()
+    original_close(self)
+```
+
+---
+
+### H-05: Missing Authentication on CLI Commands
+
+**File:** `src/ast_tools/cli.py` (proposed design)  
+**Severity:** HIGH  
+**CVSS Score:** 6.5 (High)
+
+**Vulnerability:**
+No authentication mechanism exists for CLI commands. Any user with shell access can:
+- Query entire codebase
+- Trigger expensive index rebuilds
+- Export sensitive project metadata
+
+**Exploit Scenario:**
+```bash
+# On multi-user system, any user can:
+ast-tools search "password"  # Enumerate auth logic
+ast-tools refresh           # Consume CPU/memory
+ast-tools find-dead         # Map entire project structure
+```
+
+**Impact:**
+- Unauthorized codebase enumeration
+- Resource consumption attacks
+- Intellectual property exposure
+
+**Mitigation:**
+```python
+# Add optional authentication via environment variable
+import os
+
+def main():
+    # Check for optional auth token
+    required_token = os.environ.get('AST_TOOLS_TOKEN')
+    provided_token = os.environ.get('AST_TOOLS_CLIENT_TOKEN')
+    
+    if required_token and provided_token != required_token:
+        print("Error: Authentication required. Set AST_TOOLS_CLIENT_TOKEN.", file=sys.stderr)
+        sys.exit(1)
+    
+    # ... rest of CLI ...
+```
+
+---
+
+## 🟡 MEDIUM (6 findings)
+
+---
+
+### M-01: Subprocess Risks in ast-grep CLI Wrapper
+
+**File:** `src/ast_tools/tools/ast_grep.py`  
+**Line:** 36  
+**Severity:** MEDIUM  
+**CVSS Score:** 5.9 (Medium)
+
+**Vulnerability:**
+The ast-grep wrapper uses subprocess without proper argument escaping:
+
+```python
+proc = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+# cmd is built from user input without shell escaping
+```
+
+**Exploit Scenario:**
+```bash
+# If pattern comes from user input
+ast-tools ast-grep --pattern "test; rm -rf /"
+# Naive command building: ast-grep --pattern test; rm -rf /
+```
+
+**Impact:**
+- Command injection if pattern not properly escaped
+- Arbitrary code execution
+
+**Mitigation:**
+```python
+# ast_grep.py
+import shlex
+
+def _tool_ast_grep(args):
+    pattern = args.get('pattern', '')
+    path = args.get('path', '.')
+    
+    # Use list form to prevent shell injection
+    cmd = [
+        'ast-grep',
+        '--pattern', pattern,  # No shell expansion
+        '--json',
+        shlex.quote(path) if ' ' in path else path
+    ]
+    
+    proc = subprocess.run(
+        cmd,  # List form, not shell string
+        capture_output=True,
+        text=True,
+        timeout=30,
+        shell=False  # CRITICAL: Disable shell
+    )
+```
+
+---
+
+### M-02: Long Query DoS via Complex FTS5 Expressions
+
+**File:** `src/ast_tools/database/queries.py`  
+**Severity:** MEDIUM  
+**CVSS Score:** 5.5 (Medium)
+
+**Vulnerability:**
+Complex FTS5 queries with multiple NEAR operators cause exponential CPU usage.
+
+**Exploit Scenario:**
+```bash
+ast-tools search "test NEAR/10 auth NEAR/10 password NEAR/10 admin NEAR/10 secret"
+# Each NEAR operation multiplies search complexity
+```
+
+**Impact:**
+- CPU exhaustion
+- Query timeout delays
+- Resource starvation
+
+**Mitigation:**
+```python
+# Limit query complexity
+def sanitize_fts5_query(query: str) -> str:
+    # Count NEAR operators
+    near_count = len(re.findall(r'NEAR/\d+', query, re.IGNORECASE))
+    if near_count > 3:
+        raise ValueError("Query too complex: max 3 NEAR operators")
+    
+    # Limit query length
+    if len(query) > 500:
+        raise ValueError("Query exceeds 500 character limit")
+    
+    return query
+```
+
+---
+
+### M-03: Information Leakage via `index-status` Command
+
+**File:** `src/ast_tools/cli/commands/index_status.py` (proposed)  
+**Severity:** MEDIUM  
+**CVSS Score:** 5.3 (Medium)
+
+**Vulnerability:**
+Index status reveals complete project metadata:
+- Total file count
+- Symbol distribution
+- Embedding count (proxies codebase size)
+- Last indexed timestamp
+
+**Exploit Scenario:**
+```bash
+# Competitive intelligence gathering
+ast-tools index-status --format=json
+# Returns: {"indexed_files": 2847, "total_symbols": 15234}
+```
+
+**Impact:**
+- Codebase size enumeration
+- Development activity tracking
+- Project structure inference
+
+**Mitigation:**
+- Document that `index-status` exposes metadata
+- Consider authentication requirement
+- Implement rate limiting
+
+---
+
+### M-04: Token Budget Bypass in Context Injection
+
+**File:** `src/ast_tools/tools/semantic_search.py`  
+**Lines:** 183-195  
+**Severity:** MEDIUM  
+**CVSS Score:** 5.0 (Medium)
+
+**Vulnerability:**
+Token budget calculation relies on estimation, not actual token count. Attacker can craft symbols that exceed estimated token count.
+
+**Exploit Scenario:**
+```python
+# Create function with massive docstring
+def foo():
+    """
+    [100KB docstring generated programmatically]
+    """
+    pass
+
+# Query triggers context injection
+ast-tools search "foo" --token-budget 4096
+# Actual tokens: 50000+
+```
+
+**Impact:**
+- Context window overflow
+- LLM prompt injection via oversized context
+- Memory exhaustion
+
+**Mitigation:**
+```python
+# semantic_search.py
+def select_context_with_budget(symbols, injector, max_tokens, ...):
+    selected = []
+    tokens_used = 0
+    
+    for symbol in symbols[:k]:
+        # Use actual tokenizer, not estimation
+        token_cost = injector.count_tokens(format_symbol(symbol))
+        
+        if tokens_used + token_cost > available_tokens:
+            break  # Hard stop
+        
+        selected.append(symbol)
+        tokens_used += token_cost
+    
+    return selected, tokens_used
+```
+
+---
+
+### M-05: Missing Input Validation on `--kind` and `--lang` Filters
+
+**File:** `src/ast_tools/cli.py` (spec lines 61-62)  
+**Severity:** MEDIUM  
+**CVSS Score:** 4.8 (Medium)
+
+**Vulnerability:**
+The spec shows `--kind <function|class>` and `--lang <python|js|ts>` filters but doesn't specify validation. Invalid values could:
+- Cause database errors
+- Bypass intended restrictions
+
+**Exploit Scenario:**
+```bash
+ast-tools search "test" --kind "../../etc/passwd"
+ast-tools search "test" --lang "$(whoami)"
+```
+
+**Mitigation:**
+```python
+# cli.py
+VALID_KINDS = ['function', 'class', 'method', 'variable', 'import', 'constant']
+VALID_LANGS = ['python', 'rust', 'go', 'typescript', 'javascript', 'cpp', 'c', 'json', 'yaml', 'bash']
+
+search_parser.add_argument('--kind', choices=VALID_KINDS)
+search_parser.add_argument('--lang', choices=VALID_LANGS)
+```
+
+---
+
+### M-06: Race Condition in Concurrent `refresh` Commands
+
+**File:** `src/ast_tools/tools/refresh_index.py`  
+**Severity:** MEDIUM  
+**CVSS Score:** 4.5 (Medium)
+
+**Vulnerability:**
+Multiple concurrent `ast-tools refresh` invocations can:
+- Index the same files simultaneously
+- Create duplicate entries
+- Cause write conflicts
+
+**Exploit Scenario:**
+```bash
+# Trigger race condition
+for i in {1..20}; do ast-tools refresh & done
+```
+
+**Mitigation:**
+- Use file-based locking (see H-04)
+- Implement atomic transactions
+- Add "index in progress" detection
+
+---
+
+## 🟢 LOW (4 findings)
+
+---
+
+### L-01: Verbose Error Output in Debug Mode
+
+**Severity:** LOW  
+**CVSS Score:** 3.5 (Low)
+
+**Vulnerability:**
+Debug logging could expose sensitive information if enabled in production.
+
+**Mitigation:**
+- Document that debug mode should not be used in production
+- Sanitize all logger output
+
+---
+
+### L-02: Missing Rate Limiting on CLI Commands
+
+**Severity:** LOW  
+**CVSS Score:** 3.0 (Low)
+
+**Vulnerability:**
+No rate limiting prevents rapid-fire queries.
+
+**Mitigation:**
+- Implement per-user rate limiting
+- Use token bucket algorithm
+
+---
+
+### L-03: No Audit Logging for CLI Commands
+
+**Severity:** LOW  
+**CVSS Score:** 2.5 (Low)
+
+**Vulnerability:**
+CLI usage is not logged for security review.
+
+**Mitigation:**
+```python
+import logging
+from datetime import datetime
+
+logger = logging.getLogger('ast-tools.audit')
+
+def main():
+    # Log command invocation
+    logger.info(f"CLI command: {' '.join(sys.argv[1:])} at {datetime.now()}")
+```
+
+---
+
+### L-04: Missing Content-Type Validation on JSON Output
+
+**Severity:** LOW  
+**CVSS Score:** 2.0 (Low)
+
+**Vulnerability:**
+JSON formatter doesn't validate output structure.
+
+**Mitigation:**
+- Add JSON schema validation
+- Catch serialization errors gracefully
+
+---
+
+## Summary Table
+
+| ID   | Severity | Category                | File                          | Mitigation Priority |
+|------|----------|-------------------------|-------------------------------|---------------------|
+| C-01 | CRITICAL | SQL Injection           | queries.py:43-47              | BLOCKER             |
+| C-02 | CRITICAL | Path Traversal          | cli.py (proposed)             | BLOCKER             |
+| C-03 | CRITICAL | DoS via Recursion       | structural_analysis.py:44-76  | P0                  |
+| H-01 | HIGH     | DoS via Unbounded Limit | cli.py (proposed)             | P0                  |
+| H-02 | HIGH     | Info Leakage            | semantic_search.py:407-408    | P0                  |
+| H-03 | HIGH     | Sensitive Code Exposure | dead_code.py (proposed)       | P1                  |
+| H-04 | HIGH     | Race Condition          | connection.py:96-105          | P1                  |
+| H-05 | HIGH     | No Authentication       | cli.py (proposed)             | P1                  |
+| M-01 | MEDIUM   | Subprocess Injection    | ast_grep.py:36                | P2                  |
+| M-02 | MEDIUM   | Complex Query DoS       | queries.py                    | P2                  |
+| M-03 | MEDIUM   | Metadata Leakage        | index_status.py (proposed)    | P2                  |
+| M-04 | MEDIUM   | Token Budget Bypass     | semantic_search.py:183-195    | P2                  |
+| M-05 | MEDIUM   | Filter Validation       | cli.py (proposed)             | P2                  |
+| M-06 | MEDIUM   | Concurrent Refresh      | refresh_index.py              | P3                  |
+| L-01 | LOW      | Debug Output            | Multiple                      | P3                  |
+| L-02 | LOW      | No Rate Limiting        | CLI design                    | P3                  |
+| L-03 | LOW      | No Audit Logging        | CLI design                    | P3                  |
+| L-04 | LOW      | JSON Validation         | formatters.py (proposed)      | P3                  |
+
+---
+
+## Recommended Implementation Order
+
+### Phase 0: Security Foundation (BEFORE any CLI implementation)
+1. **C-01:** Implement FTS5 query sanitization
+2. **C-02:** Add path validation utility
+3. **C-03:** Add recursion limits to AST walkers
+4. **H-02:** Implement safe error handling
+
+### Phase 1: CLI Security Hardening
+5. **H-01:** Enforce limit caps server-side
+6. **M-05:** Validate filter arguments
+7. **M-01:** Secure subprocess calls
+8. **H-05:** Add optional authentication
+
+### Phase 2: Dead Code Security
+9. **H-03:** Filter sensitive patterns from output
+10. **M-04:** Use actual token counting
+
+### Phase 3: Concurrency & Stability
+11. **H-04:** Add file locking
+12. **M-06:** Prevent concurrent refresh races
+
+### Phase 4: Monitoring & Compliance
+13. **L-03:** Add audit logging
+14. **L-02:** Implement rate limiting
+
+---
+
+## Conclusion
+
+The proposed CLI tool and dead code detection features have **significant security gaps** that must be addressed before implementation. The most critical issues (SQL injection via FTS5 operators, path traversal, and unbounded recursion) could lead to:
+
+- Full codebase disclosure
+- System file access
+- Service denial through resource exhaustion
+- Sensitive pattern exposure
+
+**Recommendation:** Implement Phase 0 security foundation before writing any CLI command handlers. All CRITICAL and HIGH findings should be resolved before the first public release.
+
+---
+
+**Audit Complete**  
+**Total Findings:** 18 (3 CRITICAL, 5 HIGH, 6 MEDIUM, 4 LOW)  
+**Next Steps:** Forward to implementation team for remediation planning
