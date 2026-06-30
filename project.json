@@ -1,7 +1,7 @@
 {
   "name": "ast-tools",
   "version": "0.1.0",
-  "generated": "2026-06-29T19:39:40.377171+00:00",
+  "generated": "2026-06-30T05:40:22.414217+00:00",
   "generator": "ast-tools-project-v1",
   "languages": {
     "yaml": {
@@ -9,8 +9,8 @@
       "lines": 71
     },
     "markdown": {
-      "files": 73,
-      "lines": 25984
+      "files": 46,
+      "lines": 26059
     },
     "toml": {
       "files": 1,
@@ -23,10 +23,6 @@
     "python": {
       "files": 100,
       "lines": 24609
-    },
-    "text": {
-      "files": 5,
-      "lines": 82
     }
   },
   "code_languages": {
@@ -41,8 +37,8 @@
       "lines": 71
     },
     "markdown": {
-      "files": 73,
-      "lines": 25984
+      "files": 46,
+      "lines": 26059
     },
     "toml": {
       "files": 1,
@@ -51,10 +47,6 @@
     "shell": {
       "files": 4,
       "lines": 170
-    },
-    "text": {
-      "files": 5,
-      "lines": 82
     }
   },
   "entry_points": [

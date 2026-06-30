@@ -1,3 +1,0 @@
-[console_scripts]
-ast-tools-project = project_tools:cli_main
-ast-tools-server = ast_tools_server:main
