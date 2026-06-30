@@ -1,17 +1,27 @@
 """MCP tool: Refresh the semantic index for a project.
 
 Usage:
-    refresh_index(project_path: str, force: bool = False, embeddings: bool = False)
+    refresh_index(project_path: str, force: bool = False, embeddings: bool = False, incremental: bool = True)
 
 Scans all Python files in the project, extracts symbols and edges,
 and updates the database. Uses file content hashing to skip unchanged files.
 
 Features:
-    - Incremental indexing (only re-indexes changed files)
+    - Incremental file-level: Skip unchanged files (content hash match)
+    - Incremental symbol-level: Only update changed symbols (preserve IDs)
     - Transaction-based updates (atomic, no partial state)
     - Error handling (skips problematic files, continues indexing)
     - Thread-safe (uses database locking)
     - Optional embedding generation for semantic search (--embeddings)
+
+Incremental Mode (default: True):
+    When a file has changed, performs symbol-level diff:
+    - Unchanged symbols: Preserved (ID, edges, embeddings intact)
+    - Modified symbols: Updated in-place (ID preserved)
+    - Removed symbols: Deleted (cascade: edges + embeddings)
+    - Added symbols: Inserted new
+    
+    Use force=True or incremental=False for full re-index.
 
 Embeddings:
     When embeddings=True, generates vector embeddings for all symbols
@@ -27,14 +37,18 @@ from typing import Any
 
 from ..database import (
     database_context,
+    delete_symbol_cascade,
     get_cached_hash,
+    get_symbols_by_file,
     init_schema,
     insert_edges_batch,
     insert_symbols_batch,
     update_file_cache,
+    update_symbol_fields,
 )
 from ..database.connection import get_db_path
 from ..indexer import extract_symbols, parse_file
+from ..indexer.diff import compute_symbol_diff
 
 logger = logging.getLogger(__name__)
 
@@ -94,6 +108,7 @@ def _tool_refresh_index(args: dict[str, Any]) -> dict[str, Any]:
     project_path = args.get("project_path", ".")
     force = args.get("force", False)
     embeddings = args.get("embeddings", False)
+    incremental = args.get("incremental", True)
 
     try:
         root = Path(project_path).resolve()
@@ -131,6 +146,10 @@ def _tool_refresh_index(args: dict[str, Any]) -> dict[str, Any]:
                 "files_failed": 0,
                 "symbols_extracted": 0,
                 "edges_extracted": 0,
+                "symbols_added": 0,
+                "symbols_removed": 0,
+                "symbols_modified": 0,
+                "symbols_unchanged": 0,
                 "embeddings_generated": 0,
                 "errors": [],
             }
@@ -163,38 +182,89 @@ def _tool_refresh_index(args: dict[str, Any]) -> dict[str, Any]:
                         stats["files_skipped"] += 1
                         continue
 
-                    symbols, edges = extract_symbols(result.tree, rel_path)
+                    new_symbols, edges = extract_symbols(result.tree, rel_path)
 
-                    if not symbols and not edges:
+                    if not new_symbols and not edges:
                         # Empty file or __init__.py with no content
                         update_file_cache(conn, rel_path, content_hash, 0)
                         stats["files_skipped"] += 1
                         continue
 
-                    # Insert into database (transaction per file for atomicity)
-                    with conn:
-                        insert_symbols_batch(conn, symbols)
+                    # Use incremental diff for changed files (not force mode)
+                    old_symbols = get_symbols_by_file(conn, rel_path)
 
-                        # Convert edges to batch format
-                        edge_tuples = [
-                            (
-                                e.source_id,
-                                e.target_name,
-                                e.edge_type.value if hasattr(e.edge_type, "value") else e.edge_type,
-                                e.target_id,
-                                e.resolution_state.value
-                                if hasattr(e.resolution_state, "value")
-                                else e.resolution_state,
-                            )
-                            for e in edges
-                        ]
-                        insert_edges_batch(conn, edge_tuples)
+                    if old_symbols and not force:
+                        # Incremental update: only modify changed symbols
+                        diff = compute_symbol_diff(old_symbols, new_symbols)
 
-                        # Update file cache
-                        update_file_cache(conn, rel_path, content_hash, len(symbols))
+                        with conn:
+                            # Remove deleted symbols (cascade: edges + embeddings)
+                            for sym in diff.removed:
+                                delete_symbol_cascade(conn, sym.id)
+
+                            # Update modified symbols (preserve ID)
+                            for sym in diff.modified:
+                                update_symbol_fields(conn, sym)
+
+                            # Insert new symbols
+                            if diff.added:
+                                insert_symbols_batch(conn, diff.added)
+
+                            # Update edges: delete old edges for modified symbols, insert new
+                            edge_tuples = [
+                                (
+                                    e.source_id,
+                                    e.target_name,
+                                    e.edge_type.value if hasattr(e.edge_type, "value") else e.edge_type,
+                                    e.target_id,
+                                    e.resolution_state.value
+                                    if hasattr(e.resolution_state, "value")
+                                    else e.resolution_state,
+                                )
+                                for e in edges
+                            ]
+                            if edge_tuples:
+                                insert_edges_batch(conn, edge_tuples)
+
+                            # Update file cache
+                            update_file_cache(conn, rel_path, content_hash, len(new_symbols))
+
+                        stats["symbols_added"] += diff.added_count
+                        stats["symbols_removed"] += diff.removed_count
+                        stats["symbols_modified"] += diff.modified_count
+                        stats["symbols_unchanged"] += diff.unchanged_count
+                        stats["symbols_extracted"] += len(diff.added)
+                    else:
+                        # Full re-index: delete all old, insert all new
+                        with conn:
+                            # Delete old symbols for this file
+                            for sym in old_symbols:
+                                delete_symbol_cascade(conn, sym.id)
+
+                            # Insert new symbols
+                            insert_symbols_batch(conn, new_symbols)
+
+                            # Convert edges to batch format
+                            edge_tuples = [
+                                (
+                                    e.source_id,
+                                    e.target_name,
+                                    e.edge_type.value if hasattr(e.edge_type, "value") else e.edge_type,
+                                    e.target_id,
+                                    e.resolution_state.value
+                                    if hasattr(e.resolution_state, "value")
+                                    else e.resolution_state,
+                                )
+                                for e in edges
+                            ]
+                            insert_edges_batch(conn, edge_tuples)
+
+                            # Update file cache
+                            update_file_cache(conn, rel_path, content_hash, len(new_symbols))
+
+                        stats["symbols_extracted"] += len(new_symbols)
 
                     stats["files_indexed"] += 1
-                    stats["symbols_extracted"] += len(symbols)
                     stats["edges_extracted"] += len(edges)
 
                 except Exception as e:

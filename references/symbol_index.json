@@ -314,54 +314,59 @@
     "line": 581,
     "type": "function"
   },
-  "get_index_stats": {
+  "get_symbols_by_file": {
     "file": "src/ast_tools/database/queries.py",
     "line": 605,
     "type": "function"
   },
+  "get_index_stats": {
+    "file": "src/ast_tools/database/queries.py",
+    "line": 649,
+    "type": "function"
+  },
   "insert_file_cache_entry": {
     "file": "src/ast_tools/database/queries.py",
-    "line": 640,
+    "line": 684,
     "type": "function"
   },
   "get_file_cache_entry": {
     "file": "src/ast_tools/database/queries.py",
-    "line": 667,
+    "line": 711,
     "type": "function"
   },
   "update_file_cache_entry_hash": {
     "file": "src/ast_tools/database/queries.py",
-    "line": 672,
+    "line": 716,
     "type": "function"
   },
   "delete_file_cache_entry": {
     "file": "src/ast_tools/database/queries.py",
-    "line": 677,
+    "line": 721,
     "type": "function"
   },
   "search_symbols_fts": {
     "file": "src/ast_tools/database/queries.py",
-    "line": 683,
+    "line": 727,
     "type": "function"
   },
   "get_symbols_in_file": {
     "file": "src/ast_tools/database/queries.py",
-    "line": 692,
+    "line": 736,
     "type": "function"
   },
   "count_symbols_by_kind": {
     "file": "src/ast_tools/database/queries.py",
-    "line": 701,
+    "line": 745,
     "type": "function"
   },
   "delete_symbol_cascade": {
     "file": "src/ast_tools/database/queries.py",
-    "line": 733,
+    "line": 777,
     "type": "function"
   },
   "update_symbol_fields": {
     "file": "src/ast_tools/database/queries.py",
-    "line": 745,
+    "line": 793,
     "type": "function"
   },
   "init_schema": {
@@ -492,6 +497,41 @@
   "insert_metrics_to_db": {
     "file": "src/ast_tools/indexer/dependency_metrics.py",
     "line": 251,
+    "type": "function"
+  },
+  "DiffResult": {
+    "file": "src/ast_tools/indexer/diff.py",
+    "line": 29,
+    "type": "class"
+  },
+  "SymbolStatus": {
+    "file": "src/ast_tools/indexer/diff.py",
+    "line": 72,
+    "type": "class"
+  },
+  "make_symbol_key": {
+    "file": "src/ast_tools/indexer/diff.py",
+    "line": 85,
+    "type": "function"
+  },
+  "is_symbol_unchanged": {
+    "file": "src/ast_tools/indexer/diff.py",
+    "line": 96,
+    "type": "function"
+  },
+  "is_symbol_modified": {
+    "file": "src/ast_tools/indexer/diff.py",
+    "line": 104,
+    "type": "function"
+  },
+  "find_symbol_by_key": {
+    "file": "src/ast_tools/indexer/diff.py",
+    "line": 112,
+    "type": "function"
+  },
+  "compute_symbol_diff": {
+    "file": "src/ast_tools/indexer/diff.py",
+    "line": 132,
     "type": "function"
   },
   "SymbolExtractor": {
@@ -731,7 +771,7 @@
   },
   "compute_file_hash": {
     "file": "src/ast_tools/tools/refresh_index.py",
-    "line": 42,
+    "line": 56,
     "type": "function"
   },
   "find_python_files": {
@@ -1379,6 +1419,36 @@
     "line": 23,
     "type": "function"
   },
+  "TestIsSymbolUnchanged": {
+    "file": "tests/test_diff.py",
+    "line": 60,
+    "type": "class"
+  },
+  "TestIsSymbolModified": {
+    "file": "tests/test_diff.py",
+    "line": 87,
+    "type": "class"
+  },
+  "TestComputeSymbolDiff": {
+    "file": "tests/test_diff.py",
+    "line": 109,
+    "type": "class"
+  },
+  "TestFindSymbolByKey": {
+    "file": "tests/test_diff.py",
+    "line": 209,
+    "type": "class"
+  },
+  "make_symbol": {
+    "file": "tests/test_incremental_index.py",
+    "line": 37,
+    "type": "function"
+  },
+  "sample_symbols": {
+    "file": "tests/test_diff.py",
+    "line": 46,
+    "type": "function"
+  },
   "TestAstGrep": {
     "file": "tests/test_e2e.py",
     "line": 31,
@@ -1418,6 +1488,21 @@
     "file": "tests/test_enhanced_dead_code.py",
     "line": 12,
     "type": "class"
+  },
+  "TestIncrementalUpdate": {
+    "file": "tests/test_incremental_index.py",
+    "line": 67,
+    "type": "class"
+  },
+  "TestEdgeCases": {
+    "file": "tests/test_incremental_index.py",
+    "line": 205,
+    "type": "class"
+  },
+  "tmp_db": {
+    "file": "tests/test_incremental_index.py",
+    "line": 29,
+    "type": "function"
   },
   "TestAllFiltering": {
     "file": "tests/test_phase3_polish.py",

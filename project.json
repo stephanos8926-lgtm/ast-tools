@@ -1,7 +1,7 @@
 {
   "name": "ast-tools",
   "version": "0.1.0",
-  "generated": "2026-06-30T05:57:08.604073+00:00",
+  "generated": "2026-06-30T06:21:15.955641+00:00",
   "generator": "ast-tools-project-v1",
   "languages": {
     "yaml": {
@@ -21,14 +21,14 @@
       "lines": 170
     },
     "python": {
-      "files": 100,
-      "lines": 24656
+      "files": 103,
+      "lines": 25418
     }
   },
   "code_languages": {
     "python": {
-      "files": 100,
-      "lines": 24656
+      "files": 103,
+      "lines": 25418
     }
   },
   "config_languages": {
@@ -74,7 +74,7 @@
     "tests/watcher/test_daemon.py#if-__name__"
   ],
   "test_framework": "pytest",
-  "test_files": 31,
+  "test_files": 33,
   "test_command": "python3 -m pytest",
   "modules": [
     {
@@ -196,7 +196,7 @@
     },
     {
       "path": "src/ast_tools/database/queries.py",
-      "lines": 772,
+      "lines": 820,
       "classes": [],
       "functions": [
         "sanitize_error_message",
@@ -219,6 +219,7 @@
         "get_cached_hash",
         "update_file_cache",
         "get_file_cache",
+        "get_symbols_by_file",
         "get_index_stats",
         "insert_file_cache_entry",
         "get_file_cache_entry",
@@ -292,6 +293,21 @@
       "functions": [
         "compute_metrics_for_symbols",
         "insert_metrics_to_db"
+      ]
+    },
+    {
+      "path": "src/ast_tools/indexer/diff.py",
+      "lines": 183,
+      "classes": [
+        "DiffResult",
+        "SymbolStatus"
+      ],
+      "functions": [
+        "make_symbol_key",
+        "is_symbol_unchanged",
+        "is_symbol_modified",
+        "find_symbol_by_key",
+        "compute_symbol_diff"
       ]
     },
     {
@@ -427,7 +443,7 @@
     },
     {
       "path": "src/ast_tools/tools/refresh_index.py",
-      "lines": 304,
+      "lines": 374,
       "classes": [],
       "functions": [
         "compute_file_hash",
@@ -788,6 +804,20 @@
       ]
     },
     {
+      "path": "tests/test_diff.py",
+      "lines": 221,
+      "classes": [
+        "TestIsSymbolUnchanged",
+        "TestIsSymbolModified",
+        "TestComputeSymbolDiff",
+        "TestFindSymbolByKey"
+      ],
+      "functions": [
+        "make_symbol",
+        "sample_symbols"
+      ]
+    },
+    {
       "path": "tests/test_e2e.py",
       "lines": 502,
       "classes": [
@@ -809,6 +839,18 @@
         "TestEnhancedDeadCode"
       ],
       "functions": []
+    },
+    {
+      "path": "tests/test_incremental_index.py",
+      "lines": 234,
+      "classes": [
+        "TestIncrementalUpdate",
+        "TestEdgeCases"
+      ],
+      "functions": [
+        "tmp_db",
+        "make_symbol"
+      ]
     },
     {
       "path": "tests/test_phase3_polish.py",

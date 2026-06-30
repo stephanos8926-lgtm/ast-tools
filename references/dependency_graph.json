@@ -78,6 +78,10 @@
   ],
   "src/ast_tools/indexer/cache.py": [],
   "src/ast_tools/indexer/dependency_metrics.py": [],
+  "src/ast_tools/indexer/diff.py": [
+    "src/ast_tools/__init__.py",
+    "src/ast_tools/types.py"
+  ],
   "src/ast_tools/indexer/extractor.py": [
     "src/ast_tools/embeddings/__init__.py",
     "src/ast_tools/types.py"
@@ -195,7 +199,8 @@
     "src/ast_tools/database/__init__.py",
     "src/ast_tools/database/connection.py",
     "src/ast_tools/embeddings/__init__.py",
-    "src/ast_tools/indexer/__init__.py"
+    "src/ast_tools/indexer/__init__.py",
+    "src/ast_tools/indexer/diff.py"
   ],
   "src/ast_tools/tools/search_symbols.py": [
     "src/ast_tools/database/__init__.py",
@@ -340,6 +345,12 @@
     "src/ast_tools/indexer/parser.py"
   ],
   "tests/test_cli.py": [],
+  "tests/test_diff.py": [
+    "src/ast_tools/__init__.py",
+    "src/ast_tools/indexer/__init__.py",
+    "src/ast_tools/indexer/diff.py",
+    "src/ast_tools/types.py"
+  ],
   "tests/test_e2e.py": [
     "src/ast_tools/tools/__init__.py",
     "src/ast_tools/tools/ast_edit.py",
@@ -353,6 +364,14 @@
   "tests/test_enhanced_dead_code.py": [
     "src/ast_tools/tools/__init__.py",
     "src/ast_tools/tools/enhanced_dead_code.py"
+  ],
+  "tests/test_incremental_index.py": [
+    "src/ast_tools/__init__.py",
+    "src/ast_tools/database/__init__.py",
+    "src/ast_tools/database/connection.py",
+    "src/ast_tools/indexer/__init__.py",
+    "src/ast_tools/indexer/diff.py",
+    "src/ast_tools/types.py"
   ],
   "tests/test_phase3_polish.py": [
     "src/ast_tools/tools/__init__.py",
