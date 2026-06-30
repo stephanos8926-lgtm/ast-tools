@@ -26,7 +26,7 @@
   "src/ast_tools/tools/structural_analysis.py": "a66eb380972ff1b58c29c8da64a029bf",
   "src/ast_tools/database/__init__.py": "49a4dbade4727dc7fbfdd198b60dcfef",
   "src/ast_tools/database/connection.py": "664a7936efcd00ba42e97408b47bd195",
-  "src/ast_tools/database/queries.py": "63ba5b92b129130399d76b2b4f43d6f8",
+  "src/ast_tools/database/queries.py": "bfb1b74204e6bed685b788bcdb4ebd32",
   "src/ast_tools/database/schema.py": "a798d25fdb67305798ce478044a339a7",
   "src/ast_tools/indexer/__init__.py": "5bb0ab86853c8f135b1b1a80215e195c",
   "src/ast_tools/indexer/cache.py": "9fa983c0a1071030ef5d5c75400e3d0d",

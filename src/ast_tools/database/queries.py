@@ -723,3 +723,50 @@ def count_symbols_by_kind(
             GROUP BY kind
         """
         return conn.execute(query, (kind.value if hasattr(kind, "value") else kind,)).fetchall()
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Incremental Indexing Helpers
+# ──────────────────────────────────────────────────────────────────────────────
+
+
+def delete_symbol_cascade(conn: sqlite3.Connection, symbol_id: str) -> None:
+    """Delete a symbol and all its associated edges and embeddings.
+
+    Args:
+        conn: Database connection
+        symbol_id: ID of the symbol to delete
+    """
+    conn.execute("DELETE FROM edges WHERE source_id = ? OR target_id = ?", (symbol_id, symbol_id))
+    conn.execute("DELETE FROM symbol_embeddings WHERE symbol_id = ?", (symbol_id,))
+    conn.execute("DELETE FROM symbols WHERE id = ?", (symbol_id,))
+
+
+def update_symbol_fields(conn: sqlite3.Connection, symbol: Symbol) -> None:
+    """Update symbol fields by ID (preserves ID, edges, and embedding).
+
+    Args:
+        conn: Database connection
+        symbol: Symbol with updated fields
+    """
+    conn.execute(
+        """
+        UPDATE symbols SET
+            signature = ?,
+            docstring = ?,
+            start_line = ?,
+            end_line = ?,
+            content_hash = ?,
+            indexed_at = ?
+        WHERE id = ?
+        """,
+        (
+            symbol.signature,
+            symbol.docstring,
+            symbol.start_line,
+            symbol.end_line,
+            symbol.content_hash or "",
+            int(datetime.now().timestamp()),
+            symbol.id,
+        ),
+    )

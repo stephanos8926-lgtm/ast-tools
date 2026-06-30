@@ -1,7 +1,7 @@
 {
   "name": "ast-tools",
   "version": "0.1.0",
-  "generated": "2026-06-30T05:40:22.414217+00:00",
+  "generated": "2026-06-30T05:57:08.604073+00:00",
   "generator": "ast-tools-project-v1",
   "languages": {
     "yaml": {
@@ -9,8 +9,8 @@
       "lines": 71
     },
     "markdown": {
-      "files": 46,
-      "lines": 26059
+      "files": 49,
+      "lines": 26542
     },
     "toml": {
       "files": 1,
@@ -22,13 +22,13 @@
     },
     "python": {
       "files": 100,
-      "lines": 24609
+      "lines": 24656
     }
   },
   "code_languages": {
     "python": {
       "files": 100,
-      "lines": 24609
+      "lines": 24656
     }
   },
   "config_languages": {
@@ -37,8 +37,8 @@
       "lines": 71
     },
     "markdown": {
-      "files": 46,
-      "lines": 26059
+      "files": 49,
+      "lines": 26542
     },
     "toml": {
       "files": 1,
@@ -196,7 +196,7 @@
     },
     {
       "path": "src/ast_tools/database/queries.py",
-      "lines": 725,
+      "lines": 772,
       "classes": [],
       "functions": [
         "sanitize_error_message",
@@ -226,7 +226,9 @@
         "delete_file_cache_entry",
         "search_symbols_fts",
         "get_symbols_in_file",
-        "count_symbols_by_kind"
+        "count_symbols_by_kind",
+        "delete_symbol_cascade",
+        "update_symbol_fields"
       ]
     },
     {

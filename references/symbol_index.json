@@ -354,6 +354,16 @@
     "line": 701,
     "type": "function"
   },
+  "delete_symbol_cascade": {
+    "file": "src/ast_tools/database/queries.py",
+    "line": 733,
+    "type": "function"
+  },
+  "update_symbol_fields": {
+    "file": "src/ast_tools/database/queries.py",
+    "line": 745,
+    "type": "function"
+  },
   "init_schema": {
     "file": "src/ast_tools/database/schema.py",
     "line": 110,
