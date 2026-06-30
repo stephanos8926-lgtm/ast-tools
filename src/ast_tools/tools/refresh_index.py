@@ -20,7 +20,7 @@ Incremental Mode (default: True):
     - Modified symbols: Updated in-place (ID preserved)
     - Removed symbols: Deleted (cascade: edges + embeddings)
     - Added symbols: Inserted new
-    
+
     Use force=True or incremental=False for full re-index.
 
 Embeddings:
@@ -190,10 +190,10 @@ def _tool_refresh_index(args: dict[str, Any]) -> dict[str, Any]:
                         stats["files_skipped"] += 1
                         continue
 
-                    # Use incremental diff for changed files (not force mode)
+                    # Use incremental diff for changed files (not force mode, incremental enabled)
                     old_symbols = get_symbols_by_file(conn, rel_path)
 
-                    if old_symbols and not force:
+                    if old_symbols and not force and incremental:
                         # Incremental update: only modify changed symbols
                         diff = compute_symbol_diff(old_symbols, new_symbols)
 

@@ -7,6 +7,7 @@ Batch operations use executemany() for 10x performance improvement over single i
 import logging
 import re
 import sqlite3
+from contextlib import suppress
 from datetime import datetime
 from typing import Any
 
@@ -783,10 +784,8 @@ def delete_symbol_cascade(conn: sqlite3.Connection, symbol_id: str) -> None:
     """
     conn.execute("DELETE FROM edges WHERE source_id = ? OR target_id = ?", (symbol_id, symbol_id))
     # Only delete from symbol_embeddings if table exists (may not in test env)
-    try:
+    with suppress(sqlite3.OperationalError):
         conn.execute("DELETE FROM symbol_embeddings WHERE symbol_id = ?", (symbol_id,))
-    except sqlite3.OperationalError:
-        pass  # Table may not exist in minimal test setup
     conn.execute("DELETE FROM symbols WHERE id = ?", (symbol_id,))
 
 

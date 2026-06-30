@@ -1,7 +1,7 @@
 {
   "name": "ast-tools",
   "version": "0.1.0",
-  "generated": "2026-06-30T06:21:15.955641+00:00",
+  "generated": "2026-06-30T06:28:14.238425+00:00",
   "generator": "ast-tools-project-v1",
   "languages": {
     "yaml": {
@@ -196,7 +196,7 @@
     },
     {
       "path": "src/ast_tools/database/queries.py",
-      "lines": 820,
+      "lines": 819,
       "classes": [],
       "functions": [
         "sanitize_error_message",
@@ -234,7 +234,7 @@
     },
     {
       "path": "src/ast_tools/database/schema.py",
-      "lines": 331,
+      "lines": 333,
       "classes": [],
       "functions": [
         "init_schema",
@@ -297,7 +297,7 @@
     },
     {
       "path": "src/ast_tools/indexer/diff.py",
-      "lines": 183,
+      "lines": 182,
       "classes": [
         "DiffResult",
         "SymbolStatus"

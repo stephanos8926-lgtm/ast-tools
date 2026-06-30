@@ -58,7 +58,9 @@ CREATE TABLE IF NOT EXISTS edges (
     target_id TEXT,  -- Optional, only set when target is resolved
     edge_type TEXT CHECK(edge_type IN ('calls','imports','inherits','instantiates')),
     resolution_state INTEGER DEFAULT 0,
-    UNIQUE(source_id, target_name, edge_type)
+    UNIQUE(source_id, target_name, edge_type),
+    FOREIGN KEY (source_id) REFERENCES symbols(id) ON DELETE CASCADE,
+    FOREIGN KEY (target_id) REFERENCES symbols(id) ON DELETE CASCADE
 );
 
 -- File cache (content-hash tracking for incremental indexing)

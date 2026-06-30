@@ -26,8 +26,8 @@
   "src/ast_tools/tools/structural_analysis.py": "a66eb380972ff1b58c29c8da64a029bf",
   "src/ast_tools/database/__init__.py": "33e281e65452db898e51f4185f898e50",
   "src/ast_tools/database/connection.py": "664a7936efcd00ba42e97408b47bd195",
-  "src/ast_tools/database/queries.py": "d4d75dfdfc16bf774c61159309e40a1c",
-  "src/ast_tools/database/schema.py": "a798d25fdb67305798ce478044a339a7",
+  "src/ast_tools/database/queries.py": "3be58393bc8d2f72a1f56a48163ca587",
+  "src/ast_tools/database/schema.py": "b97244c0d73a5fb506c9ada4a81a92f4",
   "src/ast_tools/indexer/__init__.py": "5bb0ab86853c8f135b1b1a80215e195c",
   "src/ast_tools/indexer/cache.py": "9fa983c0a1071030ef5d5c75400e3d0d",
   "src/ast_tools/indexer/extractor.py": "adac82dd0326c2e44225607b32fb7754",
@@ -35,7 +35,7 @@
   "src/ast_tools/tools/find_symbol_definition.py": "a9f6b89ee5e8b955ee1231d5d7298d10",
   "src/ast_tools/tools/index_status.py": "70c4b93078ce10b5b51a30d1ee9d5b50",
   "src/ast_tools/tools/list_symbols.py": "9aa6c1610e2cc0195180fa91c37857e4",
-  "src/ast_tools/tools/refresh_index.py": "636b5f16474ba08d7275b9271492a814",
+  "src/ast_tools/tools/refresh_index.py": "7e1cb0217fe46dacf456ab065ee5e10c",
   "src/ast_tools/tools/search_symbols.py": "65c85171205b0d9f9c6b7384f43294df",
   "src/ast_tools/types.py": "335520d1149575787a6a410c9c214c8e",
   "tests/database/__init__.py": "1694280ebe894676f9d4b50ba85f6283",
@@ -99,7 +99,7 @@
   "src/ast_tools/cli.py": "572b28044e675c94ffd9a7fd8050b1ae",
   "tests/test_cli.py": "33b943a305c02bf7fb5aa6f85fbafbd8",
   "src/ast_tools/tools/ts_edit.py": "a967272daca19834a23a81d5ca98dceb",
-  "src/ast_tools/indexer/diff.py": "df112af66ecc0fb9d1d4dd34dccb16c0",
+  "src/ast_tools/indexer/diff.py": "1b46c4c0666c3c4b1a8c8ee02c3fae43",
   "tests/test_diff.py": "5f2fc3e7c290114b8a511ef11385afca",
   "tests/test_incremental_index.py": "39856b3e0208ecb717207fa553d248ac"
 }

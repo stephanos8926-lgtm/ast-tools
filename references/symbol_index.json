@@ -211,12 +211,12 @@
   },
   "migrate_v4_to_v5": {
     "file": "src/ast_tools/database/schema.py",
-    "line": 294,
+    "line": 296,
     "type": "function"
   },
   "sanitize_error_message": {
     "file": "src/ast_tools/database/queries.py",
-    "line": 24,
+    "line": 25,
     "type": "function"
   },
   "sanitize_fts5_query": {
@@ -236,182 +236,182 @@
   },
   "search_symbols": {
     "file": "src/ast_tools/database/queries.py",
-    "line": 150,
+    "line": 151,
     "type": "function"
   },
   "find_symbol_definition": {
     "file": "src/ast_tools/database/queries.py",
-    "line": 206,
+    "line": 207,
     "type": "function"
   },
   "list_symbols_by_file": {
     "file": "src/ast_tools/database/queries.py",
-    "line": 232,
+    "line": 233,
     "type": "function"
   },
   "get_symbol_by_id": {
     "file": "src/ast_tools/database/queries.py",
-    "line": 253,
+    "line": 254,
     "type": "function"
   },
   "find_references": {
     "file": "src/ast_tools/database/queries.py",
-    "line": 279,
+    "line": 280,
     "type": "function"
   },
   "get_symbol_edges": {
     "file": "src/ast_tools/database/queries.py",
-    "line": 302,
+    "line": 303,
     "type": "function"
   },
   "insert_symbol": {
     "file": "src/ast_tools/database/queries.py",
-    "line": 327,
+    "line": 328,
     "type": "function"
   },
   "insert_symbols_batch": {
     "file": "src/ast_tools/database/queries.py",
-    "line": 362,
+    "line": 363,
     "type": "function"
   },
   "insert_edge": {
     "file": "src/ast_tools/database/queries.py",
-    "line": 409,
+    "line": 410,
     "type": "function"
   },
   "insert_edges_batch": {
     "file": "src/ast_tools/database/queries.py",
-    "line": 437,
+    "line": 438,
     "type": "function"
   },
   "insert_symbol_embedding": {
     "file": "src/ast_tools/database/queries.py",
-    "line": 468,
+    "line": 469,
     "type": "function"
   },
   "insert_symbol_embeddings_batch": {
     "file": "src/ast_tools/database/queries.py",
-    "line": 485,
+    "line": 486,
     "type": "function"
   },
   "generate_embeddings": {
     "file": "src/ast_tools/database/queries.py",
-    "line": 524,
+    "line": 525,
     "type": "function"
   },
   "get_cached_hash": {
     "file": "src/ast_tools/database/queries.py",
-    "line": 544,
+    "line": 545,
     "type": "function"
   },
   "update_file_cache": {
     "file": "src/ast_tools/database/queries.py",
-    "line": 560,
+    "line": 561,
     "type": "function"
   },
   "get_file_cache": {
     "file": "src/ast_tools/database/queries.py",
-    "line": 581,
+    "line": 582,
     "type": "function"
   },
   "get_symbols_by_file": {
     "file": "src/ast_tools/database/queries.py",
-    "line": 605,
+    "line": 606,
     "type": "function"
   },
   "get_index_stats": {
     "file": "src/ast_tools/database/queries.py",
-    "line": 649,
+    "line": 650,
     "type": "function"
   },
   "insert_file_cache_entry": {
     "file": "src/ast_tools/database/queries.py",
-    "line": 684,
+    "line": 685,
     "type": "function"
   },
   "get_file_cache_entry": {
     "file": "src/ast_tools/database/queries.py",
-    "line": 711,
+    "line": 712,
     "type": "function"
   },
   "update_file_cache_entry_hash": {
     "file": "src/ast_tools/database/queries.py",
-    "line": 716,
+    "line": 717,
     "type": "function"
   },
   "delete_file_cache_entry": {
     "file": "src/ast_tools/database/queries.py",
-    "line": 721,
+    "line": 722,
     "type": "function"
   },
   "search_symbols_fts": {
     "file": "src/ast_tools/database/queries.py",
-    "line": 727,
+    "line": 728,
     "type": "function"
   },
   "get_symbols_in_file": {
     "file": "src/ast_tools/database/queries.py",
-    "line": 736,
+    "line": 737,
     "type": "function"
   },
   "count_symbols_by_kind": {
     "file": "src/ast_tools/database/queries.py",
-    "line": 745,
+    "line": 746,
     "type": "function"
   },
   "delete_symbol_cascade": {
     "file": "src/ast_tools/database/queries.py",
-    "line": 777,
+    "line": 778,
     "type": "function"
   },
   "update_symbol_fields": {
     "file": "src/ast_tools/database/queries.py",
-    "line": 793,
+    "line": 792,
     "type": "function"
   },
   "init_schema": {
     "file": "src/ast_tools/database/schema.py",
-    "line": 110,
+    "line": 112,
     "type": "function"
   },
   "get_schema_version": {
     "file": "src/ast_tools/database/schema.py",
-    "line": 136,
+    "line": 138,
     "type": "function"
   },
   "needs_migration": {
     "file": "src/ast_tools/database/schema.py",
-    "line": 155,
+    "line": 157,
     "type": "function"
   },
   "register_migration": {
     "file": "src/ast_tools/database/schema.py",
-    "line": 172,
+    "line": 174,
     "type": "function"
   },
   "migrate": {
     "file": "src/ast_tools/database/schema.py",
-    "line": 191,
+    "line": 193,
     "type": "function"
   },
   "migrate_v1_to_v2": {
     "file": "src/ast_tools/database/schema.py",
-    "line": 232,
+    "line": 234,
     "type": "function"
   },
   "migrate_v2_to_v3": {
     "file": "src/ast_tools/database/schema.py",
-    "line": 250,
+    "line": 252,
     "type": "function"
   },
   "migrate_v3_to_v4": {
     "file": "src/ast_tools/database/schema.py",
-    "line": 268,
+    "line": 270,
     "type": "function"
   },
   "get_migration_sql": {
     "file": "src/ast_tools/database/schema.py",
-    "line": 325,
+    "line": 327,
     "type": "function"
   },
   "get_model": {
@@ -501,37 +501,37 @@
   },
   "DiffResult": {
     "file": "src/ast_tools/indexer/diff.py",
-    "line": 29,
+    "line": 28,
     "type": "class"
   },
   "SymbolStatus": {
     "file": "src/ast_tools/indexer/diff.py",
-    "line": 72,
+    "line": 71,
     "type": "class"
   },
   "make_symbol_key": {
     "file": "src/ast_tools/indexer/diff.py",
-    "line": 85,
+    "line": 84,
     "type": "function"
   },
   "is_symbol_unchanged": {
     "file": "src/ast_tools/indexer/diff.py",
-    "line": 96,
+    "line": 95,
     "type": "function"
   },
   "is_symbol_modified": {
     "file": "src/ast_tools/indexer/diff.py",
-    "line": 104,
+    "line": 103,
     "type": "function"
   },
   "find_symbol_by_key": {
     "file": "src/ast_tools/indexer/diff.py",
-    "line": 112,
+    "line": 111,
     "type": "function"
   },
   "compute_symbol_diff": {
     "file": "src/ast_tools/indexer/diff.py",
-    "line": 132,
+    "line": 131,
     "type": "function"
   },
   "SymbolExtractor": {
