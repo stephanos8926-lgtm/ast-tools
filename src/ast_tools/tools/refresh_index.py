@@ -31,6 +31,7 @@ Embeddings:
 
 import hashlib
 import logging
+import os
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -77,17 +78,33 @@ def find_python_files(root_path: Path) -> list[Path]:
         root_path: Root directory to search
 
     Returns:
-        List of .py file paths (excludes __pycache__, .git, venv)
+        List of .py file paths (excludes __pycache__, .git, venv, and other non-project dirs)
     """
-    excluded = {"__pycache__", ".git", "venv", ".venv", "node_modules", ".eggs", "*.egg-info"}
+    skip_dirs = {
+        ".git",
+        "__pycache__",
+        ".venv",
+        "venv",
+        "node_modules",
+        ".tox",
+        ".eggs",
+        "build",
+        "dist",
+        ".mypy_cache",
+        ".pytest_cache",
+        ".idea",
+        ".vscode",
+        "site-packages",
+    }
     python_files = []
 
     try:
-        for path in root_path.rglob("*.py"):
-            # Check if any parent is in excluded dirs
-            if any(excl in str(path) for excl in excluded):
-                continue
-            python_files.append(path)
+        for dirpath, dirnames, filenames in os.walk(root_path):
+            # Modify dirnames in-place to skip excluded directories
+            dirnames[:] = [d for d in dirnames if d not in skip_dirs and not d.startswith(".")]
+            for filename in filenames:
+                if filename.endswith(".py"):
+                    python_files.append(Path(dirpath) / filename)
     except Exception as e:
         logger.warning(f"Error scanning {root_path}: {e}")
 

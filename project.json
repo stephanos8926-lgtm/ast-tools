@@ -1,7 +1,7 @@
 {
   "name": "ast-tools",
   "version": "0.1.0",
-  "generated": "2026-07-02T04:10:21.541908+00:00",
+  "generated": "2026-07-02T04:20:10.249705+00:00",
   "generator": "ast-tools-project-v1",
   "languages": {
     "yaml": {
@@ -21,14 +21,14 @@
       "lines": 170
     },
     "python": {
-      "files": 104,
-      "lines": 26040
+      "files": 106,
+      "lines": 26514
     }
   },
   "code_languages": {
     "python": {
-      "files": 104,
-      "lines": 26040
+      "files": 106,
+      "lines": 26514
     }
   },
   "config_languages": {
@@ -74,7 +74,7 @@
     "tests/watcher/test_daemon.py#if-__name__"
   ],
   "test_framework": "pytest",
-  "test_files": 33,
+  "test_files": 34,
   "test_command": "python3 -m pytest",
   "modules": [
     {
@@ -172,6 +172,15 @@
       "functions": [
         "run_daily_audit",
         "generate_summary"
+      ]
+    },
+    {
+      "path": "src/ast_tools/curator/setup_wizard.py",
+      "lines": 409,
+      "classes": [],
+      "functions": [
+        "run",
+        "cli_init"
       ]
     },
     {
@@ -648,6 +657,14 @@
       "classes": [
         "TestLLmCurator",
         "TestCuratorTools"
+      ],
+      "functions": []
+    },
+    {
+      "path": "tests/curator/test_setup_wizard.py",
+      "lines": 65,
+      "classes": [
+        "TestSetupWizard"
       ],
       "functions": []
     },

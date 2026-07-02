@@ -16,10 +16,13 @@ Usage:
 
 import ast
 import logging
+import os
 from collections import defaultdict
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
+
+from ast_tools.tools.dependency import _iter_project_python_files
 
 logger = logging.getLogger(__name__)
 
@@ -426,8 +429,8 @@ class EnhancedDeadCodeDetector:
         """
         # Phase 1: Collect from all files
         logger.info(f"Analyzing project: {self.project_root}")
-        for py_file in self.project_root.rglob("*.py"):
-            if "__pycache__" in str(py_file) or py_file.name.startswith("test_"):
+        for py_file in _iter_project_python_files(self.project_root):
+            if py_file.name.startswith("test_"):
                 continue
             self._collect_from_file(py_file)
 

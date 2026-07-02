@@ -9,23 +9,40 @@ from __future__ import annotations
 
 import ast
 import logging
+import os
 from collections import defaultdict
 from dataclasses import dataclass, field
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
+# Standard directories to skip when scanning projects
+SKIP_DIRS = {
+    ".git",
+    "__pycache__",
+    ".venv",
+    "venv",
+    "node_modules",
+    ".tox",
+    ".eggs",
+    "build",
+    "dist",
+    ".mypy_cache",
+    ".pytest_cache",
+    ".idea",
+    ".vscode",
+    "site-packages",
+}
 
-@dataclass
-class DependencyNode:
-    """A node in the dependency graph."""
 
-    symbol: str
-    file: str
-    line: int = 0
-    depth: int = 0
-    depends_on: list[DependencyNode] = field(default_factory=list)
-    used_by: list[DependencyNode] = field(default_factory=list)
+def _iter_project_python_files(project_path: Path):
+    """Yield Python files in a project, skipping virtual envs and other non-project dirs."""
+    for dirpath, dirnames, filenames in os.walk(project_path):
+        # Modify dirnames in-place to skip excluded directories
+        dirnames[:] = [d for d in dirnames if d not in SKIP_DIRS and not d.startswith(".")]
+        for filename in filenames:
+            if filename.endswith(".py"):
+                yield Path(dirpath) / filename
 
 
 def build_import_graph(project_root: str) -> dict[str, set[str]]:
@@ -40,10 +57,7 @@ def build_import_graph(project_root: str) -> dict[str, set[str]]:
     graph = defaultdict(set)
     project_path = Path(project_root)
 
-    for py_file in project_path.rglob("*.py"):
-        if "__pycache__" in str(py_file):
-            continue
-
+    for py_file in _iter_project_python_files(project_path):
         rel_path = py_file.relative_to(project_path)
         module = str(rel_path.with_suffix("")).replace("/", ".")
 
@@ -168,12 +182,11 @@ def get_external_dependencies(file_path: str, project_root: str) -> dict:
     # Get local modules
     local_modules = set()
     project_path = Path(project_root)
-    for py_file in project_path.rglob("*.py"):
-        if "__pycache__" not in str(py_file):
-            rel_path = py_file.relative_to(project_path)
-            module_parts = str(rel_path.with_suffix("")).split("/")
-            if module_parts:
-                local_modules.add(module_parts[0])
+    for py_file in _iter_project_python_files(project_path):
+        rel_path = py_file.relative_to(project_path)
+        module_parts = str(rel_path.with_suffix("")).split("/")
+        if module_parts:
+            local_modules.add(module_parts[0])
 
     externals = []
 
@@ -232,8 +245,8 @@ def find_dead_code(project_root: str, entry_points: list[str] | None = None) -> 
     definitions = defaultdict(list)  # symbol -> [(file, line, type)]
     references = defaultdict(list)  # symbol -> [(file, line)]
 
-    for py_file in project_path.rglob("*.py"):
-        if "__pycache__" in str(py_file) or py_file.name.startswith("test_"):
+    for py_file in _iter_project_python_files(project_path):
+        if py_file.name.startswith("test_"):
             continue
 
         rel_path = str(py_file.relative_to(project_path))
