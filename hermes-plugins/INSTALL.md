@@ -17,6 +17,7 @@ These plugins are developed alongside ast-tools but installed globally:
 |--------|---------|----------|
 | `ast-tools-context` | Injects AST-tools docs on relevant queries | `~/.hermes/plugins/ast-tools-context/` |
 | `ast-tools-tokens` | Tracks token usage, warns on context pressure | `~/.hermes/plugins/ast-tools-tokens/` |
+| `ast-tools-codebase-index` | Watchdog watcher, session intelligence, codebase indexing | `~/.hermes/plugins/ast-tools-codebase-index/` |
 
 ### Global plugins (not in ast-tools repo)
 
@@ -34,7 +35,7 @@ These are cross-project workflow enhancements:
 
 ```bash
 cd ~/Workspaces/ast-tools/hermes-plugins
-cp -r ast-tools-context ast-tools-tokens ~/.hermes/plugins/
+cp -r ast-tools-context ast-tools-tokens ast-tools-codebase-index ~/.hermes/plugins/
 ```
 
 ### Manual plugins (verification-gate):
@@ -58,6 +59,7 @@ print([p.name for p in plugins])
 Expected output includes:
 - `ast-tools-context`
 - `ast-tools-tokens`
+- `ast-tools-codebase-index`
 - `verification-gate`
 
 ---
@@ -110,7 +112,7 @@ bash /tmp/restart.sh
 1. Develop plugin in `~/Workspaces/ast-tools/hermes-plugins/` (for ast-tools plugins)
 2. Test by copying to `~/.hermes/plugins/`
 3. Start new Hermes session to verify behavior
-4. Commit to ast-tools repo (only for ast-tools-context and ast-tools-tokens)
+4. Commit to ast-tools repo (only for ast-tools-context, ast-tools-tokens, and ast-tools-codebase-index)
 5. Global plugins (verification-gate) live only in `~/.hermes/plugins/` — not versioned in ast-tools
 
 ---

@@ -79,7 +79,7 @@ def build_ast_tools_context(query: str) -> str:
     return """
 ## AST-Tools MCP Server Capabilities
 
-**Structural Code Analysis & Editing** available via 26 MCP tools:
+**Structural Code Analysis & Editing** available via 43 MCP tools:
 
 ### Core Tools
 
@@ -129,6 +129,7 @@ def build_ast_tools_context(query: str) -> str:
 **semantic_search** - Vector + FTS5 hybrid search
 - Search code by meaning, not just keywords
 - Retrieves most relevant code sections
+- `inject_context=True` (default), `token_budget=4096`, `diversity_limit=3`
 
 **search_symbols** - Full-text symbol search
 - Search through indexed symbol names
@@ -177,7 +178,7 @@ def inject_session_onboarding(session_id: str, **kwargs) -> dict:
     """Inject compact ast-tools index at session start."""
     return {
         "context": """
-## AST-Tools Quick Index (29 tools available)
+## AST-Tools Quick Index (43 tools available)
 
 **Core:** ast_grep (structural search), ast_read (API surface), ast_edit (surgical edits—dry_run FIRST!), semantic_search (inject_context=True)
 

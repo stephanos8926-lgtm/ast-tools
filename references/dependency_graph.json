@@ -1,4 +1,7 @@
 {
+  "hermes-plugins/ast-tools-codebase-index/__init__.py": [
+    "src/ast_tools_server.py"
+  ],
   "hermes-plugins/ast-tools-context/__init__.py": [],
   "hermes-plugins/ast-tools-tokens/__init__.py": [],
   "src/ast_tools/__init__.py": [],

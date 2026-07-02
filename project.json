@@ -1,16 +1,16 @@
 {
   "name": "ast-tools",
   "version": "0.1.0",
-  "generated": "2026-07-02T04:38:18.887720+00:00",
+  "generated": "2026-07-02T11:37:17.413817+00:00",
   "generator": "ast-tools-project-v1",
   "languages": {
     "yaml": {
-      "files": 3,
-      "lines": 72
+      "files": 4,
+      "lines": 85
     },
     "markdown": {
-      "files": 73,
-      "lines": 30249
+      "files": 74,
+      "lines": 30255
     },
     "toml": {
       "files": 1,
@@ -21,24 +21,24 @@
       "lines": 170
     },
     "python": {
-      "files": 113,
-      "lines": 27801
+      "files": 114,
+      "lines": 28081
     }
   },
   "code_languages": {
     "python": {
-      "files": 113,
-      "lines": 27801
+      "files": 114,
+      "lines": 28081
     }
   },
   "config_languages": {
     "yaml": {
-      "files": 3,
-      "lines": 72
+      "files": 4,
+      "lines": 85
     },
     "markdown": {
-      "files": 73,
-      "lines": 30249
+      "files": 74,
+      "lines": 30255
     },
     "toml": {
       "files": 1,
@@ -79,8 +79,21 @@
   "test_command": "python3 -m pytest",
   "modules": [
     {
+      "path": "hermes-plugins/ast-tools-codebase-index/__init__.py",
+      "lines": 279,
+      "classes": [
+        "CodebaseIndexHandler"
+      ],
+      "functions": [
+        "start_watcher_cli",
+        "refresh_index_handler",
+        "status_handler",
+        "register"
+      ]
+    },
+    {
       "path": "hermes-plugins/ast-tools-context/__init__.py",
-      "lines": 198,
+      "lines": 199,
       "classes": [],
       "functions": [
         "register",

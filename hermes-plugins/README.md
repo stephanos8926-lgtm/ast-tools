@@ -77,6 +77,7 @@ mkdir -p ~/.hermes/plugins
 # Copy plugins
 cp -r ast-tools-context ~/.hermes/plugins/
 cp -r ast-tools-tokens ~/.hermes/plugins/
+cp -r ast-tools-codebase-index ~/.hermes/plugins/
 
 # Restart Hermes
 hermes restart

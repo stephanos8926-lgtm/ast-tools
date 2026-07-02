@@ -1,4 +1,24 @@
 {
+  "CodebaseIndexHandler": {
+    "file": "hermes-plugins/ast-tools-codebase-index/__init__.py",
+    "line": 159,
+    "type": "class"
+  },
+  "start_watcher_cli": {
+    "file": "hermes-plugins/ast-tools-codebase-index/__init__.py",
+    "line": 199,
+    "type": "function"
+  },
+  "refresh_index_handler": {
+    "file": "hermes-plugins/ast-tools-codebase-index/__init__.py",
+    "line": 224,
+    "type": "function"
+  },
+  "status_handler": {
+    "file": "hermes-plugins/ast-tools-codebase-index/__init__.py",
+    "line": 242,
+    "type": "function"
+  },
   "register": {
     "file": "hermes-plugins/ast-tools-tokens/__init__.py",
     "line": 108,
@@ -16,7 +36,7 @@
   },
   "inject_session_onboarding": {
     "file": "hermes-plugins/ast-tools-context/__init__.py",
-    "line": 176,
+    "line": 177,
     "type": "function"
   },
   "generate_test_data": {
