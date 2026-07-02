@@ -129,6 +129,16 @@
     "line": 744,
     "type": "function"
   },
+  "GitMiner": {
+    "file": "src/ast_tools/cochange/git_miner.py",
+    "line": 48,
+    "type": "class"
+  },
+  "compute_hotspots": {
+    "file": "src/ast_tools/cochange/hotspot.py",
+    "line": 10,
+    "type": "function"
+  },
   "MarkdownFormatter": {
     "file": "src/ast_tools/context/formatters.py",
     "line": 35,
@@ -709,6 +719,26 @@
     "line": 38,
     "type": "function"
   },
+  "co_change_predict": {
+    "file": "src/ast_tools/tools/co_change.py",
+    "line": 190,
+    "type": "function"
+  },
+  "co_change_hotspots": {
+    "file": "src/ast_tools/tools/co_change.py",
+    "line": 194,
+    "type": "function"
+  },
+  "co_change_history": {
+    "file": "src/ast_tools/tools/co_change.py",
+    "line": 198,
+    "type": "function"
+  },
+  "co_change_diff": {
+    "file": "src/ast_tools/tools/co_change.py",
+    "line": 202,
+    "type": "function"
+  },
   "register_tools": {
     "file": "src/ast_tools/tools/watcher.py",
     "line": 157,
@@ -1148,6 +1178,66 @@
     "file": "src/ts_backend.py",
     "line": 490,
     "type": "function"
+  },
+  "TestBasicParsing": {
+    "file": "tests/cochange/test_git_miner.py",
+    "line": 45,
+    "type": "class"
+  },
+  "TestMultiCommit": {
+    "file": "tests/cochange/test_git_miner.py",
+    "line": 87,
+    "type": "class"
+  },
+  "TestBinaryFiles": {
+    "file": "tests/cochange/test_git_miner.py",
+    "line": 119,
+    "type": "class"
+  },
+  "TestCoChangePairs": {
+    "file": "tests/cochange/test_git_miner.py",
+    "line": 140,
+    "type": "class"
+  },
+  "TestEmptyInput": {
+    "file": "tests/cochange/test_git_miner.py",
+    "line": 172,
+    "type": "class"
+  },
+  "TestChurnMetrics": {
+    "file": "tests/cochange/test_git_miner.py",
+    "line": 192,
+    "type": "class"
+  },
+  "TestIntegration": {
+    "file": "tests/tools/test_repo_skeleton.py",
+    "line": 274,
+    "type": "class"
+  },
+  "TestHotspots": {
+    "file": "tests/cochange/test_hotspot.py",
+    "line": 48,
+    "type": "class"
+  },
+  "TestCoChangePredict": {
+    "file": "tests/cochange/test_hotspot.py",
+    "line": 106,
+    "type": "class"
+  },
+  "TestCoChangeHistory": {
+    "file": "tests/cochange/test_hotspot.py",
+    "line": 166,
+    "type": "class"
+  },
+  "TestCoChangeDiff": {
+    "file": "tests/cochange/test_hotspot.py",
+    "line": 210,
+    "type": "class"
+  },
+  "TestToolRegistration": {
+    "file": "tests/tools/test_knowledge_graph.py",
+    "line": 371,
+    "type": "class"
   },
   "create_test_project": {
     "file": "tests/conftest.py",
@@ -1824,11 +1914,6 @@
     "line": 148,
     "type": "class"
   },
-  "TestIntegration": {
-    "file": "tests/tools/test_repo_skeleton.py",
-    "line": 274,
-    "type": "class"
-  },
   "TestHelpers": {
     "file": "tests/tools/test_file_related.py",
     "line": 23,
@@ -1867,11 +1952,6 @@
   "TestKGQuery": {
     "file": "tests/tools/test_knowledge_graph.py",
     "line": 302,
-    "type": "class"
-  },
-  "TestToolRegistration": {
-    "file": "tests/tools/test_knowledge_graph.py",
-    "line": 371,
     "type": "class"
   },
   "TestProjectTypeDetection": {

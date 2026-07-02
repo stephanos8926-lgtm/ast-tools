@@ -8,7 +8,7 @@
   "tests/test_phase3_polish.py": "2e2081e870a7b6bccad7e676864371bf",
   "src/ast_tools/__init__.py": "d41d8cd98f00b204e9800998ecf8427e",
   "src/ast_tools/core/__init__.py": "d41d8cd98f00b204e9800998ecf8427e",
-  "src/ast_tools/tools/__init__.py": "5aef3eb995a1619125596c88998627cf",
+  "src/ast_tools/tools/__init__.py": "1cb802e550616cec73dcb61bad358bd4",
   "src/ast_tools/utils/__init__.py": "19ae765aadd9666932e3572bcb6f350c",
   "src/ast_tools/utils/annotations.py": "181f7f33e49881494cd3b8afa708447f",
   "src/ast_tools/utils/file_utils.py": "83fff29ef96f95889def3bdf50fedc59",
@@ -122,5 +122,11 @@
   "tests/kg/test_graph_engine.py": "82a621b32d26d6014ddffad0d65a3a02",
   "tests/tools/test_file_related.py": "5fa0dfe26433d1c930a2f4d262bb67f2",
   "tests/tools/test_knowledge_graph.py": "3ea8052b5546744bf11eb743d789ed06",
-  "tests/tools/test_repo_skeleton.py": "9b716604324ee77fe36634941dbe3bb4"
+  "tests/tools/test_repo_skeleton.py": "9b716604324ee77fe36634941dbe3bb4",
+  "src/ast_tools/cochange/git_miner.py": "7c5cfd08ac0acdddc4c8b0a862b70cb0",
+  "src/ast_tools/cochange/hotspot.py": "da69de0dc6e501a4104f32f78ff1fce5",
+  "src/ast_tools/tools/co_change.py": "076ac33a4b679197e25e2b84ac8fa8f7",
+  "tests/cochange/__init__.py": "d41d8cd98f00b204e9800998ecf8427e",
+  "tests/cochange/test_git_miner.py": "ff621e5226d8aaba6a4844b7982f4692",
+  "tests/cochange/test_hotspot.py": "a7b0412e255078466ebaca18b3ddffc1"
 }

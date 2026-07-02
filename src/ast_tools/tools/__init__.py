@@ -687,3 +687,57 @@ register_tool("ts_edit", _tool_ts_edit, {
         "required": ["file", "operation", "params"],
     },
 })
+
+# Co-change analysis tools
+from .co_change import (
+    co_change_diff,
+    co_change_history,
+    co_change_hotspots,
+    co_change_predict,
+)
+
+register_tool("co_change_predict", co_change_predict, {
+    "description": "Given a file or symbol, return files that tend to change with it",
+    "inputSchema": {
+        "type": "object",
+        "properties": {
+            "symbol": {"type": "string", "description": "Symbol name or file path"},
+            "top_n": {"type": "integer", "default": 10},
+            "db_path": {"type": "string", "description": "Override DB path"},
+        },
+        "required": ["symbol"],
+    },
+})
+register_tool("co_change_hotspots", co_change_hotspots, {
+    "description": "Find top-N riskiest files by churn × coupling score",
+    "inputSchema": {
+        "type": "object",
+        "properties": {
+            "top_n": {"type": "integer", "default": 10},
+            "db_path": {"type": "string"},
+        },
+        "required": [],
+    },
+})
+register_tool("co_change_history", co_change_history, {
+    "description": "Get churn/change history for a specific file",
+    "inputSchema": {
+        "type": "object",
+        "properties": {
+            "file_path": {"type": "string", "description": "Path to the file"},
+            "db_path": {"type": "string"},
+        },
+        "required": ["file_path"],
+    },
+})
+register_tool("co_change_diff", co_change_diff, {
+    "description": "Identify symbols at risk when changing this symbol",
+    "inputSchema": {
+        "type": "object",
+        "properties": {
+            "symbol": {"type": "string", "description": "The symbol being changed"},
+            "db_path": {"type": "string"},
+        },
+        "required": ["symbol"],
+    },
+})

@@ -1,7 +1,7 @@
 {
   "name": "ast-tools",
   "version": "0.1.0",
-  "generated": "2026-07-02T18:54:34.674687+00:00",
+  "generated": "2026-07-02T19:21:54.550952+00:00",
   "generator": "ast-tools-project-v1",
   "languages": {
     "yaml": {
@@ -9,8 +9,8 @@
       "lines": 85
     },
     "markdown": {
-      "files": 77,
-      "lines": 30535
+      "files": 78,
+      "lines": 30667
     },
     "toml": {
       "files": 1,
@@ -21,14 +21,14 @@
       "lines": 170
     },
     "python": {
-      "files": 124,
-      "lines": 30811
+      "files": 130,
+      "lines": 31978
     }
   },
   "code_languages": {
     "python": {
-      "files": 124,
-      "lines": 30811
+      "files": 130,
+      "lines": 31978
     }
   },
   "config_languages": {
@@ -37,8 +37,8 @@
       "lines": 85
     },
     "markdown": {
-      "files": 77,
-      "lines": 30535
+      "files": 78,
+      "lines": 30667
     },
     "toml": {
       "files": 1,
@@ -75,7 +75,7 @@
     "tests/watcher/test_daemon.py#if-__name__"
   ],
   "test_framework": "pytest",
-  "test_files": 42,
+  "test_files": 45,
   "test_command": "python3 -m pytest",
   "modules": [
     {
@@ -140,6 +140,22 @@
         "cmd_deps",
         "cmd_browse",
         "main"
+      ]
+    },
+    {
+      "path": "src/ast_tools/cochange/git_miner.py",
+      "lines": 324,
+      "classes": [
+        "GitMiner"
+      ],
+      "functions": []
+    },
+    {
+      "path": "src/ast_tools/cochange/hotspot.py",
+      "lines": 63,
+      "classes": [],
+      "functions": [
+        "compute_hotspots"
       ]
     },
     {
@@ -437,7 +453,7 @@
     },
     {
       "path": "src/ast_tools/tools/__init__.py",
-      "lines": 689,
+      "lines": 743,
       "classes": [],
       "functions": [
         "register_tool",
@@ -445,6 +461,17 @@
         "get_tool_schema",
         "list_tool_names",
         "find_similar_tool"
+      ]
+    },
+    {
+      "path": "src/ast_tools/tools/co_change.py",
+      "lines": 203,
+      "classes": [],
+      "functions": [
+        "co_change_predict",
+        "co_change_hotspots",
+        "co_change_history",
+        "co_change_diff"
       ]
     },
     {
@@ -676,6 +703,32 @@
         "ts_read",
         "ts_read_lang"
       ]
+    },
+    {
+      "path": "tests/cochange/test_git_miner.py",
+      "lines": 266,
+      "classes": [
+        "TestBasicParsing",
+        "TestMultiCommit",
+        "TestBinaryFiles",
+        "TestCoChangePairs",
+        "TestEmptyInput",
+        "TestChurnMetrics",
+        "TestIntegration"
+      ],
+      "functions": []
+    },
+    {
+      "path": "tests/cochange/test_hotspot.py",
+      "lines": 257,
+      "classes": [
+        "TestHotspots",
+        "TestCoChangePredict",
+        "TestCoChangeHistory",
+        "TestCoChangeDiff",
+        "TestToolRegistration"
+      ],
+      "functions": []
     },
     {
       "path": "tests/conftest.py",
