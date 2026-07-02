@@ -56,7 +56,7 @@
   "tests/embeddings/test_model.py": "4292560d8dc4cca927fcc36e81ac1be3",
   "tests/embeddings/test_store.py": "01fd389460b1712893d661c94d99e354",
   "hermes-plugins/ast-tools-context/__init__.py": "b7366d2cba55daa2076c53d3cb72dc50",
-  "hermes-plugins/ast-tools-tokens/__init__.py": "6b55b91bae39bfd2344b1b8f0b76cb13",
+  "hermes-plugins/ast-tools-tokens/__init__.py": "195096e32228a7bf7a89343d37736c60",
   "src/ast_tools/benchmarks/phase9_benchmark.py": "47ac9bb613220d341268e170bb47af90",
   "src/ast_tools/context/__init__.py": "7bd26ad2b3f1d85a4702df167da3d1d3",
   "src/ast_tools/context/formatters.py": "795750a5b209122ddc192ed49176d102",
@@ -109,5 +109,7 @@
   "tests/curator/test_doctor.py": "12b42e411663387fe14d7902a38b2337",
   "src/ast_tools/curator/vacuum.py": "ecea36f26cdde3e97f5f9c5833181ea6",
   "tests/curator/test_vacuum.py": "a768a25aed2f980c03a27eee2b25e311",
-  "src/ast_tools/curator/pii.py": "3cf7abdf7a0e02deb1383071343a5479"
+  "src/ast_tools/curator/pii.py": "3cf7abdf7a0e02deb1383071343a5479",
+  "src/ast_tools/curator/cleanup.py": "ebf3fd1e380f46fe5f01ddddd0ef463d",
+  "tests/curator/test_cleanup.py": "1395da5e3f5d6dadd089a891a4b0c81a"
 }

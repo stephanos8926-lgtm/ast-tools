@@ -1,7 +1,7 @@
 {
   "register": {
     "file": "hermes-plugins/ast-tools-tokens/__init__.py",
-    "line": 50,
+    "line": 108,
     "type": "function"
   },
   "inject_ast_tools_context": {
@@ -17,21 +17,6 @@
   "inject_session_onboarding": {
     "file": "hermes-plugins/ast-tools-context/__init__.py",
     "line": 176,
-    "type": "function"
-  },
-  "track_ast_tools_usage": {
-    "file": "hermes-plugins/ast-tools-tokens/__init__.py",
-    "line": 57,
-    "type": "function"
-  },
-  "check_context_pressure": {
-    "file": "hermes-plugins/ast-tools-tokens/__init__.py",
-    "line": 85,
-    "type": "function"
-  },
-  "correct_ast_tools_errors": {
-    "file": "hermes-plugins/ast-tools-tokens/__init__.py",
-    "line": 142,
     "type": "function"
   },
   "generate_test_data": {
@@ -169,6 +154,16 @@
     "line": 74,
     "type": "function"
   },
+  "run": {
+    "file": "src/ast_tools/curator/vacuum.py",
+    "line": 24,
+    "type": "function"
+  },
+  "cli_cleanup": {
+    "file": "src/ast_tools/curator/cleanup.py",
+    "line": 141,
+    "type": "function"
+  },
   "LLmCurator": {
     "file": "src/ast_tools/curator/daemon.py",
     "line": 89,
@@ -197,11 +192,6 @@
   "generate_summary": {
     "file": "src/ast_tools/curator/daemon.py",
     "line": 434,
-    "type": "function"
-  },
-  "run": {
-    "file": "src/ast_tools/curator/vacuum.py",
-    "line": 24,
     "type": "function"
   },
   "cli_doctor": {
@@ -1152,6 +1142,11 @@
   "TestDiversityEnforcement": {
     "file": "tests/context/test_injector_2.py",
     "line": 84,
+    "type": "class"
+  },
+  "TestCleanup": {
+    "file": "tests/curator/test_cleanup.py",
+    "line": 8,
     "type": "class"
   },
   "TestLLmCurator": {

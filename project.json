@@ -1,12 +1,12 @@
 {
   "name": "ast-tools",
   "version": "0.1.0",
-  "generated": "2026-07-02T04:34:27.086566+00:00",
+  "generated": "2026-07-02T04:38:18.887720+00:00",
   "generator": "ast-tools-project-v1",
   "languages": {
     "yaml": {
       "files": 3,
-      "lines": 71
+      "lines": 72
     },
     "markdown": {
       "files": 73,
@@ -21,20 +21,20 @@
       "lines": 170
     },
     "python": {
-      "files": 111,
-      "lines": 27576
+      "files": 113,
+      "lines": 27801
     }
   },
   "code_languages": {
     "python": {
-      "files": 111,
-      "lines": 27576
+      "files": 113,
+      "lines": 27801
     }
   },
   "config_languages": {
     "yaml": {
       "files": 3,
-      "lines": 71
+      "lines": 72
     },
     "markdown": {
       "files": 73,
@@ -75,7 +75,7 @@
     "tests/watcher/test_daemon.py#if-__name__"
   ],
   "test_framework": "pytest",
-  "test_files": 36,
+  "test_files": 37,
   "test_command": "python3 -m pytest",
   "modules": [
     {
@@ -91,13 +91,10 @@
     },
     {
       "path": "hermes-plugins/ast-tools-tokens/__init__.py",
-      "lines": 173,
+      "lines": 192,
       "classes": [],
       "functions": [
-        "register",
-        "track_ast_tools_usage",
-        "check_context_pressure",
-        "correct_ast_tools_errors"
+        "register"
       ]
     },
     {
@@ -162,6 +159,15 @@
         "calculate_usage_score",
         "calculate_kind_boost",
         "calculate_proximity_score"
+      ]
+    },
+    {
+      "path": "src/ast_tools/curator/cleanup.py",
+      "lines": 168,
+      "classes": [],
+      "functions": [
+        "run",
+        "cli_cleanup"
       ]
     },
     {
@@ -679,6 +685,14 @@
       "classes": [
         "TestBudgetManagement",
         "TestDiversityEnforcement"
+      ],
+      "functions": []
+    },
+    {
+      "path": "tests/curator/test_cleanup.py",
+      "lines": 38,
+      "classes": [
+        "TestCleanup"
       ],
       "functions": []
     },
