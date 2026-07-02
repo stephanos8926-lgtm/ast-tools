@@ -8,7 +8,7 @@
   "tests/test_phase3_polish.py": "2e2081e870a7b6bccad7e676864371bf",
   "src/ast_tools/__init__.py": "d41d8cd98f00b204e9800998ecf8427e",
   "src/ast_tools/core/__init__.py": "d41d8cd98f00b204e9800998ecf8427e",
-  "src/ast_tools/tools/__init__.py": "40d0147b63502b1945385a145d86b83c",
+  "src/ast_tools/tools/__init__.py": "5aef3eb995a1619125596c88998627cf",
   "src/ast_tools/utils/__init__.py": "19ae765aadd9666932e3572bcb6f350c",
   "src/ast_tools/utils/annotations.py": "181f7f33e49881494cd3b8afa708447f",
   "src/ast_tools/utils/file_utils.py": "83fff29ef96f95889def3bdf50fedc59",
@@ -112,5 +112,15 @@
   "src/ast_tools/curator/pii.py": "3cf7abdf7a0e02deb1383071343a5479",
   "src/ast_tools/curator/cleanup.py": "ebf3fd1e380f46fe5f01ddddd0ef463d",
   "tests/curator/test_cleanup.py": "1395da5e3f5d6dadd089a891a4b0c81a",
-  "hermes-plugins/ast-tools-codebase-index/__init__.py": "d246269ea70c6ea7eef7cb0b7aed98ee"
+  "hermes-plugins/ast-tools-codebase-index/__init__.py": "d246269ea70c6ea7eef7cb0b7aed98ee",
+  "src/ast_tools/kg/__init__.py": "df071a30c799d3e2b673fa825fd79b5b",
+  "src/ast_tools/kg/graph_engine.py": "f26ab30738b68de05a11e51ba49cd220",
+  "src/ast_tools/tools/file_related.py": "da244413953f5107a1aa375d11c8e357",
+  "src/ast_tools/tools/knowledge_graph.py": "c0f5625eaae236fe2c1723d852a88437",
+  "src/ast_tools/tools/repo_skeleton.py": "d18652f7ef22670959bb194948b4064c",
+  "tests/kg/__init__.py": "c17bd332dea9441542c0f3b621eebaa4",
+  "tests/kg/test_graph_engine.py": "82a621b32d26d6014ddffad0d65a3a02",
+  "tests/tools/test_file_related.py": "5fa0dfe26433d1c930a2f4d262bb67f2",
+  "tests/tools/test_knowledge_graph.py": "3ea8052b5546744bf11eb743d789ed06",
+  "tests/tools/test_repo_skeleton.py": "9b716604324ee77fe36634941dbe3bb4"
 }

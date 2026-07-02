@@ -1,7 +1,7 @@
 {
   "name": "ast-tools",
   "version": "0.1.0",
-  "generated": "2026-07-02T11:37:17.413817+00:00",
+  "generated": "2026-07-02T18:54:34.674687+00:00",
   "generator": "ast-tools-project-v1",
   "languages": {
     "yaml": {
@@ -9,8 +9,8 @@
       "lines": 85
     },
     "markdown": {
-      "files": 74,
-      "lines": 30255
+      "files": 77,
+      "lines": 30535
     },
     "toml": {
       "files": 1,
@@ -21,14 +21,14 @@
       "lines": 170
     },
     "python": {
-      "files": 114,
-      "lines": 28081
+      "files": 124,
+      "lines": 30811
     }
   },
   "code_languages": {
     "python": {
-      "files": 114,
-      "lines": 28081
+      "files": 124,
+      "lines": 30811
     }
   },
   "config_languages": {
@@ -37,8 +37,8 @@
       "lines": 85
     },
     "markdown": {
-      "files": 74,
-      "lines": 30255
+      "files": 77,
+      "lines": 30535
     },
     "toml": {
       "files": 1,
@@ -75,7 +75,7 @@
     "tests/watcher/test_daemon.py#if-__name__"
   ],
   "test_framework": "pytest",
-  "test_files": 37,
+  "test_files": 42,
   "test_command": "python3 -m pytest",
   "modules": [
     {
@@ -417,6 +417,14 @@
       ]
     },
     {
+      "path": "src/ast_tools/kg/graph_engine.py",
+      "lines": 311,
+      "classes": [
+        "GraphEngine"
+      ],
+      "functions": []
+    },
+    {
       "path": "src/ast_tools/lsp_client.py",
       "lines": 399,
       "classes": [
@@ -429,7 +437,7 @@
     },
     {
       "path": "src/ast_tools/tools/__init__.py",
-      "lines": 618,
+      "lines": 689,
       "classes": [],
       "functions": [
         "register_tool",
@@ -490,6 +498,16 @@
       ],
       "functions": [
         "find_dead_code_enhanced"
+      ]
+    },
+    {
+      "path": "src/ast_tools/tools/knowledge_graph.py",
+      "lines": 306,
+      "classes": [],
+      "functions": [
+        "kg_query",
+        "kg_shortest_path",
+        "kg_neighborhood"
       ]
     },
     {
@@ -888,6 +906,14 @@
       "functions": []
     },
     {
+      "path": "tests/kg/test_graph_engine.py",
+      "lines": 194,
+      "classes": [
+        "TestGraphEngine"
+      ],
+      "functions": []
+    },
+    {
       "path": "tests/test_cli.py",
       "lines": 518,
       "classes": [
@@ -1026,6 +1052,42 @@
         "TestExternalDependencies",
         "TestDeadCode",
         "TestDependencyChain",
+        "TestIntegration"
+      ],
+      "functions": []
+    },
+    {
+      "path": "tests/tools/test_file_related.py",
+      "lines": 217,
+      "classes": [
+        "TestHelpers",
+        "TestTestFileDetection",
+        "TestImportRelationships",
+        "TestSiblingDetection",
+        "TestNameMatching",
+        "TestIntegration"
+      ],
+      "functions": []
+    },
+    {
+      "path": "tests/tools/test_knowledge_graph.py",
+      "lines": 417,
+      "classes": [
+        "TestKGNeighborhood",
+        "TestKGShortestPath",
+        "TestKGQuery",
+        "TestToolRegistration"
+      ],
+      "functions": []
+    },
+    {
+      "path": "tests/tools/test_repo_skeleton.py",
+      "lines": 412,
+      "classes": [
+        "TestProjectTypeDetection",
+        "TestAsciiTree",
+        "TestDependencyParsing",
+        "TestStructureCollection",
         "TestIntegration"
       ],
       "functions": []

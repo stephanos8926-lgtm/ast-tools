@@ -116,6 +116,10 @@
   ],
   "src/ast_tools/indexer/knn_builder.py": [],
   "src/ast_tools/indexer/parser.py": [],
+  "src/ast_tools/kg/__init__.py": [
+    "src/ast_tools/kg/graph_engine.py"
+  ],
+  "src/ast_tools/kg/graph_engine.py": [],
   "src/ast_tools/lsp_client.py": [],
   "src/ast_tools/tools/__init__.py": [
     "src/ast_tools/tools/ast_capsule.py",
@@ -131,15 +135,18 @@
     "src/ast_tools/tools/curator.py",
     "src/ast_tools/tools/dependency_tools.py",
     "src/ast_tools/tools/enhanced_dead_code.py",
+    "src/ast_tools/tools/file_related.py",
     "src/ast_tools/tools/find_references.py",
     "src/ast_tools/tools/find_symbol_definition.py",
     "src/ast_tools/tools/impact_analysis.py",
     "src/ast_tools/tools/index_status.py",
+    "src/ast_tools/tools/knowledge_graph.py",
     "src/ast_tools/tools/list_symbols.py",
     "src/ast_tools/tools/lsp_tools.py",
     "src/ast_tools/tools/module_imports.py",
     "src/ast_tools/tools/project_info.py",
     "src/ast_tools/tools/refresh_index.py",
+    "src/ast_tools/tools/repo_skeleton.py",
     "src/ast_tools/tools/search_symbols.py",
     "src/ast_tools/tools/semantic_search.py",
     "src/ast_tools/tools/structural_analysis.py",
@@ -191,6 +198,7 @@
     "src/ast_tools/tools/__init__.py",
     "src/ast_tools/tools/dependency.py"
   ],
+  "src/ast_tools/tools/file_related.py": [],
   "src/ast_tools/tools/find_references.py": [
     "src/ast_tools/tools/__init__.py",
     "src/ast_tools/tools/structural_analysis.py"
@@ -210,6 +218,14 @@
   "src/ast_tools/tools/index_status.py": [
     "src/ast_tools/database/__init__.py",
     "src/ast_tools/database/connection.py"
+  ],
+  "src/ast_tools/tools/knowledge_graph.py": [
+    "src/ast_tools/database/__init__.py",
+    "src/ast_tools/database/connection.py",
+    "src/ast_tools/kg/__init__.py",
+    "src/ast_tools/kg/graph_engine.py",
+    "src/ast_tools/tools/__init__.py",
+    "src/ast_tools/tools/semantic_search.py"
   ],
   "src/ast_tools/tools/list_symbols.py": [
     "src/ast_tools/database/__init__.py",
@@ -233,6 +249,7 @@
     "src/ast_tools/indexer/__init__.py",
     "src/ast_tools/indexer/diff.py"
   ],
+  "src/ast_tools/tools/repo_skeleton.py": [],
   "src/ast_tools/tools/search_symbols.py": [
     "src/ast_tools/database/__init__.py",
     "src/ast_tools/database/connection.py"
@@ -391,6 +408,11 @@
     "src/ast_tools/indexer/__init__.py",
     "src/ast_tools/indexer/parser.py"
   ],
+  "tests/kg/__init__.py": [],
+  "tests/kg/test_graph_engine.py": [
+    "src/ast_tools/kg/__init__.py",
+    "src/ast_tools/kg/graph_engine.py"
+  ],
   "tests/test_cli.py": [],
   "tests/test_diff.py": [
     "src/ast_tools/__init__.py",
@@ -448,6 +470,19 @@
   "tests/tools/test_dependency.py": [
     "src/ast_tools/tools/__init__.py",
     "src/ast_tools/tools/dependency.py"
+  ],
+  "tests/tools/test_file_related.py": [
+    "src/ast_tools/tools/__init__.py",
+    "src/ast_tools/tools/file_related.py"
+  ],
+  "tests/tools/test_knowledge_graph.py": [
+    "src/ast_tools/__init__.py",
+    "src/ast_tools/tools/__init__.py",
+    "src/ast_tools/tools/knowledge_graph.py"
+  ],
+  "tests/tools/test_repo_skeleton.py": [
+    "src/ast_tools/tools/__init__.py",
+    "src/ast_tools/tools/repo_skeleton.py"
   ],
   "tests/tools/test_semantic_search_context.py": [
     "src/ast_tools/context/__init__.py",

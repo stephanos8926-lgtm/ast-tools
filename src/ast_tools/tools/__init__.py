@@ -72,6 +72,9 @@ from .lsp_tools import register_lsp_tools
 from .module_imports import _tool_module_imports
 from .project_info import _tool_project_info
 from .refresh_index import _tool_refresh_index
+from .file_related import _tool_file_related_suggest
+from .knowledge_graph import kg_query, kg_shortest_path, kg_neighborhood
+from .repo_skeleton import _tool_repo_skeleton
 from .search_symbols import _tool_search_symbols
 from .semantic_search import _tool_semantic_search
 from .structural_analysis import _ast_find_callees, _ast_find_callers, _tool_structural_analysis
@@ -199,6 +202,74 @@ register_tool("project_info", _tool_project_info, {
             "diff": {"type": "boolean", "description": "Include diff since last scan", "default": False},
         },
         "required": [],
+    },
+})
+
+register_tool("repo_skeleton", _tool_repo_skeleton, {
+    "description": "Generate intelligent project skeleton with type detection, key file identification, ASCII tree, and dependency graph",
+    "inputSchema": {
+        "type": "object",
+        "properties": {
+            "root_path": {"type": "string", "description": "Project root path"},
+            "max_depth": {"type": "integer", "description": "Directory traversal depth", "default": 5},
+            "include_tests": {"type": "boolean", "description": "Include test files", "default": True},
+            "include_configs": {"type": "boolean", "description": "Include config files", "default": True},
+            "generate_deps": {"type": "boolean", "description": "Parse dependency files", "default": True},
+        },
+        "required": ["root_path"],
+    },
+})
+register_tool("file_related_suggest", _tool_file_related_suggest, {
+    "description": "Suggest files related to a given file based on imports, test patterns, and directory structure",
+    "inputSchema": {
+        "type": "object",
+        "properties": {
+            "file_path": {"type": "string", "description": "Path to the file to find related files for"},
+            "workspace": {"type": "string", "description": "Project root directory (optional, auto-detects)"},
+            "max_suggestions": {"type": "integer", "default": 5, "description": "Max number of suggestions"},
+            "include_tests": {"type": "boolean", "default": True, "description": "Include test file suggestions"},
+            "include_imports": {"type": "boolean", "default": True, "description": "Include import-based suggestions"},
+        },
+        "required": ["file_path"],
+    },
+})
+register_tool("kg_query", kg_query, {
+    "description": "Natural language knowledge graph query — find related symbols via graph traversal",
+    "inputSchema": {
+        "type": "object",
+        "properties": {
+            "query": {"type": "string", "description": "Natural language query"},
+            "max_depth": {"type": "integer", "default": 2},
+            "max_nodes": {"type": "integer", "default": 50},
+            "db_path": {"type": "string", "description": "Database override path"},
+        },
+        "required": ["query"],
+    },
+})
+register_tool("kg_shortest_path", kg_shortest_path, {
+    "description": "Find shortest path between two symbols via graph traversal",
+    "inputSchema": {
+        "type": "object",
+        "properties": {
+            "from_symbol": {"type": "string", "description": "Starting symbol name"},
+            "to_symbol": {"type": "string", "description": "Target symbol name"},
+            "max_depth": {"type": "integer", "default": 10},
+            "db_path": {"type": "string"},
+        },
+        "required": ["from_symbol", "to_symbol"],
+    },
+})
+register_tool("kg_neighborhood", kg_neighborhood, {
+    "description": "Get all symbols related to a given symbol within N hops",
+    "inputSchema": {
+        "type": "object",
+        "properties": {
+            "symbol": {"type": "string", "description": "Symbol name or query"},
+            "max_depth": {"type": "integer", "default": 2},
+            "max_nodes": {"type": "integer", "default": 50},
+            "db_path": {"type": "string"},
+        },
+        "required": ["symbol"],
     },
 })
 

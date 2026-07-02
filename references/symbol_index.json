@@ -664,6 +664,11 @@
     "line": 120,
     "type": "function"
   },
+  "GraphEngine": {
+    "file": "src/ast_tools/kg/graph_engine.py",
+    "line": 15,
+    "type": "class"
+  },
   "LSPClient": {
     "file": "src/ast_tools/lsp_client.py",
     "line": 69,
@@ -787,6 +792,21 @@
   "find_dead_code_enhanced": {
     "file": "src/ast_tools/tools/enhanced_dead_code.py",
     "line": 507,
+    "type": "function"
+  },
+  "kg_query": {
+    "file": "src/ast_tools/tools/knowledge_graph.py",
+    "line": 294,
+    "type": "function"
+  },
+  "kg_shortest_path": {
+    "file": "src/ast_tools/tools/knowledge_graph.py",
+    "line": 299,
+    "type": "function"
+  },
+  "kg_neighborhood": {
+    "file": "src/ast_tools/tools/knowledge_graph.py",
+    "line": 304,
     "type": "function"
   },
   "lsp_definition": {
@@ -1469,6 +1489,11 @@
     "line": 128,
     "type": "class"
   },
+  "TestGraphEngine": {
+    "file": "tests/kg/test_graph_engine.py",
+    "line": 46,
+    "type": "class"
+  },
   "TestCLIHelp": {
     "file": "tests/test_cli.py",
     "line": 35,
@@ -1800,8 +1825,73 @@
     "type": "class"
   },
   "TestIntegration": {
-    "file": "tests/tools/test_dependency.py",
-    "line": 184,
+    "file": "tests/tools/test_repo_skeleton.py",
+    "line": 274,
+    "type": "class"
+  },
+  "TestHelpers": {
+    "file": "tests/tools/test_file_related.py",
+    "line": 23,
+    "type": "class"
+  },
+  "TestTestFileDetection": {
+    "file": "tests/tools/test_file_related.py",
+    "line": 59,
+    "type": "class"
+  },
+  "TestImportRelationships": {
+    "file": "tests/tools/test_file_related.py",
+    "line": 87,
+    "type": "class"
+  },
+  "TestSiblingDetection": {
+    "file": "tests/tools/test_file_related.py",
+    "line": 120,
+    "type": "class"
+  },
+  "TestNameMatching": {
+    "file": "tests/tools/test_file_related.py",
+    "line": 147,
+    "type": "class"
+  },
+  "TestKGNeighborhood": {
+    "file": "tests/tools/test_knowledge_graph.py",
+    "line": 77,
+    "type": "class"
+  },
+  "TestKGShortestPath": {
+    "file": "tests/tools/test_knowledge_graph.py",
+    "line": 165,
+    "type": "class"
+  },
+  "TestKGQuery": {
+    "file": "tests/tools/test_knowledge_graph.py",
+    "line": 302,
+    "type": "class"
+  },
+  "TestToolRegistration": {
+    "file": "tests/tools/test_knowledge_graph.py",
+    "line": 371,
+    "type": "class"
+  },
+  "TestProjectTypeDetection": {
+    "file": "tests/tools/test_repo_skeleton.py",
+    "line": 25,
+    "type": "class"
+  },
+  "TestAsciiTree": {
+    "file": "tests/tools/test_repo_skeleton.py",
+    "line": 86,
+    "type": "class"
+  },
+  "TestDependencyParsing": {
+    "file": "tests/tools/test_repo_skeleton.py",
+    "line": 141,
+    "type": "class"
+  },
+  "TestStructureCollection": {
+    "file": "tests/tools/test_repo_skeleton.py",
+    "line": 235,
     "type": "class"
   },
   "TestContextInjectionIntegration": {

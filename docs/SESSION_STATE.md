@@ -19,11 +19,11 @@
 | Phase 8.1-8.3 | Incremental Indexing (Symbol-Level Diff) | ✅ COMPLETE | `061a8c5` |
 | Phase 9 | Schema Enrichments (v5) | ✅ COMPLETE | `6e96ee3` |
 | Phase 10A | Code Validate Syntax | ✅ DONE | `27cb4bd` |
-| Phase 10A | repo_skeleton | ❌ NOT STARTED | — |
-| Phase 10A | file_related_suggest | ❌ NOT STARTED | — |
+| Phase 10A | repo_skeleton | ✅ COMPLETE | `repo_skeleton.py` + 30 tests |
+| Phase 10A | file_related_suggest | ✅ COMPLETE | `file_related.py` + 18 tests |
 
 ## Key Metrics
-- **43 tools** registered (core AST, project intel, symbol search, analysis, deps, index mgmt, LSP, context, validation, TS editing, curator)
+- **45 tools** registered (core AST, project intel, symbol search, analysis, deps, index mgmt, LSP, context, validation, TS editing, curator, skeleton, suggestions)
 - **461+ tests** collected across 33 test files
 - **69 source files** across 17 subdirectories
 - **17,581 lines of code**
