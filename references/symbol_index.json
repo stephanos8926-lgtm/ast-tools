@@ -66,62 +66,62 @@
   },
   "cmd_search": {
     "file": "src/ast_tools/cli.py",
-    "line": 39,
+    "line": 68,
     "type": "function"
   },
   "cmd_navigate": {
     "file": "src/ast_tools/cli.py",
-    "line": 78,
+    "line": 107,
     "type": "function"
   },
   "cmd_blast_radius": {
     "file": "src/ast_tools/cli.py",
-    "line": 114,
+    "line": 143,
     "type": "function"
   },
   "cmd_find_dead": {
     "file": "src/ast_tools/cli.py",
-    "line": 146,
+    "line": 175,
     "type": "function"
   },
   "cmd_summary": {
     "file": "src/ast_tools/cli.py",
-    "line": 167,
+    "line": 196,
     "type": "function"
   },
   "cmd_symbols": {
     "file": "src/ast_tools/cli.py",
-    "line": 186,
+    "line": 215,
     "type": "function"
   },
   "cmd_refs": {
     "file": "src/ast_tools/cli.py",
-    "line": 214,
+    "line": 243,
     "type": "function"
   },
   "cmd_callers": {
     "file": "src/ast_tools/cli.py",
-    "line": 242,
+    "line": 271,
     "type": "function"
   },
   "cmd_callees": {
     "file": "src/ast_tools/cli.py",
-    "line": 281,
+    "line": 310,
     "type": "function"
   },
   "cmd_deps": {
     "file": "src/ast_tools/cli.py",
-    "line": 319,
+    "line": 348,
     "type": "function"
   },
   "cmd_browse": {
     "file": "src/ast_tools/cli.py",
-    "line": 385,
+    "line": 414,
     "type": "function"
   },
   "main": {
     "file": "src/ast_tools/cli.py",
-    "line": 715,
+    "line": 744,
     "type": "function"
   },
   "MarkdownFormatter": {

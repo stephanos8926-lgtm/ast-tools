@@ -23,6 +23,35 @@ import asyncio
 import json
 import sys
 
+# Phase 1: Data lifecycle CLI wrappers
+def _cli_init_cmd(args) -> str:
+    """Wrapper for ast-tools init."""
+    from ast_tools.curator.setup_wizard import cli_init
+    return cli_init(vars(args))
+
+def _cli_doctor_cmd(args) -> str:
+    """Wrapper for ast-tools doctor."""
+    from ast_tools.curator.doctor import cli_doctor
+    return cli_doctor(vars(args))
+
+def _cli_vacuum_cmd(args) -> str:
+    """Wrapper for ast-tools vacuum."""
+    from ast_tools.curator.vacuum import cli_vacuum
+    return cli_vacuum(vars(args))
+
+def _cli_curator_cmd(args) -> str:
+    """Wrapper for ast-tools curator."""
+    from ast_tools.curator.daemon import run_daily_audit
+    if vars(args).get("dry_run"):
+        return "[DRY RUN] Curator operations previewed"
+    result = run_daily_audit()
+    return json.dumps(result, indent=2)
+
+def _cli_cleanup_cmd(args) -> str:
+    """Wrapper for ast-tools cleanup."""
+    from ast_tools.curator.cleanup import cli_cleanup
+    return cli_cleanup(vars(args))
+
 # Import tool functions
 from ast_tools.tools.dependency_tools import dead_code_detection
 from ast_tools.tools.enhanced_dead_code import find_dead_code_enhanced
@@ -960,6 +989,84 @@ def main() -> int:
         help="Output format",
     )
     browse_p.set_defaults(func=cmd_browse)
+
+    # ——————————————————
+    # Command: init
+    # ——————————————————
+    init_p = subparsers.add_parser(
+        "init",
+        help="Initialize AST-Tools (setup wizard)",
+        description="First-time setup: create config dir, init DB, download model",
+    )
+    init_p.add_argument("--non-interactive", "-n", action="store_true", help="Skip prompts, use defaults")
+    init_p.add_argument("--skip-model", "-s", action="store_true", help="Skip model download (FTS5 only)")
+    init_p.add_argument("--model-path", help="Path to pre-downloaded model")
+    init_p.set_defaults(func=lambda a: print(_cli_init_cmd(a)))
+
+    # ——————————————————
+    # Command: doctor
+    # ——————————————————
+    doctor_p = subparsers.add_parser(
+        "doctor",
+        help="Run health checks",
+        description="Comprehensive health check with score 0-100",
+    )
+    doctor_p.add_argument("--verbose", "-v", action="store_true", help="Detailed per-check output")
+    doctor_p.add_argument("--fix", "-f", action="store_true", help="Auto-fix discovered issues")
+    doctor_p.add_argument("--format", choices=["text", "json"], default="text", help="Output format")
+    doctor_p.set_defaults(func=lambda a: print(_cli_doctor_cmd(a)))
+
+    # ——————————————————
+    # Command: vacuum
+    # ——————————————————
+    vacuum_p = subparsers.add_parser(
+        "vacuum",
+        help="Reclaim disk space",
+        description="SQLite VACUUM, temp cleanup, log rotation",
+    )
+    vacuum_p.add_argument("--aggressive", "-a", action="store_true", help="Also clear model cache")
+    vacuum_p.add_argument("--dry-run", "-n", action="store_true", help="Preview only")
+    vacuum_p.set_defaults(func=lambda a: print(_cli_vacuum_cmd(a)))
+
+    # ——————————————————
+    # Command: curator
+    # ——————————————————
+    curator_p = subparsers.add_parser(
+        "curator",
+        help="Run index curator",
+        description="Prune stale symbols, deduplicate, scan PII",
+    )
+    curator_p.add_argument("--dry-run", "-n", action="store_true", help="Preview only")
+    curator_p.add_argument("--pii-action", choices=["flag", "redact", "remove"], default="flag",
+                          help="PII action (default: flag)")
+    curator_p.set_defaults(func=lambda a: print(_cli_curator_cmd(a)))
+
+    # ——————————————————
+    # Command: cleanup
+    # ——————————————————
+    cleanup_p = subparsers.add_parser(
+        "cleanup",
+        help="Remove temp and stale files",
+        description="Delete cache/tmp, expired caches, stale logs",
+    )
+    cleanup_p.add_argument("--aggressive", "-a", action="store_true", help="Also clear model cache")
+    cleanup_p.add_argument("--dry-run", "-n", action="store_true", help="Preview only")
+    cleanup_p.set_defaults(func=lambda a: print(_cli_cleanup_cmd(a)))
+
+    # ——————————————————
+    # Command: config
+    # ——————————————————
+    config_p = subparsers.add_parser(
+        "config",
+        help="Manage configuration",
+        description="View and validate AST-Tools configuration",
+    )
+    config_sub = config_p.add_subparsers(dest="config_cmd")
+    config_show_p = config_sub.add_parser("show", help="Show current configuration")
+    config_show_p.set_defaults(func=lambda a: print("Config path: ~/.ast-tools/config/\nRun 'doctor' to validate"))
+
+    config_validate_p = config_sub.add_parser("validate", help="Validate configuration")
+    config_validate_p.set_defaults(func=lambda a: print("Run 'doctor --verbose' to validate config"))
 
     # ——————————————————
     # Dispatch
