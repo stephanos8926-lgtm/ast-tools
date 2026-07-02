@@ -1,7 +1,7 @@
 {
   "name": "ast-tools",
   "version": "0.1.0",
-  "generated": "2026-07-02T04:30:16.579162+00:00",
+  "generated": "2026-07-02T04:32:04.131534+00:00",
   "generator": "ast-tools-project-v1",
   "languages": {
     "yaml": {
@@ -21,14 +21,14 @@
       "lines": 170
     },
     "python": {
-      "files": 110,
-      "lines": 27260
+      "files": 111,
+      "lines": 27469
     }
   },
   "code_languages": {
     "python": {
-      "files": 110,
-      "lines": 27260
+      "files": 111,
+      "lines": 27469
     }
   },
   "config_languages": {
@@ -166,11 +166,14 @@
     },
     {
       "path": "src/ast_tools/curator/daemon.py",
-      "lines": 393,
+      "lines": 456,
       "classes": [
         "LLmCurator"
       ],
       "functions": [
+        "acquire_lock",
+        "release_lock",
+        "pre_backup",
         "run_daily_audit",
         "generate_summary"
       ]
@@ -182,6 +185,15 @@
       "functions": [
         "run",
         "cli_doctor"
+      ]
+    },
+    {
+      "path": "src/ast_tools/curator/pii.py",
+      "lines": 146,
+      "classes": [],
+      "functions": [
+        "scan_symbols",
+        "format_findings"
       ]
     },
     {

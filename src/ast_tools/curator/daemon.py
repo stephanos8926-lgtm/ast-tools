@@ -8,19 +8,82 @@ Background daemon that maintains index health:
 - Auto-reindexing (files changed >N days)
 - Index compaction (remove dead symbols)
 - Context summarization (project summaries for agents)
+- PII scanning (flag/redact potential secrets)
+
+Uses PID lock to prevent concurrent runs.
 """
 
 from __future__ import annotations
 
 import json
 import logging
+import os
+import time
 from datetime import datetime, timedelta
 from pathlib import Path
 
 from ..database.connection import get_connection
 from ..indexer.extractor import extract_symbols
 
+AST_TOOLS_DIR = Path.home() / ".ast-tools"
+PID_FILE = AST_TOOLS_DIR / "cache" / "curator.pid"
+BACKUP_DIR = AST_TOOLS_DIR / "backups"
+
 logger = logging.getLogger(__name__)
+
+
+def acquire_lock() -> bool:
+    """Prevent concurrent curator runs via PID file.
+
+    Returns:
+        True if lock acquired, False if already running.
+    """
+    PID_FILE.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        if PID_FILE.exists():
+            pid = int(PID_FILE.read_text().strip())
+            try:
+                os.kill(pid, 0)  # Check if process is alive
+                logger.warning(f"Curator already running (PID {pid})")
+                return False
+            except OSError:
+                PID_FILE.unlink()  # Stale PID
+        PID_FILE.write_text(str(os.getpid()))
+        PID_FILE.chmod(0o644)
+        return True
+    except Exception as e:
+        logger.error(f"Failed to acquire curator lock: {e}")
+        return False
+
+
+def release_lock() -> None:
+    """Release the curator PID lock."""
+    try:
+        if PID_FILE.exists():
+            PID_FILE.unlink()
+    except Exception as e:
+        logger.error(f"Failed to release curator lock: {e}")
+
+
+def pre_backup() -> Path | None:
+    """Backup database before destructive operations."""
+    db_path = AST_TOOLS_DIR / "cache" / "codebase.db"
+    if not db_path.exists():
+        return None
+    BACKUP_DIR.mkdir(parents=True, exist_ok=True)
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    backup_path = BACKUP_DIR / f"pre_curator_{timestamp}.db"
+    import shutil
+    shutil.copy2(db_path, backup_path)
+    logger.info(f"Pre-curator backup saved to {backup_path}")
+
+    # Prune old backups (keep last 5)
+    backups = sorted(BACKUP_DIR.glob("pre_curator_*.db"))
+    while len(backups) > 5:
+        backups[0].unlink()
+        backups = backups[1:]
+
+    return backup_path
 
 
 class LLmCurator:

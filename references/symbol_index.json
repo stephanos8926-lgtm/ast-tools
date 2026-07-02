@@ -171,17 +171,32 @@
   },
   "LLmCurator": {
     "file": "src/ast_tools/curator/daemon.py",
-    "line": 26,
+    "line": 89,
     "type": "class"
+  },
+  "acquire_lock": {
+    "file": "src/ast_tools/curator/daemon.py",
+    "line": 35,
+    "type": "function"
+  },
+  "release_lock": {
+    "file": "src/ast_tools/curator/daemon.py",
+    "line": 59,
+    "type": "function"
+  },
+  "pre_backup": {
+    "file": "src/ast_tools/curator/daemon.py",
+    "line": 68,
+    "type": "function"
   },
   "run_daily_audit": {
     "file": "src/ast_tools/curator/daemon.py",
-    "line": 365,
+    "line": 428,
     "type": "function"
   },
   "generate_summary": {
     "file": "src/ast_tools/curator/daemon.py",
-    "line": 371,
+    "line": 434,
     "type": "function"
   },
   "run": {
@@ -192,6 +207,16 @@
   "cli_doctor": {
     "file": "src/ast_tools/curator/doctor.py",
     "line": 360,
+    "type": "function"
+  },
+  "scan_symbols": {
+    "file": "src/ast_tools/curator/pii.py",
+    "line": 41,
+    "type": "function"
+  },
+  "format_findings": {
+    "file": "src/ast_tools/curator/pii.py",
+    "line": 116,
     "type": "function"
   },
   "cli_init": {

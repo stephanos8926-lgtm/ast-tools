@@ -63,7 +63,7 @@
   "src/ast_tools/context/history.py": "8439f3c1f945858dff0034ca11d8ace7",
   "src/ast_tools/context/injector.py": "d6f8d05b182e26318efa21f1b52fb906",
   "src/ast_tools/curator/__init__.py": "0bd0255ebe0bedd48dfea93ccffb6472",
-  "src/ast_tools/curator/daemon.py": "4b053ec579dae5d472792d1501bc1c8f",
+  "src/ast_tools/curator/daemon.py": "1c8b4eb276b8217f9fa9ebb52c227c3b",
   "src/ast_tools/database/migrations/migration_009_schema_enrichments.py": "3f5bb4b261dc4bf7e4e6594f01f66f24",
   "src/ast_tools/indexer/dependency_metrics.py": "5cc9fc9d9fd2ce0e4711bfdb360ab18c",
   "src/ast_tools/indexer/implements_detector.py": "4deb82c2577b157550a1712866c2c4ae",
@@ -108,5 +108,6 @@
   "src/ast_tools/curator/doctor.py": "53475d69c1f5f32e6ac28e0c65b5f0e7",
   "tests/curator/test_doctor.py": "12b42e411663387fe14d7902a38b2337",
   "src/ast_tools/curator/vacuum.py": "ecea36f26cdde3e97f5f9c5833181ea6",
-  "tests/curator/test_vacuum.py": "a768a25aed2f980c03a27eee2b25e311"
+  "tests/curator/test_vacuum.py": "a768a25aed2f980c03a27eee2b25e311",
+  "src/ast_tools/curator/pii.py": "3cf7abdf7a0e02deb1383071343a5479"
 }
