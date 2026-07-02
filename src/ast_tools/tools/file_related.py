@@ -539,9 +539,8 @@ def _tool_file_related_suggest(params: dict[str, Any]) -> dict[str, Any]:
     if remaining > 0:
         call_graph = _find_call_graph(target_path, workspace, remaining, seen_paths)
         for s in call_graph:
-            if s["path"] not in seen_paths:
-                all_suggestions.append(s)
-                seen_paths.add(s["path"])
+            # _find_call_graph already deduplicates via seen_paths
+            all_suggestions.append(s)
 
     # Deduplicate by path (keep highest confidence first)
     seen_dedup: dict[str, dict[str, Any]] = {}

@@ -1914,35 +1914,35 @@
     "line": 148,
     "type": "class"
   },
-  "workspace": {
+  "TestHelpers": {
     "file": "tests/tools/test_file_related.py",
-    "line": 13,
-    "type": "function"
+    "line": 24,
+    "type": "class"
   },
-  "test_call_graph_strategy_direct_call": {
+  "TestTestFileDetection": {
     "file": "tests/tools/test_file_related.py",
-    "line": 76,
-    "type": "function"
+    "line": 60,
+    "type": "class"
   },
-  "test_call_graph_strategy_no_callers": {
+  "TestImportRelationships": {
     "file": "tests/tools/test_file_related.py",
-    "line": 109,
-    "type": "function"
+    "line": 88,
+    "type": "class"
   },
-  "test_call_graph_multiple_files": {
+  "TestSiblingDetection": {
     "file": "tests/tools/test_file_related.py",
-    "line": 127,
-    "type": "function"
+    "line": 117,
+    "type": "class"
   },
-  "test_call_graph_excludes_importer_file": {
+  "TestNameMatching": {
     "file": "tests/tools/test_file_related.py",
-    "line": 161,
-    "type": "function"
+    "line": 144,
+    "type": "class"
   },
-  "test_call_graph_dedup_with_imports": {
+  "TestCallGraph": {
     "file": "tests/tools/test_file_related.py",
-    "line": 184,
-    "type": "function"
+    "line": 157,
+    "type": "class"
   },
   "TestKGNeighborhood": {
     "file": "tests/tools/test_knowledge_graph.py",

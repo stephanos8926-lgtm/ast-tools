@@ -1,7 +1,7 @@
 {
   "name": "ast-tools",
   "version": "0.1.0",
-  "generated": "2026-07-02T19:53:05.171525+00:00",
+  "generated": "2026-07-02T20:06:24.941817+00:00",
   "generator": "ast-tools-project-v1",
   "languages": {
     "markdown": {
@@ -26,13 +26,13 @@
     },
     "python": {
       "files": 130,
-      "lines": 32131
+      "lines": 32188
     }
   },
   "code_languages": {
     "python": {
       "files": 130,
-      "lines": 32131
+      "lines": 32188
     }
   },
   "config_languages": {
@@ -1119,16 +1119,17 @@
     },
     {
       "path": "tests/tools/test_file_related.py",
-      "lines": 205,
-      "classes": [],
-      "functions": [
-        "workspace",
-        "test_call_graph_strategy_direct_call",
-        "test_call_graph_strategy_no_callers",
-        "test_call_graph_multiple_files",
-        "test_call_graph_excludes_importer_file",
-        "test_call_graph_dedup_with_imports"
-      ]
+      "lines": 263,
+      "classes": [
+        "TestHelpers",
+        "TestTestFileDetection",
+        "TestImportRelationships",
+        "TestSiblingDetection",
+        "TestNameMatching",
+        "TestCallGraph",
+        "TestIntegration"
+      ],
+      "functions": []
     },
     {
       "path": "tests/tools/test_knowledge_graph.py",
