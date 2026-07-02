@@ -189,6 +189,11 @@
     "line": 41,
     "type": "function"
   },
+  "cli_doctor": {
+    "file": "src/ast_tools/curator/doctor.py",
+    "line": 360,
+    "type": "function"
+  },
   "cli_init": {
     "file": "src/ast_tools/curator/setup_wizard.py",
     "line": 376,
@@ -1127,6 +1132,11 @@
   "TestCuratorTools": {
     "file": "tests/curator/test_curator.py",
     "line": 75,
+    "type": "class"
+  },
+  "TestDoctor": {
+    "file": "tests/curator/test_doctor.py",
+    "line": 14,
     "type": "class"
   },
   "TestSetupWizard": {

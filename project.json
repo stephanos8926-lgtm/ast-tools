@@ -1,7 +1,7 @@
 {
   "name": "ast-tools",
   "version": "0.1.0",
-  "generated": "2026-07-02T04:20:10.249705+00:00",
+  "generated": "2026-07-02T04:28:56.052268+00:00",
   "generator": "ast-tools-project-v1",
   "languages": {
     "yaml": {
@@ -21,14 +21,14 @@
       "lines": 170
     },
     "python": {
-      "files": 106,
-      "lines": 26514
+      "files": 108,
+      "lines": 27014
     }
   },
   "code_languages": {
     "python": {
-      "files": 106,
-      "lines": 26514
+      "files": 108,
+      "lines": 27014
     }
   },
   "config_languages": {
@@ -60,6 +60,7 @@
     "src/ast_tools/cli.py#argparse",
     "src/ast_tools/curator/daemon.py#if-__name__",
     "src/ast_tools/curator/daemon.py#sys.argv",
+    "src/ast_tools/curator/doctor.py#if-__name__",
     "src/ast_tools/lsp_client.py#if-__name__",
     "src/ast_tools/lsp_client.py#sys.argv",
     "src/ast_tools/tools/curator.py#if-__name__",
@@ -74,7 +75,7 @@
     "tests/watcher/test_daemon.py#if-__name__"
   ],
   "test_framework": "pytest",
-  "test_files": 34,
+  "test_files": 35,
   "test_command": "python3 -m pytest",
   "modules": [
     {
@@ -172,6 +173,15 @@
       "functions": [
         "run_daily_audit",
         "generate_summary"
+      ]
+    },
+    {
+      "path": "src/ast_tools/curator/doctor.py",
+      "lines": 429,
+      "classes": [],
+      "functions": [
+        "run",
+        "cli_doctor"
       ]
     },
     {
@@ -657,6 +667,14 @@
       "classes": [
         "TestLLmCurator",
         "TestCuratorTools"
+      ],
+      "functions": []
+    },
+    {
+      "path": "tests/curator/test_doctor.py",
+      "lines": 71,
+      "classes": [
+        "TestDoctor"
       ],
       "functions": []
     },
