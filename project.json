@@ -1,7 +1,7 @@
 {
   "name": "ast-tools",
   "version": "0.1.0",
-  "generated": "2026-07-02T04:28:56.052268+00:00",
+  "generated": "2026-07-02T04:30:16.579162+00:00",
   "generator": "ast-tools-project-v1",
   "languages": {
     "yaml": {
@@ -21,14 +21,14 @@
       "lines": 170
     },
     "python": {
-      "files": 108,
-      "lines": 27014
+      "files": 110,
+      "lines": 27260
     }
   },
   "code_languages": {
     "python": {
-      "files": 108,
-      "lines": 27014
+      "files": 110,
+      "lines": 27260
     }
   },
   "config_languages": {
@@ -75,7 +75,7 @@
     "tests/watcher/test_daemon.py#if-__name__"
   ],
   "test_framework": "pytest",
-  "test_files": 35,
+  "test_files": 36,
   "test_command": "python3 -m pytest",
   "modules": [
     {
@@ -191,6 +191,15 @@
       "functions": [
         "run",
         "cli_init"
+      ]
+    },
+    {
+      "path": "src/ast_tools/curator/vacuum.py",
+      "lines": 201,
+      "classes": [],
+      "functions": [
+        "run",
+        "cli_vacuum"
       ]
     },
     {
@@ -683,6 +692,14 @@
       "lines": 65,
       "classes": [
         "TestSetupWizard"
+      ],
+      "functions": []
+    },
+    {
+      "path": "tests/curator/test_vacuum.py",
+      "lines": 45,
+      "classes": [
+        "TestVacuum"
       ],
       "functions": []
     },

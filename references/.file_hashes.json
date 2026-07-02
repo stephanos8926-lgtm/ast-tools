@@ -106,5 +106,7 @@
   "src/ast_tools/curator/setup_wizard.py": "dfb319a92767c2d7ab7af0e7045dc22b",
   "tests/curator/test_setup_wizard.py": "f35cb37ae6df69ed380f93390bace33c",
   "src/ast_tools/curator/doctor.py": "53475d69c1f5f32e6ac28e0c65b5f0e7",
-  "tests/curator/test_doctor.py": "12b42e411663387fe14d7902a38b2337"
+  "tests/curator/test_doctor.py": "12b42e411663387fe14d7902a38b2337",
+  "src/ast_tools/curator/vacuum.py": "ecea36f26cdde3e97f5f9c5833181ea6",
+  "tests/curator/test_vacuum.py": "a768a25aed2f980c03a27eee2b25e311"
 }
