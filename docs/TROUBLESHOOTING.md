@@ -1,7 +1,7 @@
 # AST-Tools Troubleshooting Guide
 
-**Last updated:** 2026-07-26  
-**Version:** v0.2.0 (29 tools)
+**Last updated:** 2026-08-01  
+**Version:** v0.1.0 (43 tools)
 
 ---
 

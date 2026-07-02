@@ -626,17 +626,27 @@
   },
   "register_tool": {
     "file": "src/ast_tools/tools/__init__.py",
-    "line": 9,
+    "line": 14,
     "type": "function"
   },
   "get_tool_handler": {
     "file": "src/ast_tools/tools/__init__.py",
-    "line": 14,
+    "line": 21,
+    "type": "function"
+  },
+  "get_tool_schema": {
+    "file": "src/ast_tools/tools/__init__.py",
+    "line": 28,
     "type": "function"
   },
   "list_tool_names": {
     "file": "src/ast_tools/tools/__init__.py",
-    "line": 21,
+    "line": 33,
+    "type": "function"
+  },
+  "find_similar_tool": {
+    "file": "src/ast_tools/tools/__init__.py",
+    "line": 38,
     "type": "function"
   },
   "register_tools": {
@@ -644,34 +654,29 @@
     "line": 157,
     "type": "function"
   },
-  "DependencyNode": {
-    "file": "src/ast_tools/tools/dependency.py",
-    "line": 20,
-    "type": "class"
-  },
   "build_import_graph": {
     "file": "src/ast_tools/tools/dependency.py",
-    "line": 31,
+    "line": 48,
     "type": "function"
   },
   "find_circular_dependencies": {
     "file": "src/ast_tools/tools/dependency.py",
-    "line": 68,
+    "line": 82,
     "type": "function"
   },
   "get_external_dependencies": {
     "file": "src/ast_tools/tools/dependency.py",
-    "line": 115,
+    "line": 129,
     "type": "function"
   },
   "find_dead_code": {
     "file": "src/ast_tools/tools/dependency.py",
-    "line": 219,
+    "line": 232,
     "type": "function"
   },
   "get_dependency_chain": {
     "file": "src/ast_tools/tools/dependency.py",
-    "line": 302,
+    "line": 315,
     "type": "function"
   },
   "circular_dependencies": {
@@ -699,19 +704,34 @@
     "line": 137,
     "type": "function"
   },
+  "generate_minimal_tool_schemas": {
+    "file": "src/ast_tools/tools/dynamic_schemas.py",
+    "line": 10,
+    "type": "function"
+  },
+  "generate_quick_reference": {
+    "file": "src/ast_tools/tools/dynamic_schemas.py",
+    "line": 43,
+    "type": "function"
+  },
+  "get_tool_count": {
+    "file": "src/ast_tools/tools/dynamic_schemas.py",
+    "line": 68,
+    "type": "function"
+  },
   "DeadCodeFinding": {
     "file": "src/ast_tools/tools/enhanced_dead_code.py",
-    "line": 28,
+    "line": 31,
     "type": "class"
   },
   "EnhancedDeadCodeDetector": {
     "file": "src/ast_tools/tools/enhanced_dead_code.py",
-    "line": 40,
+    "line": 43,
     "type": "class"
   },
   "find_dead_code_enhanced": {
     "file": "src/ast_tools/tools/enhanced_dead_code.py",
-    "line": 504,
+    "line": 507,
     "type": "function"
   },
   "lsp_definition": {
@@ -771,7 +791,7 @@
   },
   "compute_file_hash": {
     "file": "src/ast_tools/tools/refresh_index.py",
-    "line": 56,
+    "line": 57,
     "type": "function"
   },
   "find_python_files": {

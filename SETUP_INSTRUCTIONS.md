@@ -1,123 +1,88 @@
-# Hermes Configuration Updates for AST-Tools Context Injection
+# AST-Tools Hermes Agent Integration
 
-## Step 1: Update ~/.hermes/config.yaml
+**Configures 3 Hermes plugins for code intelligence:** context injection, token budget tracking, and project-aware semantic context.
 
-Add the following configuration to enable AST-Tools hooks:
+---
 
-```yaml
-# Add to the 'hooks:' section in your config.yaml
-hooks:
-  # ... existing hooks ...
-  pre_llm_call:
-  - path: /home/sysop/.hermes/plugins/ast_tools_context
-    type: plugin
-  pre_tool_call:
-  - path: /home/sysop/.hermes/shell-hooks/ast-tools-policy.sh
-    type: shell
-  post_tool_call:
-  - path: /home/sysop/.hermes/plugins/ast_tools_tokens
-    type: plugin
-```
+## Plugins Overview
 
-## Step 2: Enable AST-Tools Plugins
+| Plugin | Hooks | Purpose |
+|--------|-------|---------|
+| `ast-tools-context` | `pre_llm_call`, `on_session_start` | Injects tool documentation & "did you mean?" corrections on code queries |
+| `ast-tools-tokens` | `pre_llm_call`, `post_tool_call` | Token budget tracking with 50%/80% pressure alerts |
+| `ast-tools-project-context` | `pre_llm_call` | Injects actual project code context via `semantic_search` |
 
-Enable the plugins via Hermes CLI:
+---
 
-```bash
-hermes plugins enable ast_tools_context
-hermes plugins enable ast_tools_tokens
-```
+## Step 1: Enable Plugins in Hermes Config
 
-Or manually edit the config:
+Add to `~/.hermes/config.yaml`:
 
 ```yaml
 plugins:
   enabled:
-    - ast_tools_context
-    - ast_tools_tokens
+    - ast-tools-context
+    - ast-tools-tokens
+    - ast-tools-project-context
 ```
 
-## Step 3: Add AST-Tools MCP Server
-
-If not already added, configure the MCP server:
+## Step 2: Add AST-Tools MCP Server
 
 ```yaml
 mcp_servers:
-  ast_tools:
-    command: python3
-    args:
-      - /home/sysop/Workspaces/ast-tools/src/ast_tools_server.py
+  ast-tools:
+    command: ["python3", "-m", "ast_tools_server"]
+    cwd: "/path/to/ast-tools"   # Replace with your install path
     enabled: true
     timeout: 120
-    supports_parallel_tool_calls: false
-    tools:
-      include:  # Optional: filter which tools to expose
-        - ast_grep
-        - ast_edit
-        - ast_read
-        - structural_analysis
-        - impact_analysis
-        - semantic_search
-        - find_references
-        - module_imports
-        - ast_generate_stub
-        - refresh_index
-        - index_status
 ```
 
-## Step 4: Verify Shell Hook Permissions
-
-Make the shell hook executable:
+## Step 3: Install Plugin Files
 
 ```bash
-chmod +x /home/sysop/.hermes/shell-hooks/ast-tools-policy.sh
+# Copy plugins from the ast-tools project to Hermes plugins dir
+cp -r path/to/ast-tools/hermes-plugins/ast-tools-context ~/.hermes/plugins/
+cp -r path/to/ast-tools/hermes-plugins/ast-tools-tokens ~/.hermes/plugins/
+cp -r path/to/ast-tools/hermes-plugins/ast-tools-project-context ~/.hermes/plugins/
 ```
 
-## Step 5: Reload Configuration
-
-Reload hooks and MCP servers:
+## Step 4: Reload & Verify
 
 ```bash
-hermes reload-hooks
+hermes plugins list | grep ast-tools
 hermes reload-mcp
 ```
 
-## Testing
+### Test context injection:
+Ask: *"How can I search for function definitions in my codebase?"*
+→ Should inject AST-Tools capability docs
 
-Verify the integration:
+### Test project context:
+Ask: *"Where is the authentication handler?"*
+→ Should inject actual project code locations
 
-1. **Test context injection**: Ask "How can I search for function definitions in my codebase?"
-   - Should inject AST-Tools capabilities document
-   
-2. **Test policy enforcement**: Try `ast_grep` with pattern containing "password"
-   - Should be blocked by shell hook
-   
-3. **Verify tool execution**: Run actual ast-grep search
-   - Should execute normally and return results
+### Test token tracking:
+Ask: *"Find all async functions"* on a large codebase
+→ Logs should show token usage warnings
 
-4. **Check token tracking**: Run structural_analysis on large codebase
-   - Check logs for token usage warnings
+---
 
-## Created Files
-
-| File | Purpose |
-|------|---------|
-| `~/.hermes/plugins/ast_tools_context/__init__.py` | Pre-LLM-call context injection |
-| `~/.hermes/plugins/ast_tools_context/plugin.yaml` | Plugin metadata |
-| `~/.hermes/plugins/ast_tools_tokens/__init__.py` | Token tracking & compression warnings |
-| `~/.hermes/plugins/ast_tools_tokens/plugin.yaml` | Plugin metadata |
-| `~/.hermes/shell-hooks/ast-tools-policy.sh` | Pre-tool-call policy enforcement |
-| `~/.hermes/shell-hooks-allowlist.json` | Shell hook allowlist |
-| `/home/sysop/Workspaces/ast-tools/RESEARCH_HERMES_MCP_CONTEXT_INJECTION.md` | Full research documentation |
-
-## Architecture Summary
+## Architecture
 
 ```
-User Query → pre_llm_call Hook → AST-Tools Context Injection → LLM
+User Query → pre_llm_call → Plugin Injectors → AST-Tools MCP → LLM
               ↓
-      Tool Call → pre_tool_call Hook → Shell Policy Check → MCP Tool → post_tool_call Hook → Token Tracking
-              ↓
-      Result → LLM Context → Compression Check → Response
+      Tool Call → post_tool_call → Token Tracker → Response
 ```
 
-See `RESEARCH_HERMES_MCP_CONTEXT_INJECTION.md` for complete architecture details and patterns.
+---
+
+## Troubleshooting
+
+| Problem | Fix |
+|---------|-----|
+| Plugin not loading | Check `~/.hermes/logs/` for errors, verify plugin dir exists |
+| MCP server not responding | Check `~/.hermes/logs/mcp-stderr.log`, verify path in config |
+| Context not injecting | Enable verbose logging: `hermes config set log.level debug` |
+
+See `docs/TROUBLESHOOTING.md` for full troubleshooting guide.

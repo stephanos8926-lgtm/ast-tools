@@ -1,7 +1,7 @@
 {
   "name": "ast-tools",
   "version": "0.1.0",
-  "generated": "2026-06-30T06:28:14.238425+00:00",
+  "generated": "2026-07-02T04:10:21.541908+00:00",
   "generator": "ast-tools-project-v1",
   "languages": {
     "yaml": {
@@ -9,8 +9,8 @@
       "lines": 71
     },
     "markdown": {
-      "files": 49,
-      "lines": 26542
+      "files": 73,
+      "lines": 30249
     },
     "toml": {
       "files": 1,
@@ -21,14 +21,14 @@
       "lines": 170
     },
     "python": {
-      "files": 103,
-      "lines": 25418
+      "files": 104,
+      "lines": 26040
     }
   },
   "code_languages": {
     "python": {
-      "files": 103,
-      "lines": 25418
+      "files": 104,
+      "lines": 26040
     }
   },
   "config_languages": {
@@ -37,8 +37,8 @@
       "lines": 71
     },
     "markdown": {
-      "files": 49,
-      "lines": 26542
+      "files": 73,
+      "lines": 30249
     },
     "toml": {
       "files": 1,
@@ -370,12 +370,14 @@
     },
     {
       "path": "src/ast_tools/tools/__init__.py",
-      "lines": 109,
+      "lines": 618,
       "classes": [],
       "functions": [
         "register_tool",
         "get_tool_handler",
-        "list_tool_names"
+        "get_tool_schema",
+        "list_tool_names",
+        "find_similar_tool"
       ]
     },
     {
@@ -388,10 +390,8 @@
     },
     {
       "path": "src/ast_tools/tools/dependency.py",
-      "lines": 373,
-      "classes": [
-        "DependencyNode"
-      ],
+      "lines": 386,
+      "classes": [],
       "functions": [
         "build_import_graph",
         "find_circular_dependencies",
@@ -413,8 +413,18 @@
       ]
     },
     {
+      "path": "src/ast_tools/tools/dynamic_schemas.py",
+      "lines": 80,
+      "classes": [],
+      "functions": [
+        "generate_minimal_tool_schemas",
+        "generate_quick_reference",
+        "get_tool_count"
+      ]
+    },
+    {
       "path": "src/ast_tools/tools/enhanced_dead_code.py",
-      "lines": 524,
+      "lines": 527,
       "classes": [
         "DeadCodeFinding",
         "EnhancedDeadCodeDetector"
@@ -443,7 +453,7 @@
     },
     {
       "path": "src/ast_tools/tools/refresh_index.py",
-      "lines": 374,
+      "lines": 391,
       "classes": [],
       "functions": [
         "compute_file_hash",

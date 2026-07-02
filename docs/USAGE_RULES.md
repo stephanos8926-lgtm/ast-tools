@@ -33,7 +33,7 @@ Reading docs is **always safe**.
 
 ### 3. **Run Tests** — OK ✅
 ```bash
-cd ~/Workspaces/ast-tools
+cd ast-tools
 source .venv/bin/activate
 pytest tests/ -v
 ```

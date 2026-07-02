@@ -1,7 +1,7 @@
 # AST-Tools Market Analysis & Competitive Landscape
 
 **Date:** 2026-07-24  
-**Author:** Lucien (RapidWebs Enterprise)  
+**Author:** Lucien (ast-tools team)  
 **Classification:** Strategic Planning Document
 
 ---
@@ -15,7 +15,7 @@
 3. **Hermes-native integration** (plugins + hooks + MCP server)
 4. **MIT licensing** (most competitors are proprietary or GPL)
 5. **6-language support** at launch (Python, JS/TS, Rust, Go, Java, C/C++)
-6. **Agent-first design** (built for Hermes/NexusAgent, not retrofitted)
+6. **Agent-first design** (built for AI agents, not retrofitted)
 
 **Market timing is optimal:** The AI code intelligence category hit $420M ARR in 2026 (133% YoY growth), with full-codebase indexing becoming table stakes. Our differentiation is **structural editing + hybrid search** — competitors do one or the other, not both.
 
@@ -92,7 +92,7 @@ These are full AI coding agents, not code intelligence tools — but they compet
 | **Augment Code** | Undisclosed | $100/mo | ✅ (full repo) | Parses full codebase automatically |
 | **Sourcegraph Cody** | $50M | Enterprise | ✅ (universal code graph) | Multi-repo, enterprise focus |
 
-**Our position:** We're **infrastructure**, not a full agent. ast-tools powers agents (Hermes, NexusAgent, etc.) with code intelligence — we complement these platforms, don't compete with them.
+**Our position:** We're **infrastructure**, not a full agent. ast-tools powers AI agents with code intelligence — we complement these platforms, don't compete with them.
 
 ---
 
@@ -167,7 +167,7 @@ These focus on PR review, not code search/editing:
 
 **Primary:**
 - **Hermes Agent power users** — Already using MCP servers, comfortable with CLI
-- **Multi-agent workflow builders** — Using NexusAgent, FORGE, or custom agent setups
+- **Multi-agent workflow builders** — Using custom agent setups
 - **AI-assisted dev teams** — 5-50 person teams already using Cursor/Copilot
 
 **Secondary:**
@@ -249,7 +249,7 @@ These focus on PR review, not code search/editing:
 ### 5.2 Ecosystem Advantages
 
 1. **Hermes-native** — Built-in distribution to 10K+ users
-2. **NexusAgent integration** — Dogfooding in production
+2. **Real-world agent integration** — Dogfooding in production
 3. **TokRepo listing** — Curated registry visibility
 4. **MIT license** — More permissive than Apache 2.0 (allow proprietary forks)
 
@@ -323,7 +323,7 @@ These focus on PR review, not code search/editing:
 
 - [ ] Collect user feedback (GitHub issues, Discord)
 - [ ] Iterate on top 3 feature requests
-- [ ] Publish case studies (NexusAgent, RapidWebs)
+- [ ] Publish case studies (production deployments)
 - [ ] Enterprise pilot program (5 beta customers)
 - [ ] Phase 10 spec (callgraph-based agent routing)
 
@@ -455,7 +455,7 @@ These focus on PR review, not code search/editing:
 ## Appendix C: Market Trends (2026)
 
 1. **Full-codebase indexing is table stakes** — Diff-only review is becoming legacy (CodeRabbit, Copilot Review adding indexing in 2026 Q4)
-2. **Agent-first design wins** — Tools built for multi-agent workflows (ast-tools, NexusAgent) outperform retrofitted single-agent tools
+2. **Agent-first design wins** — Tools built for multi-agent workflows outperform retrofitted single-agent tools
 3. **Local-first privacy** — Developers prefer on-device embeddings (ONNX, Ollama) over cloud APIs for sensitive codebases
 4. **Hybrid retrieval** — BM25 + vector fusion is the new standard (pure vector search has 20-30% failure rate on identifier queries)
 5. **Structural editing emerging** — ast-grep, libcst, tree-sitter edits are the next frontier (search is solved; editing is the 2027 battleground)

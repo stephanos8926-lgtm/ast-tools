@@ -159,7 +159,14 @@
     "src/ast_tools/tools/dependency.py",
     "src/ast_tools/tools/enhanced_dead_code.py"
   ],
-  "src/ast_tools/tools/enhanced_dead_code.py": [],
+  "src/ast_tools/tools/dynamic_schemas.py": [
+    "src/ast_tools/__init__.py",
+    "src/ast_tools/tools/__init__.py"
+  ],
+  "src/ast_tools/tools/enhanced_dead_code.py": [
+    "src/ast_tools/tools/__init__.py",
+    "src/ast_tools/tools/dependency.py"
+  ],
   "src/ast_tools/tools/find_references.py": [
     "src/ast_tools/tools/__init__.py",
     "src/ast_tools/tools/structural_analysis.py"

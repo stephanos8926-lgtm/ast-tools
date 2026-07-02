@@ -1,8 +1,10 @@
 # Competitive Feature Parity Report — ast-tools vs. Market Leaders
 
 **Date:** 2026-06-28  
-**Author:** Lucien (RapidWebs Enterprise)  
+**Author:** Lucien (ast-tools team)  
 **Purpose:** Identify feature gaps between ast-tools and market leaders to prioritize Phase 10+ development
+
+**⚠️ Historical Snapshot:** This report was generated on 2026-06-28. Several gaps noted here (incremental indexing, code validation, TypeScript editing, Hermes plugin integration) have been addressed in subsequent phases. See CHANGELOG.md and README.md for current capabilities.
 
 ---
 

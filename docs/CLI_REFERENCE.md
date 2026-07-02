@@ -8,7 +8,7 @@
 
 ```bash
 # Install (if not already installed)
-cd ~/Workspaces/ast-tools
+cd ast-tools
 source .venv/bin/activate
 pip install -e .
 

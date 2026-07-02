@@ -6,7 +6,7 @@
 
 ## What is AST-Tools?
 
-AST-Tools is an MCP server with **26 structural code analysis tools** that understand your code's syntax tree, not just text patterns. Think of it as "code intelligence" — it knows the difference between a function call and a variable named the same thing.
+AST-Tools is an MCP server with **43 structural code analysis tools** organized across 11 categories (core AST, project intelligence, symbol search, structural analysis, dependency analysis, index management, LSP integration, context injection, code validation, TypeScript editing, and curator). It understands your code's syntax tree, not just text patterns. Think of it as "code intelligence" — it knows the difference between a function call and a variable named the same thing.
 
 ---
 

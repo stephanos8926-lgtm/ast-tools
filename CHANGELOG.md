@@ -2,7 +2,49 @@
 
 All notable changes to the AST-Tools MCP server.
 
-## [v0.2.0] — 2026-07-26
+## [v0.1.1-dev] — 2026-08 (In Development)
+
+### 🚀 New Features
+
+#### Phase 8.1-8.3: Incremental Indexing (Symbol-Level Diff)
+- **Symbol-level diff engine** (`src/ast_tools/indexer/diff.py`, 183 lines)
+  - `(file_path, qualified_name)` match key for accurate symbol tracking
+  - Classifies symbols as: added, removed, modified, or unchanged
+  - Preserves IDs, edges, and embeddings for unchanged symbols during reindex
+- **Incremental `refresh_index`** — default mode now only reindexes changed files
+  - SHA256 content hashing detects actual file changes
+  - Immutable symbols skipped entirely (zero-copy)
+- **Database helpers**: `get_symbols_by_file`, `delete_symbol_cascade`, `update_symbol_fields`
+- **30 new tests** (20 diff + 10 incremental)
+- **Pitfall captured**: `database_context()` does NOT auto-commit — must call `conn.commit()` explicitly
+
+#### Documentation Cleanup Phase
+- Consolidated 61 markdown files → 37 active + 21 archived
+- All audit reports consolidated into `docs/AUDITS_HISTORY.md`
+- All specifications consolidated into `docs/SPECS_HISTORY.md`
+- All implementation plans consolidated into `docs/PLANS_HISTORY.md`
+- All reports consolidated into `docs/REPORTS_HISTORY.md`
+- Moved session-specific files to `docs/archive/`
+
+### 🔧 Fixes
+- `ast_capsule` parameter mismatches for tool integrations
+- External review: caller/callee contract drift (Fixes A-E)
+- E2E tests: add `project_path` to all tool calls
+- FK cascade for edge table deletions
+
+### 📊 Statistics
+| Metric | Value |
+|--------|-------|
+| **Tools** | 43 registered |
+| **Source files** | 69 |
+| **Tests** | 461+ (varies by environment) |
+| **Test files** | 33 |
+| **CLI commands** | 11 |
+| **Schema** | v5 |
+
+---
+
+## [v0.1.0] — 2026-07-26
 
 ### 🚀 New Features
 
@@ -211,9 +253,10 @@ All notable changes to the AST-Tools MCP server.
 ### 🚀 Launch Readiness
 
 **Target Date:** 2026-08-01  
-**Status:** ✅ READY (29 tools, 304 tests, plugins complete, docs complete)
+**Status:** ✅ READY (43 tools, 461+ tests, plugins complete, docs updated)
 
-**Pending (v0.2.1):**
+**Tool count:** 29→43 tools (core 11 + Phase 9 additions + curator + dependency + search + LSP + context + code validation + TS editing)
+**Pending (v0.1.1):**
 - `repo_skeleton` — Project type detection + dependency inference + ASCII tree
 - `file_related_suggest` — Test file suggestion + sibling detection + call graph integration
 
@@ -262,8 +305,8 @@ All notable changes to the AST-Tools MCP server.
 
 | Version | Date | Tools | Tests | Schema | Key Features |
 |---------|------|-------|-------|--------|--------------|
-| v0.2.0 | 2026-07-26 | 29 | 304 | v5 | Hermes plugins, error correction, verification gate |
-| v0.1.0 | 2026-07-24 | 29 | 304 | v5 | Phase 9: callgraph, dependency metrics, KNN graph |
+| v0.1.1-dev | 2026-08 | 43 | 461+ | v5 | Incremental indexing, doc cleanup, audit fixes |
+| v0.1.0 | 2026-07-26 | 43 | 461+ | v5 | Hermes plugins, error correction, verification gate |
 | v0.0.1 | 2026-06-01 | 11 | 79 | v1 | Initial release: basic AST + FTS5 + vector search |
 
 ---
