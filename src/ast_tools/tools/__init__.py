@@ -75,6 +75,7 @@ from .refresh_index import _tool_refresh_index
 from .file_related import _tool_file_related_suggest
 from .knowledge_graph import kg_query, kg_shortest_path, kg_neighborhood
 from .repo_skeleton import _tool_repo_skeleton
+from .class_hierarchy import _tool_class_hierarchy
 from .transitive_analysis import _tool_transitive_dependents
 from .search_symbols import _tool_search_symbols
 from .semantic_search import _tool_semantic_search
@@ -325,6 +326,20 @@ register_tool("transitive_dependents", _tool_transitive_dependents, {
             "direction": {"type": "string", "enum": ["dependents", "dependencies"], "default": "dependents"},
             "max_depth": {"type": "integer", "default": 10, "description": "BFS depth limit"},
             "cwd": {"type": "string", "description": "Working directory for relative paths"},
+        },
+        "required": ["target"],
+    },
+})
+
+register_tool("class_hierarchy", _tool_class_hierarchy, {
+    "description": "Analyze class hierarchy — MRO, bases, subclasses, method categories, interface detection",
+    "inputSchema": {
+        "type": "object",
+        "properties": {
+            "target": {"type": "string", "description": "Class name, optionally prefixed as 'file.py:ClassName'"},
+            "file": {"type": "string", "description": "File containing the class (optional, auto-detects from target)"},
+            "workspace": {"type": "string", "description": "Project root (optional, auto-detects from file)"},
+            "max_depth": {"type": "integer", "default": 10, "description": "MRO and subclass depth limit"},
         },
         "required": ["target"],
     },

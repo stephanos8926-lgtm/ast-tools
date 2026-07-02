@@ -1824,6 +1824,66 @@
     "line": 160,
     "type": "class"
   },
+  "greet": {
+    "file": "tests/tools/_cg_test_ws/target.py",
+    "line": 1,
+    "type": "function"
+  },
+  "TestTargetResolution": {
+    "file": "tests/tools/test_transitive_analysis.py",
+    "line": 30,
+    "type": "class"
+  },
+  "TestClassExtraction": {
+    "file": "tests/tools/test_class_hierarchy.py",
+    "line": 87,
+    "type": "class"
+  },
+  "TestMROComputation": {
+    "file": "tests/tools/test_class_hierarchy.py",
+    "line": 122,
+    "type": "class"
+  },
+  "TestFindMethods": {
+    "file": "tests/tools/test_class_hierarchy.py",
+    "line": 190,
+    "type": "class"
+  },
+  "TestMethodCategorization": {
+    "file": "tests/tools/test_class_hierarchy.py",
+    "line": 213,
+    "type": "class"
+  },
+  "TestInterfaceDetection": {
+    "file": "tests/tools/test_class_hierarchy.py",
+    "line": 261,
+    "type": "class"
+  },
+  "TestSubclassDetection": {
+    "file": "tests/tools/test_class_hierarchy.py",
+    "line": 317,
+    "type": "class"
+  },
+  "TestIsFinal": {
+    "file": "tests/tools/test_class_hierarchy.py",
+    "line": 349,
+    "type": "class"
+  },
+  "TestMetrics": {
+    "file": "tests/tools/test_class_hierarchy.py",
+    "line": 375,
+    "type": "class"
+  },
+  "TestHasAbstractMethods": {
+    "file": "tests/tools/test_class_hierarchy.py",
+    "line": 415,
+    "type": "class"
+  },
+  "TestGetBaseNames": {
+    "file": "tests/tools/test_class_hierarchy.py",
+    "line": 433,
+    "type": "class"
+  },
   "TestPythonValidation": {
     "file": "tests/tools/test_code_validate.py",
     "line": 35,
@@ -2007,11 +2067,6 @@
   "TestRiskClassification": {
     "file": "tests/tools/test_transitive_analysis.py",
     "line": 13,
-    "type": "class"
-  },
-  "TestTargetResolution": {
-    "file": "tests/tools/test_transitive_analysis.py",
-    "line": 30,
     "type": "class"
   },
   "TestTransitiveDependents": {
