@@ -204,7 +204,9 @@
     "src/ast_tools/tools/__init__.py",
     "src/ast_tools/tools/dependency.py"
   ],
-  "src/ast_tools/tools/file_related.py": [],
+  "src/ast_tools/tools/file_related.py": [
+    "src/ast_tools/tools/structural_analysis.py"
+  ],
   "src/ast_tools/tools/find_references.py": [
     "src/ast_tools/tools/__init__.py",
     "src/ast_tools/tools/structural_analysis.py"

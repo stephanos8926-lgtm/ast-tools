@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+import ast
 import os
 import re
 from pathlib import Path
 from typing import Any
+
+from .structural_analysis import _ast_find_callers
 
 
 def _find_git_root(path: Path) -> Path | None:
@@ -130,6 +133,27 @@ def _find_siblings(
     return suggestions
 
 
+# Directories to always skip during file scanning (performance)
+_SKIP_DIRS = frozenset({
+    ".venv", "venv", "env", ".env",
+    "node_modules", "bower_components",
+    "__pycache__", ".pytest_cache",
+    ".git", ".hg", ".svn",
+    "build", "dist", ".eggs", "*.egg-info",
+    ".mypy_cache", ".ruff_cache",
+    "target",  # Rust
+    ".dub",  # D
+})
+
+
+def _is_skip_dir(path: Path) -> bool:
+    """Check if a directory should be skipped (dotfiles or known skip dirs)."""
+    for part in path.parts:
+        if part.startswith(".") or part in _SKIP_DIRS:
+            return True
+    return False
+
+
 def _find_name_matches(
     stem: str,
     workspace: Path,
@@ -161,6 +185,86 @@ def _find_name_matches(
             existing_paths.add(resolved)
             if len(suggestions) >= max_suggestions:
                 break
+
+    return suggestions
+
+
+def _find_call_graph(
+    target_path: Path,
+    workspace: Path,
+    max_suggestions: int,
+    existing_paths: set[str],
+) -> list[dict[str, Any]]:
+    """Find files that call functions defined in the target file.
+
+    Uses `_ast_find_callers` from structural_analysis to find callers of
+    each function/class method defined in the target file.
+
+    Returns suggestions with reason='call_graph' and confidence 0.55-0.60.
+    """
+    suggestions: list[dict[str, Any]] = []
+
+    try:
+        source = target_path.read_text(encoding="utf-8")
+        tree = ast.parse(source, filename=str(target_path))
+    except (SyntaxError, OSError, UnicodeDecodeError):
+        return suggestions
+
+    # Collect all function/class method names defined in the target file
+    defined_symbols: set[str] = set()
+
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            defined_symbols.add(node.name)
+        elif isinstance(node, ast.ClassDef):
+            # For classes, also track their methods as "ClassName.method_name"
+            for child in ast.iter_child_nodes(node):
+                if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                    defined_symbols.add(f"{node.name}.{child.name}")
+
+    # For each defined symbol, find callers
+    project_root_str = str(workspace)
+    caller_to_funcs: dict[str, set[str]] = {}  # file path -> set of called functions
+
+    for sym in defined_symbols:
+        try:
+            callers = _ast_find_callers(sym, project_root_str, max_files=100, max_depth=50)
+        except Exception:
+            continue
+        for caller in callers:
+            caller_file = caller.get("file", "")
+            if not caller_file:
+                continue
+            full_path = str((workspace / caller_file).resolve())
+            if full_path not in caller_to_funcs:
+                caller_to_funcs[full_path] = set()
+            caller_to_funcs[full_path].add(sym)
+
+    # Build suggestions from caller map
+    for file_path, called_symbols in caller_to_funcs.items():
+        if file_path == str(target_path.resolve()):
+            continue
+        if file_path in existing_paths:
+            continue
+
+        # Build a clean explanation
+        symbols_sorted = sorted(called_symbols)
+        quoted = [f"'{s}'" for s in symbols_sorted]
+        if len(quoted) <= 3:
+            explanation = "Calls " + " or ".join(quoted)
+        else:
+            explanation = "Calls " + " or ".join(quoted[:3]) + f" and {len(quoted) - 3} more"
+
+        suggestions.append({
+            "path": file_path,
+            "reason": "call_graph",
+            "confidence": 0.55,
+            "explanation": explanation,
+        })
+        existing_paths.add(file_path)
+
+        if len(suggestions) >= max_suggestions:
+            break
 
     return suggestions
 
@@ -253,38 +357,48 @@ def _find_imported_by(
         search_patterns.append(module_path)
         search_patterns.append(module_path.split(".")[-1])
 
-    # Scan workspace Python files for imports of the target
+    # Scan workspace Python files for imports of the target — use os.walk to skip dirs
     try:
-        for pyfile in sorted(workspace.rglob("*.py")):
-            if pyfile.resolve() == target_path.resolve():
-                continue
-            resolved_path = str(pyfile.resolve())
-            if resolved_path in existing_paths:
-                continue
+        for root_dir, dirs, files in os.walk(workspace):
+            # Skip .venv, hidden dirs, and known non-project dirs
+            dirs[:] = [d for d in dirs if not d.startswith(".")
+                       and d not in _SKIP_DIRS
+                       and d not in {"node_modules", "__pycache__",
+                                     ".venv", "venv", "target", "build",
+                                     "dist", ".eggs", ".git"}]
+            for fname in sorted(files):
+                if not fname.endswith(".py"):
+                    continue
+                pyfile = Path(root_dir) / fname
+                if pyfile.resolve() == target_path.resolve():
+                    continue
+                resolved_path = str(pyfile.resolve())
+                if resolved_path in existing_paths:
+                    continue
 
-            try:
-                content = pyfile.read_text()
-            except (PermissionError, OSError):
-                continue
+                try:
+                    content = pyfile.read_text(encoding="utf-8")
+                except (PermissionError, OSError, UnicodeDecodeError):
+                    continue
 
-            for pattern in search_patterns:
-                if pattern in content:
-                    # Check if it's an actual import statement
-                    for line in content.splitlines():
-                        s = line.strip()
-                        if re.match(rf"^\s*(from\s+{re.escape(pattern)}|import\s+{re.escape(pattern)})", s):
-                            rel_path = pyfile.relative_to(workspace)
-                            suggestions.append({
-                                "path": resolved_path,
-                                "reason": "imported_by",
-                                "confidence": 0.80,
-                                "explanation": f"Imports from this file: {s[:60]}{'...' if len(s) > 60 else ''}",
-                            })
-                            existing_paths.add(resolved_path)
-                            if len(suggestions) >= max_suggestions:
-                                return suggestions
-                            break
-                    break  # Only one match per file
+                for pattern in search_patterns:
+                    if pattern in content:
+                        # Check if it's an actual import statement
+                        for line in content.splitlines():
+                            s = line.strip()
+                            if re.match(rf"^\s*(from\s+{re.escape(pattern)}|import\s+{re.escape(pattern)})", s):
+                                rel_path = pyfile.relative_to(workspace)
+                                suggestions.append({
+                                    "path": resolved_path,
+                                    "reason": "imported_by",
+                                    "confidence": 0.80,
+                                    "explanation": f"Imports from this file: {s[:60]}{'...' if len(s) > 60 else ''}",
+                                })
+                                existing_paths.add(resolved_path)
+                                if len(suggestions) >= max_suggestions:
+                                    return suggestions
+                                break
+                        break  # Only one match per file
 
     except (PermissionError, OSError):
         pass
@@ -302,8 +416,8 @@ def _find_imports_this(
     suggestions: list[dict[str, Any]] = []
 
     try:
-        content = target_path.read_text()
-    except (PermissionError, OSError):
+        content = target_path.read_text(encoding="utf-8")
+    except (PermissionError, OSError, UnicodeDecodeError):
         return suggestions
 
     imported_modules = _parse_imports(content)
@@ -416,6 +530,15 @@ def _tool_file_related_suggest(params: dict[str, Any]) -> dict[str, Any]:
     if remaining > 0:
         name_matches = _find_name_matches(stem, workspace, target_path, remaining, seen_paths)
         for s in name_matches:
+            if s["path"] not in seen_paths:
+                all_suggestions.append(s)
+                seen_paths.add(s["path"])
+
+    # Strategy 5: Call graph analysis
+    remaining = max_suggestions - len(all_suggestions)
+    if remaining > 0:
+        call_graph = _find_call_graph(target_path, workspace, remaining, seen_paths)
+        for s in call_graph:
             if s["path"] not in seen_paths:
                 all_suggestions.append(s)
                 seen_paths.add(s["path"])

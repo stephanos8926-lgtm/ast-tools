@@ -1,16 +1,20 @@
 {
   "name": "ast-tools",
   "version": "0.1.0",
-  "generated": "2026-07-02T19:21:54.550952+00:00",
+  "generated": "2026-07-02T19:53:05.171525+00:00",
   "generator": "ast-tools-project-v1",
   "languages": {
+    "markdown": {
+      "files": 81,
+      "lines": 31012
+    },
     "yaml": {
       "files": 4,
       "lines": 85
     },
-    "markdown": {
-      "files": 78,
-      "lines": 30667
+    "docker": {
+      "files": 1,
+      "lines": 27
     },
     "toml": {
       "files": 1,
@@ -22,23 +26,27 @@
     },
     "python": {
       "files": 130,
-      "lines": 31978
+      "lines": 32131
     }
   },
   "code_languages": {
     "python": {
       "files": 130,
-      "lines": 31978
+      "lines": 32131
     }
   },
   "config_languages": {
+    "markdown": {
+      "files": 81,
+      "lines": 31012
+    },
     "yaml": {
       "files": 4,
       "lines": 85
     },
-    "markdown": {
-      "files": 78,
-      "lines": 30667
+    "docker": {
+      "files": 1,
+      "lines": 27
     },
     "toml": {
       "files": 1,
@@ -1111,16 +1119,16 @@
     },
     {
       "path": "tests/tools/test_file_related.py",
-      "lines": 217,
-      "classes": [
-        "TestHelpers",
-        "TestTestFileDetection",
-        "TestImportRelationships",
-        "TestSiblingDetection",
-        "TestNameMatching",
-        "TestIntegration"
-      ],
-      "functions": []
+      "lines": 205,
+      "classes": [],
+      "functions": [
+        "workspace",
+        "test_call_graph_strategy_direct_call",
+        "test_call_graph_strategy_no_callers",
+        "test_call_graph_multiple_files",
+        "test_call_graph_excludes_importer_file",
+        "test_call_graph_dedup_with_imports"
+      ]
     },
     {
       "path": "tests/tools/test_knowledge_graph.py",

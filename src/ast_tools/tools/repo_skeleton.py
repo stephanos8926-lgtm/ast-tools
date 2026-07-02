@@ -194,6 +194,37 @@ def _parse_rust_deps(root: Path) -> dict[str, list[str]]:
         pass
     return deps
 
+def _build_dep_graph(root: Path, project_type: str, deps: dict[str, list[str]]) -> dict[str, list[str]]:
+    """Builds the dependency graph based on project type and identified dependencies."""
+    dep_graph: dict[str, list[str]] = {}
+
+    if project_type == "python":
+        # Main dependencies typically go under "src/"
+        if deps.get("direct"):
+            dep_graph["src/"] = deps["direct"]
+        # Dev dependencies typically go under "tests/"
+        if deps.get("dev"):
+            dep_graph["tests/"] = deps["dev"]
+    elif project_type == "node":
+        # Node.js dependencies typically go under "src/"
+        if deps.get("direct"):
+            dep_graph["src/"] = deps["direct"]
+        if deps.get("dev"):
+            # For Node.js, dev dependencies might also be conceptually under src/ or be managed differently.
+            # For simplicity, mapping to src/ as per instruction.
+            # A more sophisticated approach might differentiate or exclude dev deps from graph.
+            if "src/" in dep_graph:
+                dep_graph["src/"].extend(deps["dev"])
+            else:
+                dep_graph["src/"] = deps["dev"]
+    # Add other project types if needed in the future
+
+    # Remove duplicates and sort for consistent output
+    for dir_path in dep_graph:
+        dep_graph[dir_path] = sorted(list(set(dep_graph[dir_path])))
+
+    return dep_graph
+
 
 def _collect_structure(
     root: Path,
@@ -212,7 +243,12 @@ def _collect_structure(
 
     for root_dir, dirs, files in os.walk(root):
         # Skip hidden dirs and common non-project dirs
-        dirs[:] = [d for d in dirs if not d.startswith(".") and d not in {"node_modules", "__pycache__", ".venv", "venv", "target", "dist", "build"}]
+        dirs[:] = [d for d in dirs if not d.startswith(".") and d not in {"node_modules", "__pycache__", ".venv", "venv", "target", "dist", "build", ".eggs", ".git", ".mypy_cache", ".ruff_cache", ".pytest_cache", ".hg", ".svn"}]
+
+        # Limit file count per directory for performance
+        max_files_per_dir = 200
+        if len(files) > max_files_per_dir:
+            files = files[:max_files_per_dir]
 
         current = Path(root_dir)
         try:
@@ -290,7 +326,7 @@ def _tool_repo_skeleton(params: dict[str, Any]) -> dict[str, Any]:
     Returns:
         Dict with project_type, confidence, structure, dependencies, tree_ascii, summary
     """
-    root_path_str = params.get("root_path", ".")
+    root_path_str = params.get("root_path") or params.get("path", ".")
     max_depth = params.get("max_depth", 5)
     include_tests = params.get("include_tests", True)
     include_configs = params.get("include_configs", True)
@@ -313,6 +349,7 @@ def _tool_repo_skeleton(params: dict[str, Any]) -> dict[str, Any]:
 
     # Parse dependencies
     dependencies: dict[str, list[str]] = {"direct": [], "dev": []}
+    dependency_graph: dict[str, list[str]] = {}
     if generate_deps:
         if project_type == "python":
             dependencies = _parse_python_deps(root)
@@ -322,6 +359,9 @@ def _tool_repo_skeleton(params: dict[str, Any]) -> dict[str, Any]:
             dependencies = _parse_go_deps(root)
         elif project_type == "rust":
             dependencies = _parse_rust_deps(root)
+
+        # Build dependency graph
+        dependency_graph = _build_dep_graph(root, project_type, dependencies)
 
     # Build summary
     total_dirs = len(structure["directories"])
@@ -355,5 +395,7 @@ def _tool_repo_skeleton(params: dict[str, Any]) -> dict[str, Any]:
         },
         "dependencies": dependencies,
         "tree_ascii": tree_ascii,
+        "files": sorted(set(f["path"] for f in structure["key_files"])),
         "summary": summary,
+        "dependencies_graph": dependency_graph, # Add the dependency graph
     }

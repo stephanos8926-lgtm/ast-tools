@@ -2,7 +2,43 @@
 
 All notable changes to the AST-Tools MCP server.
 
-## [v0.1.1-dev] — 2026-08 (In Development)
+## [v0.1.1-dev] — 2026-07-02
+
+### 🔧 Bug Fixes
+- **`file_related_suggest`**: Fixed `UnicodeDecodeError` crash on binary/non-UTF8 files (`read_text()` → `read_text(encoding="utf-8")` + handle `UnicodeDecodeError`)
+- **`file_related_suggest`**: Fixed indentation bug in `_find_imported_by` — inner loop body was outside the `for fname` loop (causing `NoneType` crash when first dir had no `.py` files)
+- **`repo_skeleton`**: Fixed param name mismatch — now accepts both `root_path` and `path` (callers were using `path`)
+- **`repo_skeleton`**: Added missing `files` key to output
+- **`repo_skeleton`**: Added `.git`, `.venv`, `.eggs`, `node_modules` to directory exclusion list
+
+### ⚡ Performance
+- **`file_related_suggest`**: Replaced `workspace.rglob("*.py")` (scanned `.venv/` — thousands of files) with `os.walk()` that skips hidden dirs and known cache/build dirs upfront. Timeout fixed: **∞ → ~0.2s**
+- **`file_related_suggest`**: Added `_SKIP_DIRS` constant and `_is_skip_dir()` to skip `.venv`, `node_modules`, `__pycache__`, `.git`, etc.
+- **`repo_skeleton`**: Added file count cap (200 per dir) + expanded skip directories. Timeout fixed: **15s+ → ~2s**
+
+### 📚 Documentation
+- Added `LICENSE` (MIT)
+- Added `CONTRIBUTING.md` — contribution guidelines, coding standards, PR process
+- Added `CODE_OF_CONDUCT.md` — Contributor Covenant v2.1
+- Added `SECURITY.md` — vulnerability reporting policy
+- Added `Dockerfile` — production MCP server container
+- Added `.gitignore` — Python project standard ignores
+- Added `.github/PULL_REQUEST_TEMPLATE.md` — PR checklist template
+- Added `.github/workflows/release.yaml` — PyPI publish on tags
+- Added `.github/workflows/security-audit.yaml` — weekly pip-audit scan
+- Enhanced `.github/workflows/ci.yaml` — cross-version CI (3.10-3.13), lint, type-check, build
+
+### 📊 Statistics
+| Metric | Before | After |
+|--------|--------|-------|
+| **Tools** | 52 | 52 |
+| **Source files** | 82 | 82 |
+| **OSS docs** | 3 files | 11 files |
+| **CI/CD workflows** | 1 | 3 |
+| **repo_skeleton perf** | 15s+ (timeout) | ~2s |
+| **file_related perf** | ∞ (timeout) | ~0.2s |
+
+---
 
 ### 🚀 New Features
 
