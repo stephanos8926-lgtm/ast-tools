@@ -8,7 +8,7 @@
   "tests/test_phase3_polish.py": "2e2081e870a7b6bccad7e676864371bf",
   "src/ast_tools/__init__.py": "d41d8cd98f00b204e9800998ecf8427e",
   "src/ast_tools/core/__init__.py": "d41d8cd98f00b204e9800998ecf8427e",
-  "src/ast_tools/tools/__init__.py": "6164d4bf0d824610d733a36b946316c1",
+  "src/ast_tools/tools/__init__.py": "f4973b3e46b3335ad37d5397bde7c2eb",
   "src/ast_tools/utils/__init__.py": "19ae765aadd9666932e3572bcb6f350c",
   "src/ast_tools/utils/annotations.py": "181f7f33e49881494cd3b8afa708447f",
   "src/ast_tools/utils/file_utils.py": "83fff29ef96f95889def3bdf50fedc59",
@@ -135,5 +135,7 @@
   "tests/tools/_cg_integ_ws/lib/target.py": "e3ddcfb464a735ac987a6ce49ec37572",
   "tests/tools/_cg_integ_ws/src/caller.py": "773b83dcb66061401c4082cd3b7d202b",
   "tests/tools/_cg_test_ws/target.py": "e3ddcfb464a735ac987a6ce49ec37572",
-  "tests/tools/test_class_hierarchy.py": "fc592fe3da8983fd9df6c4116e8b46a7"
+  "tests/tools/test_class_hierarchy.py": "fc592fe3da8983fd9df6c4116e8b46a7",
+  "src/ast_tools/tools/blast_radius_v2.py": "da2176e9026caf7ae6227cb1749f05a7",
+  "tests/tools/test_blast_radius_v2.py": "e984028a355dfe02c17fe7bf27b01cd8"
 }

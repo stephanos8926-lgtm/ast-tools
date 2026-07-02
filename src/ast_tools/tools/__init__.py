@@ -75,6 +75,7 @@ from .refresh_index import _tool_refresh_index
 from .file_related import _tool_file_related_suggest
 from .knowledge_graph import kg_query, kg_shortest_path, kg_neighborhood
 from .repo_skeleton import _tool_repo_skeleton
+from .blast_radius_v2 import _tool_blast_radius_v2
 from .class_hierarchy import _tool_class_hierarchy
 from .transitive_analysis import _tool_transitive_dependents
 from .search_symbols import _tool_search_symbols
@@ -340,6 +341,22 @@ register_tool("class_hierarchy", _tool_class_hierarchy, {
             "file": {"type": "string", "description": "File containing the class (optional, auto-detects from target)"},
             "workspace": {"type": "string", "description": "Project root (optional, auto-detects from file)"},
             "max_depth": {"type": "integer", "default": 10, "description": "MRO and subclass depth limit"},
+        },
+        "required": ["target"],
+    },
+})
+
+register_tool("blast_radius_v2", _tool_blast_radius_v2, {
+    "description": "Unified blast radius analysis across import graph + class hierarchy + call graph with confidence scoring",
+    "inputSchema": {
+        "type": "object",
+        "properties": {
+            "target": {"type": "string", "description": "File path, class name, function name, or dotted module path"},
+            "cwd": {"type": "string", "description": "Project root (optional, auto-detects)"},
+            "max_depth": {"type": "integer", "default": 5, "description": "BFS depth for import graph"},
+            "include_imports": {"type": "boolean", "default": True, "description": "Include import graph axis"},
+            "include_hierarchy": {"type": "boolean", "default": True, "description": "Include class hierarchy axis"},
+            "include_callers": {"type": "boolean", "default": True, "description": "Include call graph axis"},
         },
         "required": ["target"],
     },

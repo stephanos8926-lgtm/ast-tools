@@ -1834,6 +1834,36 @@
     "line": 30,
     "type": "class"
   },
+  "TestAxesCombination": {
+    "file": "tests/tools/test_blast_radius_v2.py",
+    "line": 61,
+    "type": "class"
+  },
+  "TestConfidenceScoring": {
+    "file": "tests/tools/test_blast_radius_v2.py",
+    "line": 97,
+    "type": "class"
+  },
+  "TestRiskAggregation": {
+    "file": "tests/tools/test_blast_radius_v2.py",
+    "line": 135,
+    "type": "class"
+  },
+  "TestRecommendations": {
+    "file": "tests/tools/test_blast_radius_v2.py",
+    "line": 177,
+    "type": "class"
+  },
+  "TestFindClass": {
+    "file": "tests/tools/test_blast_radius_v2.py",
+    "line": 244,
+    "type": "class"
+  },
+  "TestFindFunction": {
+    "file": "tests/tools/test_blast_radius_v2.py",
+    "line": 258,
+    "type": "class"
+  },
   "TestClassExtraction": {
     "file": "tests/tools/test_class_hierarchy.py",
     "line": 87,
