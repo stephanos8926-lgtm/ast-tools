@@ -2004,6 +2004,21 @@
     "line": 283,
     "type": "class"
   },
+  "TestRiskClassification": {
+    "file": "tests/tools/test_transitive_analysis.py",
+    "line": 13,
+    "type": "class"
+  },
+  "TestTargetResolution": {
+    "file": "tests/tools/test_transitive_analysis.py",
+    "line": 30,
+    "type": "class"
+  },
+  "TestTransitiveDependents": {
+    "file": "tests/tools/test_transitive_analysis.py",
+    "line": 46,
+    "type": "class"
+  },
   "TestIndexQueue": {
     "file": "tests/watcher/test_daemon.py",
     "line": 14,

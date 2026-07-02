@@ -8,7 +8,7 @@
   "tests/test_phase3_polish.py": "2e2081e870a7b6bccad7e676864371bf",
   "src/ast_tools/__init__.py": "d41d8cd98f00b204e9800998ecf8427e",
   "src/ast_tools/core/__init__.py": "d41d8cd98f00b204e9800998ecf8427e",
-  "src/ast_tools/tools/__init__.py": "1cb802e550616cec73dcb61bad358bd4",
+  "src/ast_tools/tools/__init__.py": "79fe1d675b5ed26c509b004c34c27832",
   "src/ast_tools/utils/__init__.py": "19ae765aadd9666932e3572bcb6f350c",
   "src/ast_tools/utils/annotations.py": "181f7f33e49881494cd3b8afa708447f",
   "src/ast_tools/utils/file_utils.py": "83fff29ef96f95889def3bdf50fedc59",
@@ -21,8 +21,8 @@
   "src/ast_tools/tools/ast_grep.py": "b2101299f629640f7735a8a55bcb83b6",
   "src/ast_tools/tools/ast_read.py": "44317247c1b0aa8ab1586b54c8d1427f",
   "src/ast_tools/tools/find_references.py": "d840e87bd1c33b18d70ce69304203bc7",
-  "src/ast_tools/tools/impact_analysis.py": "7437fe94071638c36a5f3f6f60b77d78",
-  "src/ast_tools/tools/module_imports.py": "b8ca967b3646f0c19b0d668c7fefd1f4",
+  "src/ast_tools/tools/impact_analysis.py": "c12eb2a43a090045e240f90bf4b4be3d",
+  "src/ast_tools/tools/module_imports.py": "b39a15758fe26c6902c5629c937bab3c",
   "src/ast_tools/tools/structural_analysis.py": "a66eb380972ff1b58c29c8da64a029bf",
   "src/ast_tools/database/__init__.py": "33e281e65452db898e51f4185f898e50",
   "src/ast_tools/database/connection.py": "664a7936efcd00ba42e97408b47bd195",
@@ -128,5 +128,7 @@
   "src/ast_tools/tools/co_change.py": "076ac33a4b679197e25e2b84ac8fa8f7",
   "tests/cochange/__init__.py": "d41d8cd98f00b204e9800998ecf8427e",
   "tests/cochange/test_git_miner.py": "ff621e5226d8aaba6a4844b7982f4692",
-  "tests/cochange/test_hotspot.py": "a7b0412e255078466ebaca18b3ddffc1"
+  "tests/cochange/test_hotspot.py": "a7b0412e255078466ebaca18b3ddffc1",
+  "src/ast_tools/tools/transitive_analysis.py": "bc3efc1dd3ce6d12e56e4fb25b8c2a2c",
+  "tests/tools/test_transitive_analysis.py": "54b5da15fdc71779e70f108288844d32"
 }

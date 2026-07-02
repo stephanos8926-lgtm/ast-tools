@@ -1,3 +1,5 @@
+from ast_tools.tools.module_imports import _build_import_graph
+
 """impact_analysis tool — analyze the impact of changing a file or symbol."""
 
 import json
@@ -50,40 +52,40 @@ def _tool_impact_analysis(args: dict[str, Any]) -> dict[str, Any]:
 
     if is_file:
         # File/module target: use dependency graph
-        dep_file = root / "references" / "dependency_graph.json"
-        dep_graph: dict[str, list[str]] = {}
-        if dep_file.exists():
-            try:
-                dep_graph = json.loads(dep_file.read_text(encoding="utf-8"))
-            except (json.JSONDecodeError, OSError):
-                dep_graph = {}
+        dep_graph = _build_import_graph(root)
+        reverse_deps = build_reverse_deps({k: list(v) for k, v in dep_graph.items()})
 
-        if not dep_graph:
-            from project_tools import project_init
-
-            try:
-                project_init(str(root))
-                if dep_file.exists():
-                    dep_graph = json.loads(dep_file.read_text(encoding="utf-8"))
-            except Exception:
-                dep_graph = {}
-
-        reverse_deps = build_reverse_deps(dep_graph)
-
+        # Build lookup keys: try dotted module path form too
+        # (_build_import_graph uses dotted paths like mypkg.core)
         lookup_keys = [target_rel, target_rel.replace("\\", "/")]
-        direct: list[str] = []
-        for key in lookup_keys:
-            direct.extend(reverse_deps.get(key, []))
+        target_module = target_rel
+        if "/" in target_rel or "\\" in target_rel:
+            target_module = target_rel.replace("\\", "/")
+            if target_module.endswith(".py"):
+                target_module = target_module[:-3]
+            target_module = target_module.replace("/", ".")
+        lookup_keys.append(target_module)
 
-        direct = sorted(set(direct))
-        result["direct_dependents"] = direct
+        direct_dotted: list[str] = []
+        for key in lookup_keys:
+            direct_dotted.extend(reverse_deps.get(key, []))
+        direct_dotted = sorted(set(direct_dotted))
 
         all_transitive: list[str] = []
-        for d in direct:
+        for d in direct_dotted:
             transitive = get_transitive_deps(d, reverse_deps)
             all_transitive.extend(transitive)
-        all_transitive.extend(get_transitive_deps(target_rel, reverse_deps))
-        transitive_only = sorted(set(all_transitive) - set(direct))
+        all_transitive.extend(get_transitive_deps(target_module, reverse_deps))
+        transitive_only_dotted = sorted(set(all_transitive) - set(direct_dotted))
+
+        # Convert dotted module paths to file paths for output consistency
+        def _dotted_to_filepath(d: str) -> str:
+            return d.replace(".", "/") + ".py"
+
+        direct = sorted(set(_dotted_to_filepath(d) for d in direct_dotted))
+        transitive_only = sorted(set(_dotted_to_filepath(d) for d in transitive_only_dotted))
+
+        result["direct_dependents"] = direct
         result["transitive_dependents"] = transitive_only
 
         fan_out = len(direct)

@@ -75,6 +75,7 @@ from .refresh_index import _tool_refresh_index
 from .file_related import _tool_file_related_suggest
 from .knowledge_graph import kg_query, kg_shortest_path, kg_neighborhood
 from .repo_skeleton import _tool_repo_skeleton
+from .transitive_analysis import _tool_transitive_dependents
 from .search_symbols import _tool_search_symbols
 from .semantic_search import _tool_semantic_search
 from .structural_analysis import _ast_find_callees, _ast_find_callers, _tool_structural_analysis
@@ -310,6 +311,20 @@ register_tool("impact_analysis", _tool_impact_analysis, {
         "properties": {
             "target": {"type": "string", "description": "File path or symbol name"},
             "cwd": {"type": "string", "description": "Project root"},
+        },
+        "required": ["target"],
+    },
+})
+
+register_tool("transitive_dependents", _tool_transitive_dependents, {
+    "description": "Find all files transitively affected by changes — the 'what breaks?' query. Builds a live import graph and BFS-traverses to find full dependency chain.",
+    "inputSchema": {
+        "type": "object",
+        "properties": {
+            "target": {"type": "string", "description": "File path or dotted module path"},
+            "direction": {"type": "string", "enum": ["dependents", "dependencies"], "default": "dependents"},
+            "max_depth": {"type": "integer", "default": 10, "description": "BFS depth limit"},
+            "cwd": {"type": "string", "description": "Working directory for relative paths"},
         },
         "required": ["target"],
     },

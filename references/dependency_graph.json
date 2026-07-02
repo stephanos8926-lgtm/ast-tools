@@ -153,6 +153,7 @@
     "src/ast_tools/tools/search_symbols.py",
     "src/ast_tools/tools/semantic_search.py",
     "src/ast_tools/tools/structural_analysis.py",
+    "src/ast_tools/tools/transitive_analysis.py",
     "src/ast_tools/tools/ts_edit.py",
     "src/ast_tools/tools/watcher.py"
   ],
@@ -217,6 +218,7 @@
   ],
   "src/ast_tools/tools/impact_analysis.py": [
     "src/ast_tools/tools/__init__.py",
+    "src/ast_tools/tools/module_imports.py",
     "src/ast_tools/tools/structural_analysis.py",
     "src/ast_tools/utils/__init__.py",
     "src/ast_tools/utils/file_utils.py",
@@ -271,6 +273,13 @@
   "src/ast_tools/tools/structural_analysis.py": [
     "src/ast_tools/utils/__init__.py",
     "src/ast_tools/utils/file_utils.py"
+  ],
+  "src/ast_tools/tools/transitive_analysis.py": [
+    "src/ast_tools/tools/__init__.py",
+    "src/ast_tools/tools/module_imports.py",
+    "src/ast_tools/utils/__init__.py",
+    "src/ast_tools/utils/file_utils.py",
+    "src/ast_tools/utils/impact.py"
   ],
   "src/ast_tools/tools/ts_edit.py": [
     "src/ts_backend.py"
@@ -508,6 +517,10 @@
     "src/ast_tools/database/connection.py",
     "src/ast_tools/tools/__init__.py",
     "src/ast_tools/tools/semantic_search.py"
+  ],
+  "tests/tools/test_transitive_analysis.py": [
+    "src/ast_tools/tools/__init__.py",
+    "src/ast_tools/tools/transitive_analysis.py"
   ],
   "tests/watcher/test_daemon.py": [
     "src/ast_tools/watcher/__init__.py",

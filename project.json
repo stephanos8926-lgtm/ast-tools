@@ -1,12 +1,12 @@
 {
   "name": "ast-tools",
   "version": "0.1.0",
-  "generated": "2026-07-02T20:06:24.941817+00:00",
+  "generated": "2026-07-02T21:31:09.836449+00:00",
   "generator": "ast-tools-project-v1",
   "languages": {
     "markdown": {
-      "files": 81,
-      "lines": 31012
+      "files": 82,
+      "lines": 31114
     },
     "yaml": {
       "files": 4,
@@ -25,20 +25,20 @@
       "lines": 170
     },
     "python": {
-      "files": 130,
-      "lines": 32188
+      "files": 132,
+      "lines": 32467
     }
   },
   "code_languages": {
     "python": {
-      "files": 130,
-      "lines": 32188
+      "files": 132,
+      "lines": 32467
     }
   },
   "config_languages": {
     "markdown": {
-      "files": 81,
-      "lines": 31012
+      "files": 82,
+      "lines": 31114
     },
     "yaml": {
       "files": 4,
@@ -83,7 +83,7 @@
     "tests/watcher/test_daemon.py#if-__name__"
   ],
   "test_framework": "pytest",
-  "test_files": 45,
+  "test_files": 46,
   "test_command": "python3 -m pytest",
   "modules": [
     {
@@ -461,7 +461,7 @@
     },
     {
       "path": "src/ast_tools/tools/__init__.py",
-      "lines": 743,
+      "lines": 758,
       "classes": [],
       "functions": [
         "register_tool",
@@ -1163,6 +1163,16 @@
         "TestTokenBudgetEnforcement",
         "TestGracefulFallback",
         "TestFallbackSearch"
+      ],
+      "functions": []
+    },
+    {
+      "path": "tests/tools/test_transitive_analysis.py",
+      "lines": 87,
+      "classes": [
+        "TestRiskClassification",
+        "TestTargetResolution",
+        "TestTransitiveDependents"
       ],
       "functions": []
     },

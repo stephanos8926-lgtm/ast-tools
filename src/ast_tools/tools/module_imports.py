@@ -7,6 +7,41 @@ from typing import Any
 from ast_tools.utils.file_utils import find_python_files
 
 
+def _build_import_graph(root: Path, max_files: int = 500) -> dict[str, set[str]]:
+    """Build a live import graph from project source files.
+
+    Returns {module_path: {dep1, dep2, ...}} where module_path is a
+    dotted module path (e.g. ``ast_tools.tools.semantic_search``) and
+    deps are the modules it imports directly.
+    """
+    graph: dict[str, set[str]] = {}
+    for py_file in find_python_files(str(root), max_files=max_files):
+        try:
+            source = py_file.read_text(encoding="utf-8", errors="replace")
+            tree = ast.parse(source, filename=str(py_file))
+        except (SyntaxError, OSError):
+            continue
+
+        rel = str(py_file.relative_to(root)) if py_file.is_relative_to(root) else str(py_file)
+        module_path = _normalize_module_path(rel)
+        # Strip src/ prefix for matching against import statements
+        if module_path.startswith("src."):
+            module_path = module_path[4:]
+        deps: set[str] = set()
+
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Import):
+                for alias in node.names:
+                    deps.add(alias.name)
+            elif isinstance(node, ast.ImportFrom) and node.module:
+                deps.add(node.module)
+
+        if deps:
+            graph[module_path] = deps
+
+    return graph
+
+
 def _normalize_module_path(path_str: str) -> str:
     """Convert file path to dotted module path for matching."""
     p = path_str.replace("\\", "/")
