@@ -4,7 +4,7 @@
 Commands:
     ast search <query>        — Semantic search across codebase
     ast navigate <symbol>     — Jump to symbol definition
-    ast blast-radius <file:line> — Impact analysis
+    ast blast-radius <target> — Unified blast radius: imports + hierarchy + call graph
     ast find-dead             — Enhanced dead code detection
     ast summary               — Codebase overview
     ast symbols <file>        — List symbols in file
@@ -12,10 +12,11 @@ Commands:
 
 Usage:
     ast search "authentication"
-    ast navigate SessionManager
-    ast blast-radius src/auth.py:42
+    ast navigate GraphEngine
+    ast blast-radius src/ast_tools/kg/graph_engine.py
+    ast blast-radius GraphEngine --format json
     ast find-dead --format table
-    ast summary --format markdown
+    ast summary --format markdown"
 """
 
 import argparse
@@ -23,7 +24,9 @@ import asyncio
 import json
 import sys
 
-# Phase 1: Data lifecycle CLI wrappers
+from ast_tools.tools.blast_radius_v2 import _tool_blast_radius_v2
+
+
 def _cli_init_cmd(args) -> str:
     """Wrapper for ast-tools init."""
     from ast_tools.curator.setup_wizard import cli_init
@@ -141,21 +144,25 @@ def cmd_navigate(args: argparse.Namespace) -> int:
 
 
 def cmd_blast_radius(args: argparse.Namespace) -> int:
-    """Impact analysis command."""
+    """Unified blast radius analysis command (import graph + class hierarchy + call graph)."""
     project_root = args.project_root or "."
     file_path = args.file_path
     line = args.line
 
-    # Parse file:line format if provided as single arg
+    # Parse file:line format if provided as single arg — convert to target
+    target = file_path
     if ":" in file_path:
         parts = file_path.split(":")
-        file_path = parts[0]
-        line = int(parts[1]) if len(parts) > 1 else None
+        if len(parts) == 2:
+            target = parts[0]
 
-    result = _tool_impact_analysis({
-        "file_path": file_path,
-        "line": line,
-        "project_root": project_root,
+    result = _tool_blast_radius_v2({
+        "target": target,
+        "cwd": project_root,
+        "max_depth": args.max_depth or 5,
+        "include_imports": True,
+        "include_hierarchy": True,
+        "include_callers": not (args.no_callers or False),
     })
 
     if "error" in result:
@@ -165,9 +172,9 @@ def cmd_blast_radius(args: argparse.Namespace) -> int:
     if args.format == "json":
         print(json.dumps(result, indent=2, default=str))
     elif args.format == "markdown":
-        _print_impact_markdown(result)
+        _print_blast_radius_markdown(result)
     else:  # table
-        _print_impact_table(result)
+        _print_blast_radius_table(result)
 
     return 0
 
@@ -521,44 +528,97 @@ def _print_search_markdown(result: dict) -> None:
         print(f"\n_... and {len(symbols) - 20} more_")
 
 
-def _print_impact_table(result: dict) -> None:
-    """Print impact analysis in table format."""
-    direct = result.get("direct_dependents", [])
-    transitive = result.get("transitive_dependents", [])
+def _print_blast_radius_table(result: dict) -> None:
+    """Print blast radius v2 analysis in table format."""
+    summary = result.get("summary", {})
+    axes = result.get("axes", {})
+    recommendations = result.get("recommendations", [])
 
-    print("🎯 Impact Analysis\n")
-    print(f"Direct dependents: {len(direct)}")
-    print(f"Transitive dependents: {len(transitive)}\n")
+    target = result.get("target", "?")
+    target_kind = result.get("target_kind", "?")
+    risk = summary.get("risk", "none").upper()
+    confidence = summary.get("confidence", 0.0)
+    total = summary.get("total_affected", 0)
+    files = summary.get("distinct_files", 0)
 
-    if direct:
-        print("Direct dependents:")
-        print(f"  {'Symbol':<30} {'File':<40}")
-        print("  " + "-" * 72)
-        for dep in direct[:10]:
-            name = dep.get("symbol", "")[:28]
-            file_path = dep.get("file", "")[:38]
-            print(f"  {name:<30} {file_path:<40}")
-        if len(direct) > 10:
-            print(f"  ... and {len(direct) - 10} more")
+    print(f"\n🎯 Blast Radius: {target} [{target_kind}]\n")
+    print(f"  Risk:       {risk}")
+    print(f"  Confidence: {confidence:.0%}")
+    print(f"  Affected:   {total} items across {files} files\n")
+
+    print("  Axes breakdown:")
+    for ax_name, ax_result in axes.items():
+        if ax_result is None:
+            continue
+        a = ax_result.get("affected", 0)
+        r = ax_result.get("risk", "none").upper()
+        c = ax_result.get("confidence", 0.0)
+        label = ax_name.replace("_", " ").title()
+        print(f"    {label:<20} {a:>3} affected  [{r:<8}]  {c:.0%} confidence")
+
+    if recommendations:
+        print("\n  Recommendations:")
+        for rec in recommendations:
+            print(f"    💡 {rec}")
+
+    by_file = result.get("combined", {}).get("by_file", [])
+    if by_file:
+        print(f"\n  Files ({len(by_file)}):")
+        for entry in by_file[:10]:
+            reasons = ", ".join(entry.get("reasons", []))
+            print(f"    {entry['file']:<55} [{reasons}]")
+        if len(by_file) > 10:
+            print(f"    ... and {len(by_file) - 10} more")
+    print()
 
 
-def _print_impact_markdown(result: dict) -> None:
-    """Print impact analysis in markdown format."""
-    direct = result.get("direct_dependents", [])
-    transitive = result.get("transitive_dependents", [])
+def _print_blast_radius_markdown(result: dict) -> None:
+    """Print blast radius v2 analysis in markdown format."""
+    summary = result.get("summary", {})
+    axes = result.get("axes", {})
+    recommendations = result.get("recommendations", [])
 
-    print("## 🎯 Impact Analysis\n")
-    print(f"- **Direct dependents:** {len(direct)}")
-    print(f"- **Transitive dependents:** {len(transitive)}\n")
+    target = result.get("target", "?")
+    target_kind = result.get("target_kind", "?")
+    risk = summary.get("risk", "none")
+    confidence = summary.get("confidence", 0.0)
+    total = summary.get("total_affected", 0)
+    files = summary.get("distinct_files", 0)
 
-    if direct:
-        print("### Direct dependents\n")
-        for dep in direct[:10]:
-            name = dep.get("symbol", "")
-            file_path = dep.get("file", "")
-            print(f"- `{name}` — `{file_path}`")
-        if len(direct) > 10:
-            print(f"\n_... and {len(direct) - 10} more_")
+    print(f"## 🎯 Blast Radius: `{target}` ({target_kind})\n")
+    print(f"| Metric | Value |")
+    print(f"|--------|-------|")
+    print(f"| Risk | **{risk}** |")
+    print(f"| Confidence | {confidence:.0%} |")
+    print(f"| Affected | {total} items across {files} files |")
+    print()
+
+    if axes:
+        print("### Axes Breakdown\n")
+        print("| Axis | Affected | Risk | Confidence |")
+        print("|------|----------|------|------------|")
+        for axis_name, axis_result in axes.items():
+            if axis_result is None:
+                continue
+            a = axis_result.get("affected", 0)
+            r = axis_result.get("risk", "none")
+            c = axis_result.get("confidence", 0.0)
+            label = axis_name.replace("_", " ").title()
+            print(f"| {label} | {a} | {r} | {c:.0%} |")
+
+    if recommendations:
+        print("\n### Recommendations\n")
+        for rec in recommendations:
+            print(f"- 💡 {rec}")
+
+    by_file = result.get("combined", {}).get("by_file", [])
+    if by_file:
+        print("\n### Affected Files\n")
+        for entry in by_file:
+            reasons = ", ".join(entry.get("reasons", []))
+            print(f"- `{entry['file']}` — [{reasons}]")
+
+    print()
 
 
 def _print_dead_code_table(result: dict) -> None:
@@ -820,6 +880,17 @@ def main() -> int:
         choices=["table", "json", "markdown"],
         default="table",
         help="Output format",
+    )
+    blast_p.add_argument(
+        "--max-depth", "-d",
+        type=int,
+        default=5,
+        help="BFS traversal depth (default: 5)",
+    )
+    blast_p.add_argument(
+        "--no-callers",
+        action="store_true",
+        help="Skip call graph analysis (faster)",
     )
     blast_p.set_defaults(func=cmd_blast_radius)
 

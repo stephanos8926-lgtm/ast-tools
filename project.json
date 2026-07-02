@@ -1,7 +1,7 @@
 {
   "name": "ast-tools",
   "version": "0.1.0",
-  "generated": "2026-07-02T22:45:21.244368+00:00",
+  "generated": "2026-07-02T22:51:14.691792+00:00",
   "generator": "ast-tools-project-v1",
   "languages": {
     "markdown": {
@@ -26,13 +26,13 @@
     },
     "python": {
       "files": 139,
-      "lines": 34554
+      "lines": 34625
     }
   },
   "code_languages": {
     "python": {
       "files": 139,
-      "lines": 34554
+      "lines": 34625
     }
   },
   "config_languages": {
@@ -133,7 +133,7 @@
     },
     {
       "path": "src/ast_tools/cli.py",
-      "lines": 1084,
+      "lines": 1155,
       "classes": [],
       "functions": [
         "cmd_search",
