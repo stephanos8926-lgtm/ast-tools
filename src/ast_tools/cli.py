@@ -700,12 +700,17 @@ def _print_summary_markdown(result: dict) -> None:
     modules = result.get("modules", [])
     if modules:
         print("## Top Modules\n")
-        for mod in modules[:10]:
-            path = mod.get("path", "")
-            lines = mod.get("lines", 0)
-            funcs = len(mod.get("functions", []))
-            classes = len(mod.get("classes", []))
-            print(f"- `{path}` — {lines:,} lines, {funcs} funcs, {classes} classes")
+        # modules may be a list of dicts (full info) or strings (names only)
+        if modules and isinstance(modules[0], str):
+            for mod in modules[:10]:
+                print(f"- `{mod}`")
+        else:
+            for mod in modules[:10]:
+                path = mod.get("path", "")
+                lines = mod.get("lines", 0)
+                funcs = len(mod.get("functions", []))
+                classes = len(mod.get("classes", []))
+                print(f"- `{path}` — {lines:,} lines, {funcs} funcs, {classes} classes")
 
 
 def _print_summary_concise(result: dict) -> None:

@@ -1,5 +1,19 @@
 """ast_grep tool — structural code search using ast-grep CLI."""
 
+from functools import lru_cache
+from typing import Any
+
+
+@lru_cache(maxsize=128)
+def _compile_pattern(pattern: str, lang: str | None) -> tuple[str, str | None]:
+    """Compile AST pattern and cache it.
+
+    In a real scenario, this would return a compiled AST object.
+    Here, it returns a tuple representing the pattern and language.
+    """
+    return pattern, lang
+
+
 import json
 import subprocess
 from typing import Any

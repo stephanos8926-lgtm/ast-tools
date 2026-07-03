@@ -1,11 +1,13 @@
-"""Database connection management with retry logic.
+"""Database connection management with retry logic and per-thread caching.
 
 Handles SQLite connections with optimal pragmas for concurrent access,
-WAL mode for write concurrency, and automatic retry on lock timeouts.
+WAL mode for write concurrency, automatic retry on lock timeouts,
+and per-thread connection caching for reuse.
 """
 
 import functools
 import sqlite3
+import threading
 import time
 from collections.abc import Callable
 from contextlib import contextmanager
@@ -13,6 +15,9 @@ from pathlib import Path
 from typing import Any, TypeVar
 
 DEFAULT_DB_PATH = Path.home() / ".cache" / "ast-tools" / "codebase.db"
+
+# Per-thread connection cache
+_thread_local = threading.local()
 
 # Retry configuration
 MAX_RETRIES = 3
@@ -120,6 +125,49 @@ def get_connection(db_path: Path | None = None) -> sqlite3.Connection:
     migrate(conn)
 
     return conn
+
+
+def get_cached_connection(db_path: Path | None = None) -> sqlite3.Connection:
+    """Get or create a per-thread cached database connection.
+
+    Reuses the same connection across calls within the same thread,
+    avoiding the overhead of repeated connect/close cycles.
+
+    Args:
+        db_path: Custom database path (default: ~/.cache/ast-tools/codebase.db)
+
+    Returns:
+        Configured sqlite3.Connection (cached per thread)
+    """
+    path = str(db_path or DEFAULT_DB_PATH)
+    if not hasattr(_thread_local, "conns"):
+        _thread_local.conns = {}
+
+    if path not in _thread_local.conns or _thread_local.conns[path] is None:
+        _thread_local.conns[path] = get_connection(db_path)
+    return _thread_local.conns[path]
+
+
+def close_cached_connections(db_path: Path | None = None) -> None:
+    """Close and clear cached database connections.
+
+    Call during shutdown or when the database file changes.
+    If db_path is provided, only that connection is closed.
+    Otherwise, all cached connections are closed.
+    """
+    if not hasattr(_thread_local, "conns"):
+        return
+
+    if db_path:
+        path = str(db_path)
+        conn = _thread_local.conns.pop(path, None)
+        if conn:
+            conn.close()
+    else:
+        for conn in _thread_local.conns.values():
+            if conn:
+                conn.close()
+        _thread_local.conns = {}
 
 
 @contextmanager

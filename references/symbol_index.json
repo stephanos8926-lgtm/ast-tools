@@ -251,27 +251,37 @@
   },
   "retry_on_locked": {
     "file": "src/ast_tools/database/connection.py",
-    "line": 25,
+    "line": 30,
     "type": "function"
   },
   "get_connection": {
     "file": "src/ast_tools/database/connection.py",
-    "line": 73,
+    "line": 78,
+    "type": "function"
+  },
+  "get_cached_connection": {
+    "file": "src/ast_tools/database/connection.py",
+    "line": 130,
+    "type": "function"
+  },
+  "close_cached_connections": {
+    "file": "src/ast_tools/database/connection.py",
+    "line": 151,
     "type": "function"
   },
   "database_context": {
     "file": "src/ast_tools/database/connection.py",
-    "line": 126,
+    "line": 174,
     "type": "function"
   },
   "get_cache_path": {
     "file": "src/ast_tools/database/connection.py",
-    "line": 150,
+    "line": 198,
     "type": "function"
   },
   "get_db_path": {
     "file": "src/ast_tools/database/connection.py",
-    "line": 159,
+    "line": 207,
     "type": "function"
   },
   "migrate_v4_to_v5": {

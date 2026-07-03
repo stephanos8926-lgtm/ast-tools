@@ -1,7 +1,7 @@
 {
   "name": "ast-tools",
   "version": "0.1.0",
-  "generated": "2026-07-03T00:09:57.269183+00:00",
+  "generated": "2026-07-03T00:11:21.897069+00:00",
   "generator": "ast-tools-project-v1",
   "languages": {
     "markdown": {
@@ -26,13 +26,13 @@
     },
     "python": {
       "files": 139,
-      "lines": 34630
+      "lines": 34692
     }
   },
   "code_languages": {
     "python": {
       "files": 139,
-      "lines": 34630
+      "lines": 34692
     }
   },
   "config_languages": {
@@ -259,11 +259,13 @@
     },
     {
       "path": "src/ast_tools/database/connection.py",
-      "lines": 165,
+      "lines": 213,
       "classes": [],
       "functions": [
         "retry_on_locked",
         "get_connection",
+        "get_cached_connection",
+        "close_cached_connections",
         "database_context",
         "get_cache_path",
         "get_db_path"
