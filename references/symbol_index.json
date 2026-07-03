@@ -1074,6 +1074,21 @@
     "line": 36,
     "type": "function"
   },
+  "rrf_fuse": {
+    "file": "src/ast_tools/utils/rrf.py",
+    "line": 18,
+    "type": "function"
+  },
+  "rank_symbols": {
+    "file": "src/ast_tools/utils/rrf.py",
+    "line": 45,
+    "type": "function"
+  },
+  "kind_rank": {
+    "file": "src/ast_tools/utils/rrf.py",
+    "line": 69,
+    "type": "function"
+  },
   "SecretSanitizer": {
     "file": "src/ast_tools/utils/secret_sanitizer.py",
     "line": 24,
@@ -2077,6 +2092,21 @@
   "TestStructureCollection": {
     "file": "tests/tools/test_repo_skeleton.py",
     "line": 235,
+    "type": "class"
+  },
+  "TestRrfFuse": {
+    "file": "tests/tools/test_rrf.py",
+    "line": 6,
+    "type": "class"
+  },
+  "TestRankSymbols": {
+    "file": "tests/tools/test_rrf.py",
+    "line": 71,
+    "type": "class"
+  },
+  "TestKindRank": {
+    "file": "tests/tools/test_rrf.py",
+    "line": 109,
     "type": "class"
   },
   "TestContextInjectionIntegration": {

@@ -309,11 +309,13 @@
   "src/ast_tools/utils/__init__.py": [
     "src/ast_tools/utils/annotations.py",
     "src/ast_tools/utils/file_utils.py",
-    "src/ast_tools/utils/impact.py"
+    "src/ast_tools/utils/impact.py",
+    "src/ast_tools/utils/rrf.py"
   ],
   "src/ast_tools/utils/annotations.py": [],
   "src/ast_tools/utils/file_utils.py": [],
   "src/ast_tools/utils/impact.py": [],
+  "src/ast_tools/utils/rrf.py": [],
   "src/ast_tools/utils/secret_sanitizer.py": [],
   "src/ast_tools/utils/security.py": [],
   "src/ast_tools/watcher/__init__.py": [
@@ -537,6 +539,10 @@
   "tests/tools/test_repo_skeleton.py": [
     "src/ast_tools/tools/__init__.py",
     "src/ast_tools/tools/repo_skeleton.py"
+  ],
+  "tests/tools/test_rrf.py": [
+    "src/ast_tools/utils/__init__.py",
+    "src/ast_tools/utils/rrf.py"
   ],
   "tests/tools/test_semantic_search_context.py": [
     "src/ast_tools/context/__init__.py",

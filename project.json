@@ -1,12 +1,12 @@
 {
   "name": "ast-tools",
   "version": "0.1.0",
-  "generated": "2026-07-03T11:44:14.995344+00:00",
+  "generated": "2026-07-03T12:31:48.568086+00:00",
   "generator": "ast-tools-project-v1",
   "languages": {
     "markdown": {
-      "files": 100,
-      "lines": 32831
+      "files": 102,
+      "lines": 33116
     },
     "yaml": {
       "files": 4,
@@ -25,20 +25,20 @@
       "lines": 200
     },
     "python": {
-      "files": 139,
-      "lines": 34725
+      "files": 141,
+      "lines": 34944
     }
   },
   "code_languages": {
     "python": {
-      "files": 139,
-      "lines": 34725
+      "files": 141,
+      "lines": 34944
     }
   },
   "config_languages": {
     "markdown": {
-      "files": 100,
-      "lines": 32831
+      "files": 102,
+      "lines": 33116
     },
     "yaml": {
       "files": 4,
@@ -85,7 +85,7 @@
     "tests/watcher/test_daemon.py#if-__name__"
   ],
   "test_framework": "pytest",
-  "test_files": 51,
+  "test_files": 52,
   "test_command": "python3 -m pytest",
   "modules": [
     {
@@ -654,6 +654,16 @@
       ]
     },
     {
+      "path": "src/ast_tools/utils/rrf.py",
+      "lines": 83,
+      "classes": [],
+      "functions": [
+        "rrf_fuse",
+        "rank_symbols",
+        "kind_rank"
+      ]
+    },
+    {
       "path": "src/ast_tools/utils/secret_sanitizer.py",
       "lines": 291,
       "classes": [
@@ -1205,6 +1215,16 @@
         "TestDependencyParsing",
         "TestStructureCollection",
         "TestIntegration"
+      ],
+      "functions": []
+    },
+    {
+      "path": "tests/tools/test_rrf.py",
+      "lines": 131,
+      "classes": [
+        "TestRrfFuse",
+        "TestRankSymbols",
+        "TestKindRank"
       ],
       "functions": []
     },
