@@ -18,7 +18,7 @@
   "src/ast_tools/tools/project_info.py": "3565234a2b272821ac45211b41ae92ac",
   "src/ast_tools/tools/ast_generate_stub.py": "228452222523b4db31632c91003a57bb",
   "src/ast_tools/tools/ast_edit.py": "615cee1cf1784d0064ba74269bf92823",
-  "src/ast_tools/tools/ast_grep.py": "4322b92f71a89386aa44a97b92a223db",
+  "src/ast_tools/tools/ast_grep.py": "43c2db60803c149b5c7b265a37f6990e",
   "src/ast_tools/tools/ast_read.py": "44317247c1b0aa8ab1586b54c8d1427f",
   "src/ast_tools/tools/find_references.py": "d840e87bd1c33b18d70ce69304203bc7",
   "src/ast_tools/tools/impact_analysis.py": "c12eb2a43a090045e240f90bf4b4be3d",

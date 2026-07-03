@@ -16,7 +16,6 @@ def _compile_pattern(pattern: str, lang: str | None) -> tuple[str, str | None]:
 
 import json
 import subprocess
-from typing import Any
 
 
 def _filter_top_level(matches: list, pattern: str) -> list:
