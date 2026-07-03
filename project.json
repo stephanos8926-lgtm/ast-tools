@@ -1,12 +1,12 @@
 {
   "name": "ast-tools",
   "version": "0.1.0",
-  "generated": "2026-07-03T00:17:02.765817+00:00",
+  "generated": "2026-07-03T08:51:00.099246+00:00",
   "generator": "ast-tools-project-v1",
   "languages": {
     "markdown": {
       "files": 99,
-      "lines": 33137
+      "lines": 33162
     },
     "yaml": {
       "files": 4,
@@ -26,19 +26,19 @@
     },
     "python": {
       "files": 139,
-      "lines": 34704
+      "lines": 34725
     }
   },
   "code_languages": {
     "python": {
       "files": 139,
-      "lines": 34704
+      "lines": 34725
     }
   },
   "config_languages": {
     "markdown": {
       "files": 99,
-      "lines": 33137
+      "lines": 33162
     },
     "yaml": {
       "files": 4,
@@ -74,6 +74,8 @@
     "src/ast_tools/tools/curator.py#if-__name__",
     "src/ast_tools/watcher/daemon.py#if-__name__",
     "src/ast_tools/watcher/daemon.py#sys.argv",
+    "src/ast_tools_server.py#if-__name__",
+    "src/ast_tools_server.py#main",
     "src/project_tools.py#if-__name__",
     "src/project_tools.py#main",
     "src/project_tools.py#argparse",

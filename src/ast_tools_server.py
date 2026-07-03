@@ -27,6 +27,9 @@ import logging
 import sys
 from typing import Any
 
+from mcp.server.stdio import stdio_server
+from mcp.server.models import InitializationOptions
+
 import anyio
 from mcp.server import Server
 from mcp.types import TextContent, Tool
@@ -600,3 +603,21 @@ async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
                 text=json.dumps({"error": str(e), "error_code": "INTERNAL", "tool": name}),
             )
         ]
+
+
+async def main():
+    """Run the ast-tools MCP server over stdio."""
+    async with stdio_server() as (read_stream, write_stream):
+        await server.run(
+            read_stream,
+            write_stream,
+            server.create_initialization_options(),
+        )
+
+
+if __name__ == "__main__":
+    try:
+        import anyio
+        anyio.run(main)
+    except KeyboardInterrupt:
+        pass
