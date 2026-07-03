@@ -916,32 +916,32 @@
   },
   "hybrid_search": {
     "file": "src/ast_tools/tools/semantic_search.py",
-    "line": 20,
+    "line": 19,
     "type": "function"
   },
   "estimate_context_tokens": {
     "file": "src/ast_tools/tools/semantic_search.py",
-    "line": 94,
+    "line": 137,
     "type": "function"
   },
   "format_context_result": {
     "file": "src/ast_tools/tools/semantic_search.py",
-    "line": 114,
+    "line": 157,
     "type": "function"
   },
   "hybrid_search_with_context": {
     "file": "src/ast_tools/tools/semantic_search.py",
-    "line": 143,
+    "line": 186,
     "type": "function"
   },
   "select_context_with_budget": {
     "file": "src/ast_tools/tools/semantic_search.py",
-    "line": 208,
+    "line": 251,
     "type": "function"
   },
   "fallback_search": {
     "file": "src/ast_tools/tools/semantic_search.py",
-    "line": 255,
+    "line": 298,
     "type": "function"
   },
   "ts_parse_ts": {

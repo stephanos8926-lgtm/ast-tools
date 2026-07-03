@@ -11,17 +11,18 @@ from typing import Any
 from ..context import ContextInjector, MarkdownFormatter
 from ..database.connection import get_connection
 from ..embeddings import generate_embedding, search_similar
+from ..utils.rrf import RRF_K, kind_rank, rrf_fuse
 
 logger = logging.getLogger(__name__)
-
-RRF_K = 1.5  # Reciprocal Rank Fusion constant
 
 
 def hybrid_search(
     conn, query: str, k: int = 10, kind: str | None = None, lang: str | None = None
 ) -> list[dict]:
     """
-    Hybrid search: FTS5 keyword + vector semantic with RRF fusion.
+    6-factor hybrid search: FTS5 + vector + recency + usage + kind + centrality.
+
+    Uses Reciprocal Rank Fusion (k=60) to combine all 6 ranking dimensions.
 
     Args:
         conn: SQLite connection
@@ -57,23 +58,65 @@ def hybrid_search(
     params.append(k * 2)
 
     fts_rows = conn.execute(fts_sql, params).fetchall()
-    fts_results = [(row["symbol_id"], row["score"]) for row in fts_rows]
+    fts_ids = [row["symbol_id"] for row in fts_rows]
 
-    # 4. Reciprocal Rank Fusion
-    fused_scores = {}
+    # 4. Build 6 ranked lists for RRF fusion
 
-    # Vector results: rank by distance (lower = better)
-    for i, (symbol_id, _) in enumerate(vec_results):
-        fused_scores[symbol_id] = fused_scores.get(symbol_id, 0) + 1 / (i + 1 + RRF_K)
+    # Factor 1: Vector similarity rank (by distance, lower = better)
+    vec_ranked = [sid for sid, _ in vec_results]
 
-    # FTS5 results: rank by BM25 score (lower = better)
-    for i, (symbol_id, _score) in enumerate(fts_results):
-        fused_scores[symbol_id] = fused_scores.get(symbol_id, 0) + 1 / (i + 1 + RRF_K)
+    # Factor 2: FTS5 keyword rank (by BM25 score, lower = better)
+    fts_ranked = fts_ids
 
-    # 5. Sort by fused score (higher = better)
+    # Factor 3: Recency rank (newer = better)
+    recency_sql = "SELECT id FROM symbols ORDER BY indexed_at DESC NULLS LAST LIMIT ?"
+    recency_rows = conn.execute(recency_sql, [k * 2]).fetchall()
+    recency_ranked = [row["id"] for row in recency_rows]
+
+    # Factor 4: Usage rank (more connections = more important)
+    usage_ranked: list[str] = []
+    try:
+        usage_sql = """
+            SELECT symbol_id FROM dependency_metrics
+            ORDER BY (fan_in + fan_out) DESC NULLS LAST LIMIT ?
+        """
+        usage_rows = conn.execute(usage_sql, [k * 2]).fetchall()
+        usage_ranked = [row["symbol_id"] for row in usage_rows]
+    except Exception:
+        pass  # Graceful degradation: skip usage factor
+
+    # Factor 5: Kind rank (function > class > method > variable > import)
+    kind_order = ["function", "class", "method", "variable", "import", "constant"]
+    kind_case = " ".join(
+        f"WHEN kind = '{kt}' THEN {i}" for i, kt in enumerate(kind_order)
+    )
+    kind_sql = f"""
+        SELECT id FROM symbols
+        ORDER BY CASE {kind_case} ELSE 99 END ASC LIMIT ?
+    """
+    kind_rows = conn.execute(kind_sql, [k * 2]).fetchall()
+    kind_ranked = [row["id"] for row in kind_rows]
+
+    # Factor 6: Centrality rank (higher PageRank = more important)
+    central_ranked: list[str] = []
+    try:
+        central_sql = """
+            SELECT symbol_id FROM dependency_metrics
+            ORDER BY centrality DESC NULLS LAST LIMIT ?
+        """
+        central_rows = conn.execute(central_sql, [k * 2]).fetchall()
+        central_ranked = [row["symbol_id"] for row in central_rows]
+    except Exception:
+        pass  # Graceful degradation: skip centrality factor
+
+    # 5. Reciprocal Rank Fusion with k=60 (standard for 6-factor fusion)
+    ranked_lists = [vec_ranked, fts_ranked, recency_ranked, usage_ranked, kind_ranked, central_ranked]
+    fused_scores = rrf_fuse(ranked_lists, k=60)
+
+    # 6. Sort by fused score (higher = better)
     top_k = sorted(fused_scores.items(), key=lambda x: x[1], reverse=True)[:k]
 
-    # 6. Fetch full symbol details
+    # 7. Fetch full symbol details
     symbols = []
     if top_k:
         placeholders = ",".join("?" for _ in top_k)
