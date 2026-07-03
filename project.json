@@ -1,12 +1,12 @@
 {
   "name": "ast-tools",
   "version": "0.1.0",
-  "generated": "2026-07-02T22:51:14.691792+00:00",
+  "generated": "2026-07-03T00:09:57.269183+00:00",
   "generator": "ast-tools-project-v1",
   "languages": {
     "markdown": {
-      "files": 84,
-      "lines": 31322
+      "files": 99,
+      "lines": 33162
     },
     "yaml": {
       "files": 4,
@@ -21,24 +21,24 @@
       "lines": 140
     },
     "shell": {
-      "files": 4,
-      "lines": 170
+      "files": 5,
+      "lines": 200
     },
     "python": {
       "files": 139,
-      "lines": 34625
+      "lines": 34630
     }
   },
   "code_languages": {
     "python": {
       "files": 139,
-      "lines": 34625
+      "lines": 34630
     }
   },
   "config_languages": {
     "markdown": {
-      "files": 84,
-      "lines": 31322
+      "files": 99,
+      "lines": 33162
     },
     "yaml": {
       "files": 4,
@@ -53,8 +53,8 @@
       "lines": 140
     },
     "shell": {
-      "files": 4,
-      "lines": 170
+      "files": 5,
+      "lines": 200
     }
   },
   "entry_points": [
@@ -133,7 +133,7 @@
     },
     {
       "path": "src/ast_tools/cli.py",
-      "lines": 1155,
+      "lines": 1160,
       "classes": [],
       "functions": [
         "cmd_search",

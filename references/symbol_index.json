@@ -126,7 +126,7 @@
   },
   "main": {
     "file": "src/ast_tools/cli.py",
-    "line": 804,
+    "line": 809,
     "type": "function"
   },
   "GitMiner": {
