@@ -4,11 +4,15 @@ Uses sentence-transformers with all-MiniLM-L6-v2 model for CPU-efficient embeddi
 Optimized for low RAM usage (<400MB) on constrained hardware.
 """
 
+from __future__ import annotations
+
 import logging
 import os
 from pathlib import Path
+from typing import TYPE_CHECKING
 
-from sentence_transformers import SentenceTransformer
+if TYPE_CHECKING:
+    from sentence_transformers import SentenceTransformer
 
 logger = logging.getLogger(__name__)
 
@@ -28,6 +32,9 @@ _model: SentenceTransformer | None = None
 def get_model(cache_dir: str | None = None) -> SentenceTransformer:
     """Load or return cached embedding model.
 
+    Model is loaded on first call, not at import time. First call may take
+    10-15s to download and load sentence-transformers (~130MB).
+
     Args:
         cache_dir: Optional custom cache directory for model weights.
                   Defaults to ~/.cache/ast-tools/models/{MODEL_NAME}/
@@ -44,6 +51,8 @@ def get_model(cache_dir: str | None = None) -> SentenceTransformer:
     """
     global _model
     if _model is None:
+        from sentence_transformers import SentenceTransformer
+
         cache_path = Path(cache_dir) if cache_dir else DEFAULT_CACHE_DIR
         cache_path.mkdir(parents=True, exist_ok=True)
 

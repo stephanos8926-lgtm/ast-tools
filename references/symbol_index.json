@@ -491,22 +491,22 @@
   },
   "get_model": {
     "file": "src/ast_tools/embeddings/model.py",
-    "line": 28,
+    "line": 32,
     "type": "function"
   },
   "generate_embedding": {
     "file": "src/ast_tools/embeddings/model.py",
-    "line": 69,
+    "line": 78,
     "type": "function"
   },
   "generate_batch_embeddings": {
     "file": "src/ast_tools/embeddings/model.py",
-    "line": 99,
+    "line": 108,
     "type": "function"
   },
   "unload_model": {
     "file": "src/ast_tools/embeddings/model.py",
-    "line": 150,
+    "line": 159,
     "type": "function"
   },
   "load_vec_extension": {

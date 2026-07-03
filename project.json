@@ -1,12 +1,12 @@
 {
   "name": "ast-tools",
   "version": "0.1.0",
-  "generated": "2026-07-03T12:41:53.340976+00:00",
+  "generated": "2026-07-03T13:18:05.520183+00:00",
   "generator": "ast-tools-project-v1",
   "languages": {
     "markdown": {
-      "files": 102,
-      "lines": 33121
+      "files": 103,
+      "lines": 33214
     },
     "yaml": {
       "files": 4,
@@ -26,19 +26,19 @@
     },
     "python": {
       "files": 141,
-      "lines": 35009
+      "lines": 35018
     }
   },
   "code_languages": {
     "python": {
       "files": 141,
-      "lines": 35009
+      "lines": 35018
     }
   },
   "config_languages": {
     "markdown": {
-      "files": 102,
-      "lines": 33121
+      "files": 103,
+      "lines": 33214
     },
     "yaml": {
       "files": 4,
@@ -338,7 +338,7 @@
     },
     {
       "path": "src/ast_tools/embeddings/model.py",
-      "lines": 160,
+      "lines": 169,
       "classes": [],
       "functions": [
         "get_model",
