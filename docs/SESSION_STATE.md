@@ -1,11 +1,12 @@
-# SESSION STATE — 2026-08-01
+# Session State — 2026-07-03
 
 ## Active Project: ast-tools
 
 **Repo:** `~/Workspaces/ast-tools/`
 **Branch:** master
+**Last commit:** `b48eabe` — fix: restore missing main() entry point
 
-## Phase Status
+## Actual Phase Status (verified against git log + source)
 
 | Phase | Description | Status | Commit |
 |-------|-------------|--------|--------|
@@ -15,55 +16,56 @@
 | Phase 3 | Code Quality Audit Fixes | ✅ COMPLETE | `9096097` |
 | Phase 3A | TS Structural Editing (ts_edit) | ✅ COMPLETE | `0f9fd6b` |
 | Phase 4 | Documentation Cleanup | ✅ COMPLETE | `4ba4f44` |
+| Phase 5 | Knowledge Graph (graph engine, 3 MCP tools) | ✅ COMPLETE | `70859ae` |
+| Phase 6 | Co-Change Analysis (GitMiner, hotspots, 4 MCP tools) | ✅ COMPLETE | `fd3b019` |
+| Phase 7 | Performance Optimization | ⚠️ PARTIAL (3/6 tasks) | See plans |
 | Phase 8 | Context Injection + Semantic Search | ✅ COMPLETE | `34a8094` |
 | Phase 8.1-8.3 | Incremental Indexing (Symbol-Level Diff) | ✅ COMPLETE | `061a8c5` |
 | Phase 9 | Schema Enrichments (v5) | ✅ COMPLETE | `6e96ee3` |
-| Phase 10A | Code Validate Syntax | ✅ DONE | `27cb4bd` |
-| Phase 10A | repo_skeleton | ✅ COMPLETE | `repo_skeleton.py` + 30 tests |
-| Phase 10A | file_related_suggest | ✅ COMPLETE | `file_related.py` + 18 tests |
+| Phase 10A | Code Validate Syntax + repo_skeleton + file_related | ✅ COMPLETE | `70859ae` |
+| Phase 10.1 | Transitive Import Resolution | ✅ COMPLETE | `a326fca` |
+| Phase 10.2 | Class Hierarchy Analysis (MRO, methods, interfaces) | ✅ COMPLETE | `b270e2d` |
+| Phase 10.3 | Blast Radius v2 (unified impact analysis) | ✅ COMPLETE | `81b3c36` |
+| Phase A (Ship) | Deploy, publish, polish | 📋 Planned | — |
+| Phase B (Governance) | Removed — bogus commits rolled back | ❌ VOID | — |
+| Phase C (Killer Features) | Auto-fix, reranker, dashboard | 📋 Planned | — |
+| Phase D (Launch) | Multi-arch, release pipeline | 📋 Planned | — |
 
 ## Key Metrics
-- **45 tools** registered (core AST, project intel, symbol search, analysis, deps, index mgmt, LSP, context, validation, TS editing, curator, skeleton, suggestions)
-- **461+ tests** collected across 33 test files
-- **69 source files** across 17 subdirectories
-- **17,581 lines of code**
-- **Schema v5** (symbols, embeddings, edges, dependency metrics, KNN graph, audit log)
-- **3 Hermes plugins** (ast-tools-context, ast-tools-tokens, ast-tools-project-context)
 
-## Work Completed
+| Metric | Value |
+|--------|-------|
+| **MCP Tools** | 55 |
+| **Source .py files** | 82 |
+| **Test files** | 51 |
+| **Hermes plugins** | 3 (context, tokens, codebase-index) |
+| **OSS standard files** | 11 |
+| **CI/CD workflows** | 8 |
+| **Schema** | v5 (symbols, embeddings, edges, dependency metrics, KNN graph, audit log) |
 
-### Phase 8.1-8.3: Incremental Indexing
-- Symbol-level diff engine (`diff.py`, 183 lines)
-- SHA256 content-hash based incremental refresh
-- Database helpers: get_symbols_by_file, delete_symbol_cascade, update_symbol_fields
-- 30 new tests
+## Phase 7 Remaining Work
 
-### Documentation Audit (2026-08-01)
-- Full recursive documentation audit — ALL active docs verified against source code
-- README.md rewritten (43 tools, correct project structure, accurate counts)
-- CHANGELOG.md updated (v0.1.1-dev with incremental indexing, fixed tool counts)
-- DOCUMENTATION_INDEX.md refreshed (43 tools, 33 test files, 461+ tests)
-- AST_TOOLS_QUICKSTART.md: 26→43 tools
-- TROUBLESHOOTING.md: version/tool count updated
-- SETUP_INSTRUCTIONS.md: hardcoded paths removed, 3 plugins documented
-- MARKET_ANALYSIS_2026.md: internal references generalized
-- COMPETITIVE_FEATURE_PARITY_20260628.md: historical snapshot note added
-- ROADMAP.md: test count corrected to 461+
-- ENHANCED_DEAD_CODE.md, CLI_REFERENCE.md, USAGE_RULES.md: version/tool count fixes
-- SESSION_STATE.md: rewritten with current state (this document)
+| ID | Task | Status |
+|----|------|--------|
+| 7.1 | AST Pattern Cache (lru_cache on ast_grep) | ✅ DONE |
+| 7.2 | Connection Caching (threading.local pool) | ✅ DONE |
+| 7.3 | Parallel Test Suite (pytest-xdist) | ✅ DONE |
+| 7.4 | Lazy Embedding Model Loading | 🔴 Not started |
+| 7.5 | Index Auto-Init / Incremental Default | ⚠️ Partial |
+| 7.6 | Token Budget Enforcement (truncated flag) | 🔴 Not started |
 
-## Key Decisions
-- Incremental indexing uses `(file_path, qualified_name)` as match key
-- Document version = v0.1.0 (from pyproject.toml) across all docs
-- Historical audit/competitive docs kept as snapshots with dated header notes
-- Tool count unified to 43 across all documentation
+## Issues Fixed This Session
 
-## Remaining Work
-- **repo_skeleton** — Project type detection + dependency inference + ASCII tree
-- **file_related_suggest** — Test file suggestion + sibling detection + call graph integration
-- **Phase 9 expansion** — Multi-repo support, knowledge graph query layer
-- **Phase 5** — Knowledge Graph Completion (15h est.)
-- **Phase 6** — Co-Change Analysis (12h est.)
-- **Phase 7** — Performance Optimization (8h est.)
-- Gateway restart on both machines after config changes
-- Server `git pull` for latest commits
+1. **ast_tools_server.py: main() entry point restored** — was accidentally deleted in Phase 5 cleanup (commit `a45d137`). MCP server was starting, importing tools, and exiting immediately without serving.
+2. **GitHub MCP server auth fixed** — added `GITHUB_TOKEN` env var to MCP config
+3. **mcp_discovery_timeout increased** — 2.5s → 60s (ast-tools takes ~8s to load)
+4. **context_file_max_chars fixed** — quoted string `'250000'` → integer `250000`
+5. **Bogus Kanban/governance commits removed** — reset master to `4cf2254`, cherry-picked legitimate fix
+
+## Next Steps
+
+1. Phase 7 completion (tasks 7.4-7.6: lazy embeddings, incremental default, token budget)
+2. Phase A (Ship): docs cleanup, release pipeline, publish
+3. Phase C (Killer Features): auto-fix pipeline, cross-encoder reranker, architecture dashboard
+4. Gateway restart on both machines for MCP tools to register
+5. Server `git pull` for latest commits

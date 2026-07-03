@@ -213,7 +213,7 @@ ast summary --format markdown
 
 **Output (concise):**
 ```
-ast-tools v0.1.0 — 97 files, 22,798 lines, 64 modules
+ast-tools v0.1.2-dev — 82 source files, 55 tools, 51 test files
 ```
 
 **Output (markdown):**

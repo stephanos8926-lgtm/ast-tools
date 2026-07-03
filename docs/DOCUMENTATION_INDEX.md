@@ -1,6 +1,6 @@
 # AST-Tools Documentation Index
 
-**Last updated:** 2026-08-01  
+**Last updated:** 2026-07-03  
 **Version:** 0.1.0
 
 ---
@@ -9,7 +9,7 @@
 
 | Document | Purpose |
 |----------|---------|
-| [README.md](../README.md) | Project overview & 43 tools |
+| [README.md](../README.md) | Project overview & 55 tools |
 | [SETUP_INSTRUCTIONS.md](../SETUP_INSTRUCTIONS.md) | Hermes plugin installation |
 | [AST_TOOLS_QUICKSTART.md](AST_TOOLS_QUICKSTART.md) | User guide & workflows |
 
@@ -56,51 +56,13 @@ See [archive/](archive/) for obsolete docs (21 files):
 
 | Metric | Value |
 |--------|-------|
+| **MCP Tools** | 55 |
+| **Source files** | 82 |
+| **Test files** | 51 |
+| **CLI commands** | 11 |
+| **Schema** | v5 |
+| **Hermes plugins** | 3 |
 | **Active docs** | 12 |
 | **Archived docs** | 21 |
-| **Consolidated history docs** | 4 |
-| **Total markdown files** | 37+ |
-| **MCP Tools** | 43 |
-| **CLI Commands** | 11 |
-| **Test Files** | 33 |
-| **Source Files** | 69 |
-| **Lines of Code** | 17,581 |
-| **Tests collected** | 461+ |
-
----
-
-## Key Workflows
-
-### Structural Analysis
-```bash
-# Search codebase
-ast search "authentication logic" --limit 10
-
-# Navigate to symbol
-ast navigate "UserController"
-
-# Impact analysis
-ast blast-radius src/auth.py:42
-
-# Find dead code
-ast find-dead --format json
-```
-
-### Semantic Search (Python API)
-```python
-from ast_tools.tools.semantic_search import _tool_semantic_search
-result = await _tool_semantic_search({
-    "query": "websocket auth",
-    "k": 10,
-    "inject_context": True,
-    "token_budget": 4096
-})
-```
-
----
-
-## See Also
-
-- [CHANGELOG.md](../CHANGELOG.md) — Version history
-- [pyproject.toml](../pyproject.toml) — Project configuration
-- [tests/](../tests/) — Test suite (33 files)
+| **CI/CD workflows** | 8 |
+| **OSS standard files** | 11 |
