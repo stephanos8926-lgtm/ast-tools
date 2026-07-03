@@ -1,0 +1,46 @@
+# Auto-detect text vs binary
+* text=auto
+
+# Python
+*.py text diff=python
+*.pyi text diff=python
+*.pyx text
+
+# Configuration
+*.toml text
+*.yaml text
+*.yml text
+*.cfg text
+*.ini text
+*.conf text
+
+# Documentation
+*.md text diff=markdown
+*.rst text
+*.txt text
+
+# Shell
+*.sh text eol=lf
+*.bash text eol=lf
+*.zsh text eol=lf
+
+# Editors
+.editorconfig text
+.gitattributes text
+.gitignore text
+
+# Static files
+*.svg text
+*.css text
+*.html text
+*.json text
+
+# Binary files
+*.png binary
+*.jpg binary
+*.ico binary
+*.whl binary
+*.tar.gz binary
+
+# Git generated files
+CHANGELOG.md merge=union

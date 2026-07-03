@@ -1,12 +1,12 @@
 {
   "name": "ast-tools",
   "version": "0.1.0",
-  "generated": "2026-07-03T10:01:25.329925+00:00",
+  "generated": "2026-07-03T11:44:14.995344+00:00",
   "generator": "ast-tools-project-v1",
   "languages": {
     "markdown": {
-      "files": 99,
-      "lines": 32706
+      "files": 100,
+      "lines": 32831
     },
     "yaml": {
       "files": 4,
@@ -37,8 +37,8 @@
   },
   "config_languages": {
     "markdown": {
-      "files": 99,
-      "lines": 32706
+      "files": 100,
+      "lines": 32831
     },
     "yaml": {
       "files": 4,

@@ -1,38 +1,46 @@
 ## Description
 
-<!-- Briefly describe what this PR does -->
+<!-- Provide a clear, concise description of the changes. -->
 
-## Related Issue
-
-<!-- Link to the issue this PR fixes, if applicable -->
-Fixes #
+Fixes #(issue)
 
 ## Type of Change
 
-- [ ] Bug fix (non-breaking change that fixes an issue)
-- [ ] New feature (non-breaking change that adds functionality)
-- [ ] Breaking change (fix or feature that would break existing functionality)
+- [ ] Bug fix (non-breaking change fixing an issue)
+- [ ] New feature (non-breaking change adding functionality)
+- [ ] Breaking change (fix or feature that breaks existing behavior)
 - [ ] Performance improvement
 - [ ] Documentation update
 - [ ] Refactoring (no functional changes)
-- [ ] CI/CD or build changes
 
 ## Checklist
 
-- [ ] Code follows style guidelines (ruff check passes)
-- [ ] Tests added/updated and passing
-- [ ] Documentation updated (README, docs/, CLI reference)
-- [ ] CHANGELOG.md updated
+### Code Quality
+
+- [ ] Code follows project style guidelines (`ruff check` passes)
+- [ ] Type hints added for all public functions
+- [ ] Google-style docstrings for public APIs
 - [ ] No new warnings or errors
-- [ ] Backward compatible (or breaking changes documented)
-- [ ] For new tools: registered in `__init__.py` with schema
 
-## Test Results
+### Tests
 
-```
-# Paste the output of `pytest tests/ -q --tb=short` here
-```
+- [ ] Tests added/updated for new or changed code
+- [ ] All tests pass (`pytest tests/ -q`)
+- [ ] Coverage maintained or improved
 
-## Additional Context
+### Documentation
 
-<!-- Any additional information, screenshots, or context -->
+- [ ] README updated if tool count or categories changed
+- [ ] CLI reference updated if commands changed
+- [ ] CHANGELOG.md updated under `[Unreleased]`
+- [ ] Documentation reflects actual behavior
+
+### Tool Registration
+
+- [ ] Tool registered in `src/ast_tools/tools/__init__.py`
+- [ ] Tool schema added (input parameters documented)
+- [ ] Backward compatible or breaking changes noted
+
+## Additional Notes
+
+<!-- Any special considerations, migration steps, or context for reviewers. -->

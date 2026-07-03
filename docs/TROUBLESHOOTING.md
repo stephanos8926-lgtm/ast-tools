@@ -169,7 +169,7 @@ mcp_ast_tools_ast_grep pattern='def $FUNC($$$ARGS): $$$BODY' lang="python"
 - `add_parameter` — Add parameter to function
 - `change_signature` — Modify function signature
 
-See `docs/AST_EDIT_OPERATIONS.md` for full reference.
+See `ast_tools` CLI help or `docs/AST_TOOLS_QUICKSTART.md` for full operation details.
 
 ---
 
@@ -312,7 +312,7 @@ Before claiming ANY task done:
 
 - Say **"ast-tools help"** for full tool reference
 - Load skill: `skill_view("ast-tools-usage")`
-- Check docs: `docs/AST_TOOLS_USAGE.md`
+- Check docs: `docs/AST_TOOLS_QUICKSTART.md`
 
 ### Code inspection
 

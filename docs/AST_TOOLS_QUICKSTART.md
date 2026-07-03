@@ -449,7 +449,7 @@ hermes mcp call ast-tools ast_grep '{"pattern": "def $FUNC", "lang": "python", "
 # Test semantic search
 hermes mcp call ast-tools semantic_search '{"query": "test", "k": 1}'
 
-# Verify tool count (should be 26+)
+# Verify tool count (should be 55)
 python3 -c "from ast_tools.tools import TOOL_REGISTRY; print(len(TOOL_REGISTRY))"
 ```
 
