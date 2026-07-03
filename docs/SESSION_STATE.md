@@ -27,6 +27,7 @@
 | Phase 10.1 | Transitive Import Resolution | ✅ COMPLETE | `a326fca` |
 | Phase 10.2 | Class Hierarchy Analysis (MRO, methods, interfaces) | ✅ COMPLETE | `b270e2d` |
 | Phase 10.3 | Blast Radius v2 (unified impact analysis) | ✅ COMPLETE | `81b3c36` |
+| Phase 6F | True 6-Factor RRF | ✅ COMPLETE | `2223ebd` |
 | Phase A (Ship) | Deploy, publish, polish | 📋 Planned | — |
 | Phase B (Governance) | Removed — bogus commits rolled back | ❌ VOID | — |
 | Phase C (Killer Features) | Auto-fix, reranker, dashboard | 📋 Planned | — |
@@ -38,7 +39,7 @@
 |--------|-------|
 | **MCP Tools** | 55 |
 | **Source .py files** | 82 |
-| **Test files** | 42 |
+| **Test files** | 53 (includes 3 new for Phase 6F: RRF, 6-factor search, injector fix) |
 | **Hermes plugins** | 3 (context, tokens, codebase-index) |
 | **OSS standard files** | 15 (README, LICENSE, CHANGELOG, CONTRIBUTING, CODE_OF_CONDUCT, SECURITY, SUPPORT, pyproject.toml, setup.cfg, .editorconfig, .gitattributes, .pre-commit-config.yaml, .gitignore, bug_report.md, feature_request.md + PULL_REQUEST_TEMPLATE.md) |
 | **CI/CD workflows** | 5 (codeql, pylint, pyre, publish, summarize-issues) |

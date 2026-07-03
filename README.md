@@ -13,7 +13,7 @@ Structural code analysis and editing MCP server — **55 tools** for Python, Typ
 ## Features
 
 - **55 MCP tools** across 12 categories — structural search, semantic analysis, code editing, dependency analysis, class hierarchy, blast radius, knowledge graphs, co-change analysis, and more
-- **Hybrid search**: 6-factor semantic + keyword fusion (RRF) via sqlite-vec — finds code by meaning, not just name
+- **Hybrid search**: True 6-factor RRF fusion — FTS5 keyword + vector semantic + recency + usage frequency + symbol kind + callgraph centrality. Fused via Reciprocal Rank Fusion (k=60) for robust multi-dimension ranking. — finds code by meaning, not just name
 - **Multi-language**: 20+ languages via tree-sitter with full structural awareness
 - **Incremental indexing**: SHA256 content-hash based, symbol-level diff — reindex in milliseconds
 - **Hermes plugins**: 3 auto-injecting plugins for context, tokens, and codebase indexing

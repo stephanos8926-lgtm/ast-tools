@@ -4,6 +4,10 @@ All notable changes to the AST-Tools MCP server.
 
 ## [v0.1.2-dev] — 2026-07-03
 
+### ✨ Features
+- **True 6-factor RRF**: `semantic_search` now fuses 6 ranking dimensions — FTS5 + vector + recency + usage + kind priority + callgraph centrality via `utils/rrf.py` (Reciprocal Rank Fusion, k=60)
+- **ContextInjector fixed**: callgraph factor now reads real `dependency_metrics.centrality` from DB (was hardcoded 0.5 stub)
+
 ### 🔧 Fixes
 - **ast_tools_server.py**: Restored missing `main()` entry point and `if __name__` block (was accidentally deleted in Phase 5 server cleanup, commit `a45d137`). MCP server was starting, importing all tools, and exiting without serving.
 - **GitHub MCP**: Added `GITHUB_TOKEN` env var to MCP server config (was unauthenticated)
