@@ -465,6 +465,13 @@
     "src/ast_tools/kg/__init__.py",
     "src/ast_tools/kg/graph_engine.py"
   ],
+  "tests/smoke_test.py": [
+    "src/ast_tools/__init__.py",
+    "src/ast_tools/_project_tools.py",
+    "src/ast_tools/_server.py",
+    "src/ast_tools/cli.py",
+    "src/ast_tools/tools/__init__.py"
+  ],
   "tests/test_cli.py": [],
   "tests/test_diff.py": [
     "src/ast_tools/__init__.py",

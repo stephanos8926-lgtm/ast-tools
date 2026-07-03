@@ -1,7 +1,7 @@
 {
   "name": "ast-tools",
   "version": "0.1.0",
-  "generated": "2026-07-03T16:23:22.187158+00:00",
+  "generated": "2026-07-03T16:39:03.430798+00:00",
   "generator": "ast-tools-project-v1",
   "languages": {
     "markdown": {
@@ -25,14 +25,14 @@
       "lines": 200
     },
     "python": {
-      "files": 141,
-      "lines": 35022
+      "files": 142,
+      "lines": 35089
     }
   },
   "code_languages": {
     "python": {
-      "files": 141,
-      "lines": 35022
+      "files": 142,
+      "lines": 35089
     }
   },
   "config_languages": {
@@ -79,13 +79,15 @@
     "src/ast_tools/tools/curator.py#if-__name__",
     "src/ast_tools/watcher/daemon.py#if-__name__",
     "src/ast_tools/watcher/daemon.py#sys.argv",
+    "tests/smoke_test.py#if-__name__",
+    "tests/smoke_test.py#main",
     "tests/test_cli.py#if-__name__",
     "tests/test_enhanced_dead_code.py#if-__name__",
     "tests/tools/test_semantic_search_context.py#if-__name__",
     "tests/watcher/test_daemon.py#if-__name__"
   ],
   "test_framework": "pytest",
-  "test_files": 52,
+  "test_files": 53,
   "test_command": "python3 -m pytest",
   "modules": [
     {
@@ -987,6 +989,14 @@
         "TestGraphEngine"
       ],
       "functions": []
+    },
+    {
+      "path": "tests/smoke_test.py",
+      "lines": 67,
+      "classes": [],
+      "functions": [
+        "main"
+      ]
     },
     {
       "path": "tests/test_cli.py",

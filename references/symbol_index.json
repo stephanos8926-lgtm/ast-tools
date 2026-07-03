@@ -170,8 +170,8 @@
     "type": "function"
   },
   "main": {
-    "file": "src/ast_tools/cli.py",
-    "line": 809,
+    "file": "tests/smoke_test.py",
+    "line": 5,
     "type": "function"
   },
   "GitMiner": {

@@ -139,5 +139,6 @@
   "src/ast_tools/utils/rrf.py": "b8d4625d1219c3f736e3112949fe86a7",
   "tests/tools/test_rrf.py": "9bcf09bb5f6187a930c1180a5a95a1e5",
   "src/ast_tools/_project_tools.py": "83e060152e27e2f7e8eaf08f9cdf26bb",
-  "src/ast_tools/_server.py": "0588c8bf94ceb7c5c3c3670eb2a53c4e"
+  "src/ast_tools/_server.py": "0588c8bf94ceb7c5c3c3670eb2a53c4e",
+  "tests/smoke_test.py": "05fa51e29932cb676d457fa1dfa8021d"
 }
