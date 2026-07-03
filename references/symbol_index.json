@@ -21,7 +21,7 @@
   },
   "register": {
     "file": "hermes-plugins/ast-tools-tokens/__init__.py",
-    "line": 108,
+    "line": 144,
     "type": "function"
   },
   "inject_ast_tools_context": {
@@ -169,6 +169,26 @@
     "line": 421,
     "type": "function"
   },
+  "cmd_config_path": {
+    "file": "src/ast_tools/cli.py",
+    "line": 812,
+    "type": "function"
+  },
+  "cmd_config_init": {
+    "file": "src/ast_tools/cli.py",
+    "line": 822,
+    "type": "function"
+  },
+  "cmd_config_show": {
+    "file": "src/ast_tools/cli.py",
+    "line": 841,
+    "type": "function"
+  },
+  "cmd_config_validate": {
+    "file": "src/ast_tools/cli.py",
+    "line": 858,
+    "type": "function"
+  },
   "main": {
     "file": "tests/smoke_test.py",
     "line": 5,
@@ -182,6 +202,56 @@
   "compute_hotspots": {
     "file": "src/ast_tools/cochange/hotspot.py",
     "line": 10,
+    "type": "function"
+  },
+  "ConfigError": {
+    "file": "src/ast_tools/config/loader.py",
+    "line": 10,
+    "type": "class"
+  },
+  "get_config_dir": {
+    "file": "src/ast_tools/config/loader.py",
+    "line": 26,
+    "type": "function"
+  },
+  "get_cache_dir": {
+    "file": "src/ast_tools/config/loader.py",
+    "line": 38,
+    "type": "function"
+  },
+  "get_data_dir": {
+    "file": "src/ast_tools/config/loader.py",
+    "line": 48,
+    "type": "function"
+  },
+  "ensure_config_dir": {
+    "file": "src/ast_tools/config/loader.py",
+    "line": 58,
+    "type": "function"
+  },
+  "migrate_legacy": {
+    "file": "src/ast_tools/config/loader.py",
+    "line": 67,
+    "type": "function"
+  },
+  "load_config": {
+    "file": "src/ast_tools/config/loader.py",
+    "line": 109,
+    "type": "function"
+  },
+  "load_tokens_config": {
+    "file": "src/ast_tools/config/loader.py",
+    "line": 119,
+    "type": "function"
+  },
+  "write_config": {
+    "file": "src/ast_tools/config/loader.py",
+    "line": 132,
+    "type": "function"
+  },
+  "validate_config": {
+    "file": "src/ast_tools/config/validate.py",
+    "line": 6,
     "type": "function"
   },
   "MarkdownFormatter": {
@@ -733,6 +803,26 @@
     "file": "src/ast_tools/kg/graph_engine.py",
     "line": 15,
     "type": "class"
+  },
+  "AuditLogger": {
+    "file": "src/ast_tools/logutil/audit.py",
+    "line": 61,
+    "type": "class"
+  },
+  "write_audit": {
+    "file": "src/ast_tools/logutil/audit.py",
+    "line": 37,
+    "type": "function"
+  },
+  "setup_logging": {
+    "file": "src/ast_tools/logutil/setup.py",
+    "line": 11,
+    "type": "function"
+  },
+  "get_logger": {
+    "file": "src/ast_tools/logutil/setup.py",
+    "line": 44,
+    "type": "function"
   },
   "LSPClient": {
     "file": "src/ast_tools/lsp_client.py",

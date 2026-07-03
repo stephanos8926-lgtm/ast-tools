@@ -806,6 +806,74 @@ def _print_refs_markdown(refs: list) -> None:
         print(f"\n_... and {len(refs) - 20} more_")
 
 
+# ─── Config Commands ─────────────────────────────────────────────────
+
+
+def cmd_config_path(args: argparse.Namespace) -> int:
+    """Print config directory path."""
+    from ast_tools.config.loader import ensure_config_dir, get_config_dir
+
+    cfg = get_config_dir()
+    ensure_config_dir()
+    print(str(cfg))
+    return 0
+
+
+def cmd_config_init(args: argparse.Namespace) -> int:
+    """Create default config files."""
+    import yaml
+
+    from ast_tools.config.loader import ensure_config_dir
+    from ast_tools.config.tokens_schema import DEFAULT_TOKENS
+
+    cfg = ensure_config_dir()
+    tokens_path = cfg / "config" / "tokens.yaml"
+    if not tokens_path.exists():
+        tokens_path.write_text(yaml.dump(DEFAULT_TOKENS, default_flow_style=False))
+        tokens_path.chmod(0o600)
+        print(f"✅ Created {tokens_path}")
+    else:
+        print(f"ℹ️  Already exists: {tokens_path}")
+    print(f"📁 Config directory: {cfg}")
+    return 0
+
+
+def cmd_config_show(args: argparse.Namespace) -> int:
+    """Show current configuration."""
+    from ast_tools.config.loader import get_config_dir, load_tokens_config
+
+    cfg = get_config_dir()
+    print(f"Config directory: {cfg}")
+    print()
+    tokens = load_tokens_config()
+    if tokens:
+        print("Token budgets:")
+        for tool, budgets in sorted(tokens.items()):
+            inp = budgets.get("max_input_tokens", "?")
+            out = budgets.get("max_output_tokens", "?")
+            print(f"  {tool}: in={inp}, out={out}")
+    return 0
+
+
+def cmd_config_validate(args: argparse.Namespace) -> int:
+    """Validate all config files."""
+    from ast_tools.config.validate import validate_config
+
+    result = validate_config()
+    if result["valid"]:
+        print("✅ Config valid")
+        return 0
+    for err in result["errors"]:
+        file = err.get("file", "")
+        warning = err.get("warning", "")
+        error = err.get("error", "")
+        if warning:
+            print(f"⚠️  {file}: {warning}")
+        if error:
+            print(f"❌ {file}: {error}")
+    return 0 if result["valid"] else 1
+
+
 def main() -> int:
     """Main CLI entry point."""
     parser = argparse.ArgumentParser(
@@ -1139,10 +1207,16 @@ def main() -> int:
     )
     config_sub = config_p.add_subparsers(dest="config_cmd")
     config_show_p = config_sub.add_parser("show", help="Show current configuration")
-    config_show_p.set_defaults(func=lambda a: print("Config path: ~/.ast-tools/config/\nRun 'doctor' to validate"))
+    config_show_p.set_defaults(func=cmd_config_show)
 
     config_validate_p = config_sub.add_parser("validate", help="Validate configuration")
-    config_validate_p.set_defaults(func=lambda a: print("Run 'doctor --verbose' to validate config"))
+    config_validate_p.set_defaults(func=cmd_config_validate)
+
+    config_init_p = config_sub.add_parser("init", help="Create default config files")
+    config_init_p.set_defaults(func=cmd_config_init)
+
+    config_path_p = config_sub.add_parser("path", help="Print config directory path")
+    config_path_p.set_defaults(func=cmd_config_path)
 
     # ——————————————————
     # Dispatch

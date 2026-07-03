@@ -54,7 +54,7 @@
   "tests/embeddings/test_model.py": "4292560d8dc4cca927fcc36e81ac1be3",
   "tests/embeddings/test_store.py": "01fd389460b1712893d661c94d99e354",
   "hermes-plugins/ast-tools-context/__init__.py": "4f7ee7aef99d99d29857405ec6a4e936",
-  "hermes-plugins/ast-tools-tokens/__init__.py": "195096e32228a7bf7a89343d37736c60",
+  "hermes-plugins/ast-tools-tokens/__init__.py": "4ba16c7fc224f9bad4fd27a292866f8f",
   "src/ast_tools/benchmarks/phase9_benchmark.py": "47ac9bb613220d341268e170bb47af90",
   "src/ast_tools/context/__init__.py": "7bd26ad2b3f1d85a4702df167da3d1d3",
   "src/ast_tools/context/formatters.py": "795750a5b209122ddc192ed49176d102",
@@ -94,7 +94,7 @@
   "tests/test_security.py": "9295f216c34cf5b504725702d6d4b98a",
   "src/ast_tools/tools/enhanced_dead_code.py": "f44817ce48dd8b944a09604b53d28e6c",
   "tests/test_enhanced_dead_code.py": "ea555f0fbe2c772bb33f2bf6a4bcbec6",
-  "src/ast_tools/cli.py": "3f20f2a8ae879a6a753bf214e5562d9b",
+  "src/ast_tools/cli.py": "b911efd68344d70fc910dd301317e5c2",
   "tests/test_cli.py": "33b943a305c02bf7fb5aa6f85fbafbd8",
   "src/ast_tools/tools/ts_edit.py": "a967272daca19834a23a81d5ca98dceb",
   "src/ast_tools/indexer/diff.py": "1b46c4c0666c3c4b1a8c8ee02c3fae43",
@@ -140,5 +140,12 @@
   "tests/tools/test_rrf.py": "9bcf09bb5f6187a930c1180a5a95a1e5",
   "src/ast_tools/_project_tools.py": "83e060152e27e2f7e8eaf08f9cdf26bb",
   "src/ast_tools/_server.py": "0588c8bf94ceb7c5c3c3670eb2a53c4e",
-  "tests/smoke_test.py": "05fa51e29932cb676d457fa1dfa8021d"
+  "tests/smoke_test.py": "05fa51e29932cb676d457fa1dfa8021d",
+  "src/ast_tools/config/__init__.py": "354302531723e3414612025f8c62fd00",
+  "src/ast_tools/config/loader.py": "25cd906674976c3085f56f536ddbf8ff",
+  "src/ast_tools/config/tokens_schema.py": "b3130565e451aadde0bacb953e3575e8",
+  "src/ast_tools/config/validate.py": "d5878a3ab895a1f1ec3d7a7fd2b9a990",
+  "src/ast_tools/logutil/__init__.py": "54e4faa419a0bd78914395bb90da7a79",
+  "src/ast_tools/logutil/audit.py": "78f0021ebea877664d117d53a0ad4583",
+  "src/ast_tools/logutil/setup.py": "1f3650b6ee2cba71de4b60f9335e6847"
 }

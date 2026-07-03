@@ -12,12 +12,48 @@ from pathlib import Path
 from typing import Any
 
 from hermes_cli.plugins import PluginContext
+from ast_tools.config.loader import load_tokens_config
+from ast_tools.config.tokens_schema import DEFAULT_TOKENS
 
 logger = logging.getLogger(__name__)
 
-# ── Default budgets (fallback when no config file) ──────────────────────
 
-_DEFAULT_BUDGETS: dict[str, int] = {
+# ── Config loader ──────────────────────────────────────────────────────
+
+
+def _load_tokens_config() -> dict[str, Any]:
+    """Load token budgets from ~/.ast-tools/config/tokens.yaml.
+
+    Falls back to default token budgets if file doesn't exist.
+    """
+    config_path = Path.home() / ".ast-tools" / "config" / "tokens.yaml"
+
+    if not config_path.exists():
+        return dict(DEFAULT_TOKENS)
+
+    try:
+        import yaml
+        raw = yaml.safe_load(config_path.read_text())
+        if raw and isinstance(raw, dict):
+            # Merge: raw values override defaults
+            merged = dict(DEFAULT_TOKENS)
+            for key, val in raw.items():
+                if key in merged and isinstance(merged[key], dict) and isinstance(val, dict):
+                    merged[key].update(val)
+                else:
+                    merged[key] = val
+            return merged
+    except Exception as e:
+        logger.warning(f"Failed to load tokens.yaml from {config_path}: {e}")
+
+    return dict(DEFAULT_TOKENS)
+
+
+# ── Error correction patterns ───────────────────────────────────────────
+
+_AST_TOOLS_ERROR_CORRECTIONS: dict[str, dict[str, str]] = {
+    # ... (rest of the original _AST_TOOLS_ERROR_CORRECTIONS)
+
     "ast_grep": 2000,
     "structural_analysis": 4000,
     "impact_analysis": 3000,

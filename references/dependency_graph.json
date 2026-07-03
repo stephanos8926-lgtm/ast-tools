@@ -4,7 +4,11 @@
     "src/ast_tools/_server.py"
   ],
   "hermes-plugins/ast-tools-context/__init__.py": [],
-  "hermes-plugins/ast-tools-tokens/__init__.py": [],
+  "hermes-plugins/ast-tools-tokens/__init__.py": [
+    "src/ast_tools/config/__init__.py",
+    "src/ast_tools/config/loader.py",
+    "src/ast_tools/config/tokens_schema.py"
+  ],
   "src/ast_tools/__init__.py": [],
   "src/ast_tools/_project_tools.py": [],
   "src/ast_tools/_server.py": [
@@ -21,6 +25,10 @@
     "src/ast_tools/utils/secret_sanitizer.py"
   ],
   "src/ast_tools/cli.py": [
+    "src/ast_tools/config/__init__.py",
+    "src/ast_tools/config/loader.py",
+    "src/ast_tools/config/tokens_schema.py",
+    "src/ast_tools/config/validate.py",
     "src/ast_tools/context/__init__.py",
     "src/ast_tools/context/formatters.py",
     "src/ast_tools/curator/__init__.py",
@@ -44,6 +52,19 @@
   ],
   "src/ast_tools/cochange/git_miner.py": [],
   "src/ast_tools/cochange/hotspot.py": [],
+  "src/ast_tools/config/__init__.py": [
+    "src/ast_tools/config/loader.py",
+    "src/ast_tools/config/tokens_schema.py",
+    "src/ast_tools/config/validate.py"
+  ],
+  "src/ast_tools/config/loader.py": [
+    "src/ast_tools/config/tokens_schema.py"
+  ],
+  "src/ast_tools/config/tokens_schema.py": [],
+  "src/ast_tools/config/validate.py": [
+    "src/ast_tools/config/loader.py",
+    "src/ast_tools/config/tokens_schema.py"
+  ],
   "src/ast_tools/context/__init__.py": [
     "src/ast_tools/context/formatters.py",
     "src/ast_tools/context/history.py",
@@ -130,6 +151,18 @@
     "src/ast_tools/kg/graph_engine.py"
   ],
   "src/ast_tools/kg/graph_engine.py": [],
+  "src/ast_tools/logutil/__init__.py": [
+    "src/ast_tools/logutil/audit.py",
+    "src/ast_tools/logutil/setup.py"
+  ],
+  "src/ast_tools/logutil/audit.py": [
+    "src/ast_tools/config/__init__.py",
+    "src/ast_tools/config/loader.py"
+  ],
+  "src/ast_tools/logutil/setup.py": [
+    "src/ast_tools/config/__init__.py",
+    "src/ast_tools/config/loader.py"
+  ],
   "src/ast_tools/lsp_client.py": [],
   "src/ast_tools/tools/__init__.py": [
     "src/ast_tools/tools/ast_capsule.py",

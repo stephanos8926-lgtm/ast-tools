@@ -30,6 +30,8 @@ dependencies = [
     "anyio>=4.0",
     "libcst>=1.0",
     "mcp>=1.0",
+    "pyyaml>=6.0",
+    "jsonschema>=4.20.0",
     "sqlite-vec>=0.1.0",
     "sentence-transformers>=2.2.0",
     "tiktoken>=0.7.0",
@@ -138,4 +140,12 @@ exclude_lines = [
     "raise NotImplementedError",
     "if TYPE_CHECKING:",
     "if __name__ == .__main__.:",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+    "pytest-asyncio>=1.4.0",
+    "pytest-cov>=7.1.0",
+    "ruff>=0.15.20",
 ]

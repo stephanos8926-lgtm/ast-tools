@@ -1,12 +1,12 @@
 {
   "name": "ast-tools",
   "version": "0.1.0",
-  "generated": "2026-07-03T17:40:30.556660+00:00",
+  "generated": "2026-07-03T18:12:24.504792+00:00",
   "generator": "ast-tools-project-v1",
   "languages": {
     "markdown": {
-      "files": 103,
-      "lines": 33224
+      "files": 106,
+      "lines": 33436
     },
     "yaml": {
       "files": 4,
@@ -18,27 +18,27 @@
     },
     "toml": {
       "files": 1,
-      "lines": 141
+      "lines": 151
     },
     "shell": {
       "files": 5,
       "lines": 200
     },
     "python": {
-      "files": 142,
-      "lines": 35089
+      "files": 148,
+      "lines": 35522
     }
   },
   "code_languages": {
     "python": {
-      "files": 142,
-      "lines": 35089
+      "files": 148,
+      "lines": 35522
     }
   },
   "config_languages": {
     "markdown": {
-      "files": 103,
-      "lines": 33224
+      "files": 106,
+      "lines": 33436
     },
     "yaml": {
       "files": 4,
@@ -50,7 +50,7 @@
     },
     "toml": {
       "files": 1,
-      "lines": 141
+      "lines": 151
     },
     "shell": {
       "files": 5,
@@ -116,7 +116,7 @@
     },
     {
       "path": "hermes-plugins/ast-tools-tokens/__init__.py",
-      "lines": 192,
+      "lines": 228,
       "classes": [],
       "functions": [
         "register"
@@ -153,7 +153,7 @@
     },
     {
       "path": "src/ast_tools/cli.py",
-      "lines": 1160,
+      "lines": 1234,
       "classes": [],
       "functions": [
         "cmd_search",
@@ -167,6 +167,10 @@
         "cmd_callees",
         "cmd_deps",
         "cmd_browse",
+        "cmd_config_path",
+        "cmd_config_init",
+        "cmd_config_show",
+        "cmd_config_validate",
         "main"
       ]
     },
@@ -184,6 +188,31 @@
       "classes": [],
       "functions": [
         "compute_hotspots"
+      ]
+    },
+    {
+      "path": "src/ast_tools/config/loader.py",
+      "lines": 142,
+      "classes": [
+        "ConfigError"
+      ],
+      "functions": [
+        "get_config_dir",
+        "get_cache_dir",
+        "get_data_dir",
+        "ensure_config_dir",
+        "migrate_legacy",
+        "load_config",
+        "load_tokens_config",
+        "write_config"
+      ]
+    },
+    {
+      "path": "src/ast_tools/config/validate.py",
+      "lines": 38,
+      "classes": [],
+      "functions": [
+        "validate_config"
       ]
     },
     {
@@ -469,6 +498,25 @@
         "GraphEngine"
       ],
       "functions": []
+    },
+    {
+      "path": "src/ast_tools/logutil/audit.py",
+      "lines": 68,
+      "classes": [
+        "AuditLogger"
+      ],
+      "functions": [
+        "write_audit"
+      ]
+    },
+    {
+      "path": "src/ast_tools/logutil/setup.py",
+      "lines": 46,
+      "classes": [],
+      "functions": [
+        "setup_logging",
+        "get_logger"
+      ]
     },
     {
       "path": "src/ast_tools/lsp_client.py",
