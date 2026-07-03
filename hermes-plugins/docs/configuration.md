@@ -263,7 +263,7 @@ warning_trigger = 0.90  # Warn at 90% of threshold
   "mcpServers": {
     "ast-tools": {
       "command": "uvx",
-      "args": ["ast-tools-mcp"],
+      "args": ["rw-ast-tools"],
       "cwd": "/home/sysop/Workspaces",
       "env": {}
     }
@@ -279,7 +279,7 @@ warning_trigger = 0.90  # Warn at 90% of threshold
     "ast-tools": {
       "command": "uvx",
       "args": [
-        "ast-tools-mcp",
+        "rw-ast-tools",
         "--verbose",
         "--log-level", "info"
       ],
@@ -301,12 +301,12 @@ warning_trigger = 0.90  # Warn at 90% of threshold
   "mcpServers": {
     "ast-tools-project1": {
       "command": "uvx",
-      "args": ["ast-tools-mcp"],
+      "args": ["rw-ast-tools"],
       "cwd": "/home/sysop/Workspaces/project1"
     },
     "ast-tools-project2": {
       "command": "uvx",
-      "args": ["ast-tools-mcp"],
+      "args": ["rw-ast-tools"],
       "cwd": "/home/sysop/Workspaces/project2"
     }
   }
@@ -490,7 +490,7 @@ AST_TOOLS_TOKEN_BUDGETS = {
 **Solution:**
 1. Verify MCP config syntax: `python3 -m json.tool ~/.hermes/mcp.json`
 2. Check command path: `which uvx`
-3. Test MCP server manually: `uvx ast-tools-mcp`
+3. Test MCP server manually: `uvx rw-ast-tools`
 4. Check Hermes MCP status: `hermes mcp status`
 
 #### Wrong Project Indexed
@@ -573,7 +573,7 @@ plugins:
   "mcpServers": {
     "ast-tools": {
       "command": "uvx",
-      "args": ["ast-tools-mcp"],
+      "args": ["rw-ast-tools"],
       "cwd": "/home/sysop/Workspaces/production-project"
     }
   }

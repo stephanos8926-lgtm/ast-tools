@@ -9,8 +9,8 @@
 | ID | Task | Effort | Status |
 |----|------|--------|--------|
 | A1 | Fix server venv + sync source to rapidwebs | 1h | ✅ DONE this session |
-| A2 | Docs audit — fix pyproject name "ast-tools-mcp" across all .md files | 1h | 🔴 |
-| A3 | Update release.yaml CI/CD URL to pypi.org/p/ast-tools-mcp | 0.5h | 🔴 |
+| A2 | Docs audit — fix pyproject name "rw-ast-tools" across all .md files | 1h | 🔴 |
+| A3 | Update release.yaml CI/CD URL to pypi.org/p/rw-ast-tools | 0.5h | 🔴 |
 | A4 | PyPI first publish (`uv build && uv publish --token $PYPI_TOKEN`) | 0.5h | 🔴 |
 | A5 | README final OSS audit — verify no RapidWebs internals | 1h | ⚠️ Partial |
 | A6 | Publish benchmark numbers | 2h | 🔴 |

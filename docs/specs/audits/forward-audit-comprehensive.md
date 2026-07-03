@@ -41,10 +41,10 @@
 | Check | Finding |
 |-------|---------|
 | **Status** | **Partially implemented** |
-| **Does feature exist?** | **Partial.** `pyproject.toml` name is `ast-tools-mcp` ✅. `scripts/publish.sh` exists ✅. `.github/workflows/python-publish.yml` exists ✅. `docs/` has NOT been audited for name changes. |
+| **Does feature exist?** | **Partial.** `pyproject.toml` name is `rw-ast-tools` ✅. `scripts/publish.sh` exists ✅. `.github/workflows/python-publish.yml` exists ✅. `docs/` has NOT been audited for name changes. |
 | **File paths correct?** | ✅ `scripts/publish.sh` exists and matches the documented content. CLI entry points match `[project.scripts]` in pyproject.toml. |
 | **Interface contracts consistent?** | Minor inconsistency: ADR line 125 says "CLI remains: ast" but `publish.sh` line 29 correctly says "CLI entry points remain: ast-tools, ast-tools-server, ast-tools-project". The ADR text is wrong. |
-| **Already implemented?** | Partially: pyproject.toml ✅, publish.sh ✅, CI/CD ✅. Not done: `README.md` still references "ast-tools" not "ast-tools-mcp"; `docs/` haven't been updated; no PyPI registration yet. |
+| **Already implemented?** | Partially: pyproject.toml ✅, publish.sh ✅, CI/CD ✅. Not done: `README.md` still references "ast-tools" not "rw-ast-tools"; `docs/` haven't been updated; no PyPI registration yet. |
 | **Effort estimate realistic?** | Category A claims 1-2 days. Name decision is made, pipeline scripts exist. Remaining work is docs audit + first publish (~a few hours). |
 
 **Verdict: MOSTLY IMPLEMENTED — docs audit and first publish remain.**

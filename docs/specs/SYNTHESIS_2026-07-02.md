@@ -30,7 +30,7 @@
 - Import graph infrastructure already exists (`module_imports.py`, `impact_analysis.py`, `transitive_analysis.py`) — leverage these.
 
 ### 3. ADR-0011 + CI/CD Fix
-- `release.yaml` URL: `pypi.org/p/ast-tools` → `pypi.org/p/ast-tools-mcp`
+- `release.yaml` URL: `pypi.org/p/ast-tools` → `pypi.org/p/rw-ast-tools`
 - Add backward compat note: no shim possible since old `ast-tools` is unrelated package. Document clearly.
 
 ### 4. Category C: Realistic Effort
@@ -47,7 +47,7 @@
 ## Revised Architecture
 
 ```
-ast-tools-mcp/ (PyPI name)
+rw-ast-tools/ (PyPI name)
 ├── Phase 7: Remaining Opts (~4h) — AST cache, conn pool, parallel tests
 ├── Category A: Ship & Polish (~6h) — Server sync, docs audit, PyPI publish v0.1.0
 ├── Category B: Governance Engine (~6 days) 

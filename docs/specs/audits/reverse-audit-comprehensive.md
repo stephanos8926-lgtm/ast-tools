@@ -14,7 +14,7 @@
 **Actual Project State (verified):**
 - 53 tools registered, 17 CLI subcommands in `cli.py` (argparse)
 - No `governance/`, `fix/`, `reranker/`, `dashboard/` directories exist
-- `pyproject.toml` already at `name = "ast-tools-mcp"` v0.1.0
+- `pyproject.toml` already at `name = "rw-ast-tools"` v0.1.0
 - CI/CD exists: `release.yaml`, `ci.yaml`, `security-audit.yaml`
 - Existing import graph infrastructure in `dependencies.graph`, `module_imports.py`, `tools/impact_analysis.py`
 
@@ -105,9 +105,9 @@
 **Document:** 3  
 **Severity:** 🔴
 
-**What's missing:** The name changes from `ast-tools` to `ast-tools-mcp` on PyPI. Existing users who installed via `pip install ast-tools` will **not** get updates, and there is **zero** mechanism to bridge them:
+**What's missing:** The name changes from `ast-tools` to `rw-ast-tools` on PyPI. Existing users who installed via `pip install ast-tools` will **not** get updates, and there is **zero** mechanism to bridge them:
 
-- No shim/alias package `ast-tools` → `ast-tools-mcp` published on PyPI
+- No shim/alias package `ast-tools` → `rw-ast-tools` published on PyPI
 - No deprecation warning in the old `ast-tools` v0.1.8 (it's an unrelated package — we can't control it)
 - No migration instructions for users who have the old name in `requirements.txt`/`pyproject.toml`
 - No redirect or forwarding mechanism (PyPI doesn't support package aliases)
@@ -118,7 +118,7 @@
 1. Create a minimal `ast-tools` shim package on PyPI that imports and re-exports `ast_tools_mcp` with a deprecation warning
 2. Document the migration path prominently in README
 3. Submit a takedown request for PyPI project name squatting (the old package is unrelated and abandoned)
-4. Add `pip install ast-tools-mcp` as the install command everywhere
+4. Add `pip install rw-ast-tools` as the install command everywhere
 
 ---
 
@@ -133,11 +133,11 @@
 url: https://pypi.org/p/ast-tools
 ```
 
-But the actual package name is now `ast-tools-mcp`. The PyPI environment URL still references the old name.
+But the actual package name is now `rw-ast-tools`. The PyPI environment URL still references the old name.
 
 **Risk:** The GitHub Actions environment trust-publishing will fail or publish to the wrong project. The OIDC identity provider binding will not match.
 
-**Recommendation:** Update to `url: https://pypi.org/p/ast-tools-mcp`.
+**Recommendation:** Update to `url: https://pypi.org/p/rw-ast-tools`.
 
 ---
 
@@ -277,7 +277,7 @@ This means:
 
 **Risk:** The very first `import ast_tools` triggers a 10-15s SentenceTransformer load for ALL users, defeating the purpose of the Phase7 lazy loading optimization.
 
-**Recommendation:** Move `sentence-transformers` to an optional dependency group `[project.optional-dependencies] reranker = ["sentence-transformers>=2.2.0"]`. Document that `pip install ast-tools-mcp[reranker]` is required for the reranker.
+**Recommendation:** Move `sentence-transformers` to an optional dependency group `[project.optional-dependencies] reranker = ["sentence-transformers>=2.2.0"]`. Document that `pip install rw-ast-tools[reranker]` is required for the reranker.
 
 ---
 
@@ -522,7 +522,7 @@ D4 mentions "Dockerfile (ensure multi-arch support)" but doesn't specify multi-s
 | sentence-transformers in `[dependencies]` is **not** optional | All users pay 1GB+ download + 10-15s cold start | ADR-0009, pyproject.toml |
 | CrossEncoder model = 80MB disk with no cache management | Fills disk on repeated CI runs | ADR-0009 |
 | aarch64 CI not configured | Multi-arch builds will fail silently | Launch plan D4 |
-| `release.yaml` points to wrong PyPI URL | Publish to `ast-tools` instead of `ast-tools-mcp` | release.yaml |
+| `release.yaml` points to wrong PyPI URL | Publish to `ast-tools` instead of `rw-ast-tools` | release.yaml |
 | No `uv.lock` in repo | Non-reproducible builds | ADR-0011 |
 | `ast-tools` PyPI name not reclaimed | Users find wrong package | ADR-0011 |
 
@@ -543,7 +543,7 @@ D4 mentions "Dockerfile (ensure multi-arch support)" but doesn't specify multi-s
 
 ## Immediate Action Items (must-fix before any implementation)
 
-1. ✅ Update `release.yaml` PyPI URL to `ast-tools-mcp`
+1. ✅ Update `release.yaml` PyPI URL to `rw-ast-tools`
 2. ✅ Move `sentence-transformers` to `[project.optional-dependencies]`
 3. ✅ Define DB schema migration strategy for any feature touching the SQLite database
 4. ✅ Fix `release.yaml` environment URL (C5)

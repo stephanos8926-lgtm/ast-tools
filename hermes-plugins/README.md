@@ -242,7 +242,7 @@ For full functionality:
   "mcpServers": {
     "ast-tools": {
       "command": "uvx",
-      "args": ["ast-tools-mcp"],
+      "args": ["rw-ast-tools"],
       "cwd": "/path/to/your/project"
     }
   }
