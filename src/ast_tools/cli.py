@@ -874,6 +874,80 @@ def cmd_config_validate(args: argparse.Namespace) -> int:
     return 0 if result["valid"] else 1
 
 
+# ─── Governance Commands ──────────────────────────────────────────────
+
+
+def cmd_governance_init(args: argparse.Namespace) -> int:
+    """Create default governance.yaml."""
+    from ast_tools.governance.schema import init_governance_file
+
+    path = init_governance_file()
+    print(f"✅ Created {path}")
+    return 0
+
+
+def cmd_governance_check(args: argparse.Namespace) -> int:
+    """Scan project for governance violations."""
+    from ast_tools.governance.schema import load_governance
+    from ast_tools.governance.scanner import scan_project
+    from ast_tools.governance.reporter import format_violations
+
+    config = load_governance()
+    if config is None:
+        print("❌ No governance.yaml found. Run 'ast governance init' first.")
+        return 1
+
+    violations = scan_project(args.project_root, config)
+    report = format_violations(violations, format=args.format, fail_on=args.fail_on)
+    print(report)
+    return 1 if violations else 0
+
+
+def cmd_governance_diff(args: argparse.Namespace) -> int:
+    """Compare governance between branches."""
+    from ast_tools.governance.differ import diff_branches
+
+    result = diff_branches(base_branch=args.base, cwd=args.project_root)
+    if "error" in result:
+        print(f"❌ {result['error']}")
+        return 1
+    if "warning" in result:
+        print(f"⚠️  {result['warning']}")
+
+    delta = result.get("delta", {})
+    if delta.get("total_new", 0) > 0:
+        print(f"🆕 {delta['total_new']} new violation(s) in current branch:")
+        for v in delta.get("new", []):
+            print(f"  ❌ {v['message']}")
+
+    if delta.get("total_fixed", 0) > 0:
+        print(f"✅ {delta['total_fixed']} violation(s) fixed in current branch")
+
+    if delta.get("total_new", 0) == 0 and delta.get("total_fixed", 0) == 0:
+        print("ℹ️  No governance changes between branches")
+    return 0
+
+
+def cmd_governance_report(args: argparse.Namespace) -> int:
+    """Generate HTML governance report."""
+    from ast_tools.governance.schema import load_governance
+    from ast_tools.governance.scanner import scan_project
+    from ast_tools.governance.reporter import generate_report_html
+    from pathlib import Path
+
+    config = load_governance()
+    if config is None:
+        print("❌ No governance.yaml found")
+        return 1
+
+    violations = scan_project(args.project_root, config)
+    html = generate_report_html(violations)
+    output_path = Path(args.output)
+    output_path.write_text(html)
+    print(f"✅ Report saved to {output_path}")
+    return 0
+
+
 def main() -> int:
     """Main CLI entry point."""
     parser = argparse.ArgumentParser(
@@ -1219,8 +1293,33 @@ def main() -> int:
     config_path_p.set_defaults(func=cmd_config_path)
 
     # ——————————————————
-    # Dispatch
+    # Command: governance
     # ——————————————————
+    gov_p = subparsers.add_parser(
+        "governance",
+        help="Architecture governance rules and checking",
+        description="Enforce architectural boundaries via governance.yaml",
+    )
+    gov_sub = gov_p.add_subparsers(dest="gov_cmd")
+
+    gov_init_p = gov_sub.add_parser("init", help="Create default governance.yaml")
+    gov_init_p.set_defaults(func=cmd_governance_init)
+
+    gov_check_p = gov_sub.add_parser("check", help="Scan project for violations")
+    gov_check_p.add_argument("--format", choices=["text", "json"], default="text")
+    gov_check_p.add_argument("--fail-on", choices=["error", "warn"], default="error")
+    gov_check_p.add_argument("--project-root", default=".")
+    gov_check_p.set_defaults(func=cmd_governance_check)
+
+    gov_diff_p = gov_sub.add_parser("diff", help="Compare governance between branches")
+    gov_diff_p.add_argument("--base", default="main", help="Base branch")
+    gov_diff_p.add_argument("--project-root", default=".")
+    gov_diff_p.set_defaults(func=cmd_governance_diff)
+
+    gov_report_p = gov_sub.add_parser("report", help="Generate HTML governance report")
+    gov_report_p.add_argument("--output", "-o", default="governance-report.html")
+    gov_report_p.add_argument("--project-root", default=".")
+    gov_report_p.set_defaults(func=cmd_governance_report)
     args = parser.parse_args()
 
     if not args.command:

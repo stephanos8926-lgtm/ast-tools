@@ -1,16 +1,16 @@
 {
   "name": "ast-tools",
   "version": "0.1.0",
-  "generated": "2026-07-03T18:12:24.504792+00:00",
+  "generated": "2026-07-03T19:23:39.062149+00:00",
   "generator": "ast-tools-project-v1",
   "languages": {
     "markdown": {
-      "files": 106,
-      "lines": 33436
+      "files": 107,
+      "lines": 33586
     },
     "yaml": {
-      "files": 4,
-      "lines": 85
+      "files": 5,
+      "lines": 137
     },
     "docker": {
       "files": 1,
@@ -25,24 +25,24 @@
       "lines": 200
     },
     "python": {
-      "files": 148,
-      "lines": 35522
+      "files": 155,
+      "lines": 36352
     }
   },
   "code_languages": {
     "python": {
-      "files": 148,
-      "lines": 35522
+      "files": 155,
+      "lines": 36352
     }
   },
   "config_languages": {
     "markdown": {
-      "files": 106,
-      "lines": 33436
+      "files": 107,
+      "lines": 33586
     },
     "yaml": {
-      "files": 4,
-      "lines": 85
+      "files": 5,
+      "lines": 137
     },
     "docker": {
       "files": 1,
@@ -87,7 +87,7 @@
     "tests/watcher/test_daemon.py#if-__name__"
   ],
   "test_framework": "pytest",
-  "test_files": 53,
+  "test_files": 55,
   "test_command": "python3 -m pytest",
   "modules": [
     {
@@ -153,7 +153,7 @@
     },
     {
       "path": "src/ast_tools/cli.py",
-      "lines": 1234,
+      "lines": 1333,
       "classes": [],
       "functions": [
         "cmd_search",
@@ -171,6 +171,10 @@
         "cmd_config_init",
         "cmd_config_show",
         "cmd_config_validate",
+        "cmd_governance_init",
+        "cmd_governance_check",
+        "cmd_governance_diff",
+        "cmd_governance_report",
         "main"
       ]
     },
@@ -407,6 +411,49 @@
         "get_symbols_without_embeddings",
         "delete_embedding",
         "delete_embeddings_for_file"
+      ]
+    },
+    {
+      "path": "src/ast_tools/governance/differ.py",
+      "lines": 96,
+      "classes": [],
+      "functions": [
+        "diff_branches"
+      ]
+    },
+    {
+      "path": "src/ast_tools/governance/reporter.py",
+      "lines": 81,
+      "classes": [],
+      "functions": [
+        "format_violations",
+        "generate_report_html"
+      ]
+    },
+    {
+      "path": "src/ast_tools/governance/scanner.py",
+      "lines": 179,
+      "classes": [
+        "Violation"
+      ],
+      "functions": [
+        "scan_project"
+      ]
+    },
+    {
+      "path": "src/ast_tools/governance/schema.py",
+      "lines": 141,
+      "classes": [
+        "GovernanceError",
+        "LayerDef",
+        "GovernanceRule",
+        "GovernanceConfig"
+      ],
+      "functions": [
+        "find_governance_file",
+        "load_governance",
+        "validate_schema",
+        "init_governance_file"
       ]
     },
     {
@@ -999,6 +1046,26 @@
       "functions": [
         "vec_conn"
       ]
+    },
+    {
+      "path": "tests/governance/test_scanner.py",
+      "lines": 111,
+      "classes": [
+        "TestScanProject",
+        "TestViolationOutput"
+      ],
+      "functions": []
+    },
+    {
+      "path": "tests/governance/test_schema.py",
+      "lines": 94,
+      "classes": [
+        "TestGovernanceConfig",
+        "TestValidateSchema",
+        "TestLoadGovernance",
+        "TestInitGovernanceFile"
+      ],
+      "functions": []
     },
     {
       "path": "tests/indexer/test_cache.py",

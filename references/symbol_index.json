@@ -189,6 +189,26 @@
     "line": 858,
     "type": "function"
   },
+  "cmd_governance_init": {
+    "file": "src/ast_tools/cli.py",
+    "line": 880,
+    "type": "function"
+  },
+  "cmd_governance_check": {
+    "file": "src/ast_tools/cli.py",
+    "line": 889,
+    "type": "function"
+  },
+  "cmd_governance_diff": {
+    "file": "src/ast_tools/cli.py",
+    "line": 906,
+    "type": "function"
+  },
+  "cmd_governance_report": {
+    "file": "src/ast_tools/cli.py",
+    "line": 931,
+    "type": "function"
+  },
   "main": {
     "file": "tests/smoke_test.py",
     "line": 5,
@@ -662,6 +682,71 @@
   "delete_embeddings_for_file": {
     "file": "src/ast_tools/embeddings/store.py",
     "line": 218,
+    "type": "function"
+  },
+  "diff_branches": {
+    "file": "src/ast_tools/governance/differ.py",
+    "line": 16,
+    "type": "function"
+  },
+  "format_violations": {
+    "file": "src/ast_tools/governance/reporter.py",
+    "line": 10,
+    "type": "function"
+  },
+  "generate_report_html": {
+    "file": "src/ast_tools/governance/reporter.py",
+    "line": 50,
+    "type": "function"
+  },
+  "Violation": {
+    "file": "src/ast_tools/governance/scanner.py",
+    "line": 17,
+    "type": "class"
+  },
+  "scan_project": {
+    "file": "src/ast_tools/governance/scanner.py",
+    "line": 85,
+    "type": "function"
+  },
+  "GovernanceError": {
+    "file": "src/ast_tools/governance/schema.py",
+    "line": 14,
+    "type": "class"
+  },
+  "LayerDef": {
+    "file": "src/ast_tools/governance/schema.py",
+    "line": 18,
+    "type": "class"
+  },
+  "GovernanceRule": {
+    "file": "src/ast_tools/governance/schema.py",
+    "line": 27,
+    "type": "class"
+  },
+  "GovernanceConfig": {
+    "file": "src/ast_tools/governance/schema.py",
+    "line": 36,
+    "type": "class"
+  },
+  "find_governance_file": {
+    "file": "src/ast_tools/governance/schema.py",
+    "line": 89,
+    "type": "function"
+  },
+  "load_governance": {
+    "file": "src/ast_tools/governance/schema.py",
+    "line": 103,
+    "type": "function"
+  },
+  "validate_schema": {
+    "file": "src/ast_tools/governance/schema.py",
+    "line": 117,
+    "type": "function"
+  },
+  "init_governance_file": {
+    "file": "src/ast_tools/governance/schema.py",
+    "line": 133,
     "type": "function"
   },
   "ASTNodeEncoder": {
@@ -1648,6 +1733,36 @@
     "file": "tests/embeddings/test_store.py",
     "line": 23,
     "type": "function"
+  },
+  "TestScanProject": {
+    "file": "tests/governance/test_scanner.py",
+    "line": 35,
+    "type": "class"
+  },
+  "TestViolationOutput": {
+    "file": "tests/governance/test_scanner.py",
+    "line": 96,
+    "type": "class"
+  },
+  "TestGovernanceConfig": {
+    "file": "tests/governance/test_schema.py",
+    "line": 16,
+    "type": "class"
+  },
+  "TestValidateSchema": {
+    "file": "tests/governance/test_schema.py",
+    "line": 43,
+    "type": "class"
+  },
+  "TestLoadGovernance": {
+    "file": "tests/governance/test_schema.py",
+    "line": 63,
+    "type": "class"
+  },
+  "TestInitGovernanceFile": {
+    "file": "tests/governance/test_schema.py",
+    "line": 79,
+    "type": "class"
   },
   "TestASTNodeEncoder": {
     "file": "tests/indexer/test_cache.py",

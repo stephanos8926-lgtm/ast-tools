@@ -37,6 +37,11 @@
     "src/ast_tools/curator/doctor.py",
     "src/ast_tools/curator/setup_wizard.py",
     "src/ast_tools/curator/vacuum.py",
+    "src/ast_tools/governance/__init__.py",
+    "src/ast_tools/governance/differ.py",
+    "src/ast_tools/governance/reporter.py",
+    "src/ast_tools/governance/scanner.py",
+    "src/ast_tools/governance/schema.py",
     "src/ast_tools/tools/__init__.py",
     "src/ast_tools/tools/blast_radius_v2.py",
     "src/ast_tools/tools/dependency_tools.py",
@@ -126,6 +131,32 @@
   ],
   "src/ast_tools/embeddings/model.py": [],
   "src/ast_tools/embeddings/store.py": [],
+  "src/ast_tools/governance/__init__.py": [
+    "src/ast_tools/governance/reporter.py",
+    "src/ast_tools/governance/scanner.py",
+    "src/ast_tools/governance/schema.py"
+  ],
+  "src/ast_tools/governance/differ.py": [
+    "src/ast_tools/governance/reporter.py",
+    "src/ast_tools/governance/scanner.py",
+    "src/ast_tools/governance/schema.py"
+  ],
+  "src/ast_tools/governance/reporter.py": [
+    "src/ast_tools/governance/scanner.py"
+  ],
+  "src/ast_tools/governance/scanner.py": [
+    "src/ast_tools/governance/__init__.py",
+    "src/ast_tools/governance/schema.py",
+    "src/ast_tools/tools/__init__.py",
+    "src/ast_tools/tools/dependency.py",
+    "src/ast_tools/tools/module_imports.py",
+    "src/ast_tools/utils/__init__.py",
+    "src/ast_tools/utils/file_utils.py"
+  ],
+  "src/ast_tools/governance/schema.py": [
+    "src/ast_tools/config/__init__.py",
+    "src/ast_tools/config/loader.py"
+  ],
   "src/ast_tools/indexer/__init__.py": [
     "src/ast_tools/indexer/cache.py",
     "src/ast_tools/indexer/extractor.py",
@@ -477,6 +508,15 @@
   "tests/embeddings/test_store.py": [
     "src/ast_tools/embeddings/__init__.py",
     "src/ast_tools/embeddings/store.py"
+  ],
+  "tests/governance/test_scanner.py": [
+    "src/ast_tools/governance/__init__.py",
+    "src/ast_tools/governance/scanner.py",
+    "src/ast_tools/governance/schema.py"
+  ],
+  "tests/governance/test_schema.py": [
+    "src/ast_tools/governance/__init__.py",
+    "src/ast_tools/governance/schema.py"
   ],
   "tests/indexer/__init__.py": [],
   "tests/indexer/test_cache.py": [

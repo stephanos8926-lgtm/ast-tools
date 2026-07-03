@@ -1,0 +1,52 @@
+exceptions: []
+layer_rules:
+  application:
+    allowed_deps:
+    - infrastructure
+    - domain
+  domain:
+    allowed_deps:
+    - infrastructure
+  infrastructure:
+    allowed_deps: []
+  presentation:
+    allowed_deps:
+    - infrastructure
+    - domain
+    - application
+layers:
+- description: Database, external APIs, low-level utilities
+  name: infrastructure
+  tags:
+  - db
+  - cache
+  - config
+- description: Business logic, domain models
+  name: domain
+  tags:
+  - model
+  - service
+- description: Use cases, application services
+  name: application
+  tags:
+  - usecase
+  - workflow
+- description: CLI, API, UI
+  name: presentation
+  tags:
+  - cli
+  - api
+  - web
+mappings:
+- layer: infrastructure
+  pattern: '**/database/**'
+- layer: domain
+  pattern: '**/domain/**'
+- layer: application
+  pattern: '**/usecase/**'
+- layer: presentation
+  pattern: '**/api/**'
+- layer: presentation
+  pattern: '**/cli/**'
+tag_rules: []
+version: 1

@@ -94,7 +94,7 @@
   "tests/test_security.py": "9295f216c34cf5b504725702d6d4b98a",
   "src/ast_tools/tools/enhanced_dead_code.py": "f44817ce48dd8b944a09604b53d28e6c",
   "tests/test_enhanced_dead_code.py": "ea555f0fbe2c772bb33f2bf6a4bcbec6",
-  "src/ast_tools/cli.py": "b911efd68344d70fc910dd301317e5c2",
+  "src/ast_tools/cli.py": "020f836be06e73b1e619fe77eb34fde2",
   "tests/test_cli.py": "33b943a305c02bf7fb5aa6f85fbafbd8",
   "src/ast_tools/tools/ts_edit.py": "a967272daca19834a23a81d5ca98dceb",
   "src/ast_tools/indexer/diff.py": "1b46c4c0666c3c4b1a8c8ee02c3fae43",
@@ -147,5 +147,12 @@
   "src/ast_tools/config/validate.py": "d5878a3ab895a1f1ec3d7a7fd2b9a990",
   "src/ast_tools/logutil/__init__.py": "54e4faa419a0bd78914395bb90da7a79",
   "src/ast_tools/logutil/audit.py": "78f0021ebea877664d117d53a0ad4583",
-  "src/ast_tools/logutil/setup.py": "1f3650b6ee2cba71de4b60f9335e6847"
+  "src/ast_tools/logutil/setup.py": "1f3650b6ee2cba71de4b60f9335e6847",
+  "src/ast_tools/governance/__init__.py": "9c098804bc68b3cff854c5e2688463f4",
+  "src/ast_tools/governance/differ.py": "8b7824ce6c8ea1b082a64cf441995f4c",
+  "src/ast_tools/governance/reporter.py": "f5720210207f615db1beed485106c1e2",
+  "src/ast_tools/governance/scanner.py": "503a4720efd489265ea8d1f47238af32",
+  "src/ast_tools/governance/schema.py": "02c1ce0c2eb5c019947256d7880779ba",
+  "tests/governance/test_scanner.py": "a38016df764b396849094e9ee83ff622",
+  "tests/governance/test_schema.py": "dabe93f0fff8b10cde986405e5f549a3"
 }
