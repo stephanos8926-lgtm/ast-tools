@@ -39,12 +39,17 @@ def _tool_ast_grep(args: dict[str, Any]) -> dict[str, Any]:
     limit = min(int(args.get("limit", 50)), 500)
     count_only = args.get("count_only", False)
     top_level = args.get("top_level", False)
+    cache_stats = args.get("cache_stats", False)
 
-    cmd = ["ast-grep", "--pattern", pattern, path]
+    # Compile pattern and cache it
+    compiled_pattern, compiled_lang = _compile_pattern(pattern, lang)
+
+    cmd = ["ast-grep", "--pattern", pattern, path] # Use original pattern for CLI
     if lang:
         cmd.extend(["--lang", lang])
     if json_output:
         cmd.append("--json")
+
 
     try:
         proc = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
@@ -128,4 +133,12 @@ def _tool_ast_grep(args: dict[str, Any]) -> dict[str, Any]:
     if truncated:
         result["truncated"] = True
         result["total_matches"] = total_matches
+
+    if cache_stats:
+        result["cache_info"] = {
+            "hits": _compile_pattern.cache_info().hits,
+            "misses": _compile_pattern.cache_info().misses,
+            "current_size": _compile_pattern.cache_info().currsize,
+        }
     return result
+
