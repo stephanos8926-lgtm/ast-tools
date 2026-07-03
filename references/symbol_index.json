@@ -39,6 +39,51 @@
     "line": 177,
     "type": "function"
   },
+  "find_project_root": {
+    "file": "src/ast_tools/_project_tools.py",
+    "line": 73,
+    "type": "function"
+  },
+  "read_project_json": {
+    "file": "src/ast_tools/_project_tools.py",
+    "line": 90,
+    "type": "function"
+  },
+  "write_project_json": {
+    "file": "src/ast_tools/_project_tools.py",
+    "line": 109,
+    "type": "function"
+  },
+  "generate_project_json": {
+    "file": "src/ast_tools/_project_tools.py",
+    "line": 512,
+    "type": "function"
+  },
+  "project_info": {
+    "file": "src/ast_tools/_project_tools.py",
+    "line": 644,
+    "type": "function"
+  },
+  "project_info_summary": {
+    "file": "src/ast_tools/_project_tools.py",
+    "line": 652,
+    "type": "function"
+  },
+  "project_init": {
+    "file": "src/ast_tools/_project_tools.py",
+    "line": 851,
+    "type": "function"
+  },
+  "project_verify": {
+    "file": "src/ast_tools/_project_tools.py",
+    "line": 959,
+    "type": "function"
+  },
+  "cli_main": {
+    "file": "src/ast_tools/_project_tools.py",
+    "line": 1051,
+    "type": "function"
+  },
   "generate_test_data": {
     "file": "src/ast_tools/benchmarks/phase9_benchmark.py",
     "line": 29,
@@ -1132,51 +1177,6 @@
   "reindex_file": {
     "file": "src/ast_tools/watcher/daemon.py",
     "line": 297,
-    "type": "function"
-  },
-  "find_project_root": {
-    "file": "src/project_tools.py",
-    "line": 73,
-    "type": "function"
-  },
-  "read_project_json": {
-    "file": "src/project_tools.py",
-    "line": 90,
-    "type": "function"
-  },
-  "write_project_json": {
-    "file": "src/project_tools.py",
-    "line": 109,
-    "type": "function"
-  },
-  "generate_project_json": {
-    "file": "src/project_tools.py",
-    "line": 512,
-    "type": "function"
-  },
-  "project_info": {
-    "file": "src/project_tools.py",
-    "line": 644,
-    "type": "function"
-  },
-  "project_info_summary": {
-    "file": "src/project_tools.py",
-    "line": 652,
-    "type": "function"
-  },
-  "project_init": {
-    "file": "src/project_tools.py",
-    "line": 851,
-    "type": "function"
-  },
-  "project_verify": {
-    "file": "src/project_tools.py",
-    "line": 959,
-    "type": "function"
-  },
-  "cli_main": {
-    "file": "src/project_tools.py",
-    "line": 1051,
     "type": "function"
   },
   "ts_parse": {

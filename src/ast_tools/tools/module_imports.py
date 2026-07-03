@@ -58,7 +58,7 @@ def _tool_module_imports(args: dict[str, Any]) -> dict[str, Any]:
     cwd = args.get("cwd", ".")
     max_files = int(args.get("max_files", 500))
 
-    from project_tools import find_project_root
+    from ast_tools._project_tools import find_project_root
 
     root = find_project_root(cwd)
 

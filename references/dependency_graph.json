@@ -1,10 +1,16 @@
 {
   "hermes-plugins/ast-tools-codebase-index/__init__.py": [
-    "src/ast_tools_server.py"
+    "src/ast_tools/__init__.py",
+    "src/ast_tools/_server.py"
   ],
   "hermes-plugins/ast-tools-context/__init__.py": [],
   "hermes-plugins/ast-tools-tokens/__init__.py": [],
   "src/ast_tools/__init__.py": [],
+  "src/ast_tools/_project_tools.py": [],
+  "src/ast_tools/_server.py": [
+    "src/ast_tools/__init__.py",
+    "src/ast_tools/tools/__init__.py"
+  ],
   "src/ast_tools/benchmarks/phase9_benchmark.py": [
     "src/ast_tools/database/__init__.py",
     "src/ast_tools/database/connection.py",
@@ -202,9 +208,10 @@
   ],
   "src/ast_tools/tools/code_validate.py": [],
   "src/ast_tools/tools/codebase_summary.py": [
+    "src/ast_tools/__init__.py",
+    "src/ast_tools/_project_tools.py",
     "src/ast_tools/utils/__init__.py",
-    "src/ast_tools/utils/file_utils.py",
-    "src/project_tools.py"
+    "src/ast_tools/utils/file_utils.py"
   ],
   "src/ast_tools/tools/context_tools.py": [],
   "src/ast_tools/tools/curator.py": [
@@ -235,13 +242,14 @@
     "src/ast_tools/database/connection.py"
   ],
   "src/ast_tools/tools/impact_analysis.py": [
+    "src/ast_tools/__init__.py",
+    "src/ast_tools/_project_tools.py",
     "src/ast_tools/tools/__init__.py",
     "src/ast_tools/tools/module_imports.py",
     "src/ast_tools/tools/structural_analysis.py",
     "src/ast_tools/utils/__init__.py",
     "src/ast_tools/utils/file_utils.py",
-    "src/ast_tools/utils/impact.py",
-    "src/project_tools.py"
+    "src/ast_tools/utils/impact.py"
   ],
   "src/ast_tools/tools/index_status.py": [
     "src/ast_tools/database/__init__.py",
@@ -263,12 +271,14 @@
     "src/ast_tools/lsp_client.py"
   ],
   "src/ast_tools/tools/module_imports.py": [
+    "src/ast_tools/__init__.py",
+    "src/ast_tools/_project_tools.py",
     "src/ast_tools/utils/__init__.py",
-    "src/ast_tools/utils/file_utils.py",
-    "src/project_tools.py"
+    "src/ast_tools/utils/file_utils.py"
   ],
   "src/ast_tools/tools/project_info.py": [
-    "src/project_tools.py"
+    "src/ast_tools/__init__.py",
+    "src/ast_tools/_project_tools.py"
   ],
   "src/ast_tools/tools/refresh_index.py": [
     "src/ast_tools/database/__init__.py",
@@ -328,11 +338,6 @@
     "src/ast_tools/indexer/extractor.py",
     "src/ast_tools/indexer/parser.py"
   ],
-  "src/ast_tools_server.py": [
-    "src/ast_tools/__init__.py",
-    "src/ast_tools/tools/__init__.py"
-  ],
-  "src/project_tools.py": [],
   "src/ts_backend.py": [],
   "tests/__init__.py": [],
   "tests/cochange/__init__.py": [],
@@ -468,12 +473,13 @@
     "src/ast_tools/types.py"
   ],
   "tests/test_e2e.py": [
+    "src/ast_tools/__init__.py",
+    "src/ast_tools/_server.py",
     "src/ast_tools/tools/__init__.py",
     "src/ast_tools/tools/ast_edit.py",
     "src/ast_tools/tools/ast_grep.py",
     "src/ast_tools/tools/ast_read.py",
     "src/ast_tools/tools/structural_analysis.py",
-    "src/ast_tools_server.py",
     "tests/__init__.py",
     "tests/conftest.py"
   ],
@@ -490,20 +496,21 @@
     "src/ast_tools/types.py"
   ],
   "tests/test_phase3_polish.py": [
+    "src/ast_tools/__init__.py",
+    "src/ast_tools/_server.py",
     "src/ast_tools/tools/__init__.py",
     "src/ast_tools/tools/ast_edit.py",
     "src/ast_tools/tools/ast_grep.py",
     "src/ast_tools/tools/ast_read.py",
     "src/ast_tools/tools/find_references.py",
-    "src/ast_tools/tools/structural_analysis.py",
-    "src/ast_tools_server.py"
+    "src/ast_tools/tools/structural_analysis.py"
   ],
   "tests/test_project_tools.py": [
     "src/ast_tools/__init__.py",
+    "src/ast_tools/_project_tools.py",
     "src/ast_tools/tools/__init__.py",
     "src/ast_tools/tools/find_references.py",
     "src/ast_tools/tools/impact_analysis.py",
-    "src/project_tools.py",
     "src/ts_backend.py"
   ],
   "tests/test_security.py": [

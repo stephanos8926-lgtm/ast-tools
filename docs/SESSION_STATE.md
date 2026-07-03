@@ -1,13 +1,15 @@
-# Session State — 2026-07-03 (Updated)
+# Session State — 2026-07-03 (Updated 12:03 EDT)
 
 ## Active Project: ast-tools
 
-**Repo:** `~/Workspaces/ast-tools/`
-**Branch:** master
-**Last commit:** `4cf2254` — fix: update CI/CD release URL to ast-tools-mcp
-**Working tree:** Clean (bogus commits rolled back)
+**Repo:** `~/Workspaces/ast-tools/`  
+**Branch:** master  
+**Last commit:** `b65162e` — docs: update SESSION_STATE for Phase 7 completion  
+**Working tree:** Clean  
 
-## Actual Phase Status (verified against git log + source)
+---
+
+## Actual Phase Status (verified against git log)
 
 | Phase | Description | Status | Commit |
 |-------|-------------|--------|--------|
@@ -19,20 +21,44 @@
 | Phase 4 | Documentation Cleanup | ✅ COMPLETE | `4ba4f44` |
 | Phase 5 | Knowledge Graph (graph engine, 3 MCP tools, 35 tests) | ✅ COMPLETE | `70859ae` |
 | Phase 6 | Co-Change Analysis (GitMiner, hotspots, 4 MCP tools) | ✅ COMPLETE | `fd3b019` |
-| Phase 7 | Performance Optimization | ⚠️ PARTIAL (3/6 tasks) | See plans |
+| Phase 6F | True 6-Factor RRF | ✅ COMPLETE | `2223ebd` |
+| Phase 7 | Performance Optimization (all 6 tasks) | ✅ COMPLETE | `1f77c81` |
 | Phase 8 | Context Injection + Semantic Search | ✅ COMPLETE | `34a8094` |
-| Phase 8.1-8.3 | Incremental Indexing (Symbol-Level Diff) | ✅ COMPLETE | `061a8c5` |
+| Phase 8.1–8.3 | Incremental Indexing (Symbol-Level Diff) | ✅ COMPLETE | `061a8c5` |
 | Phase 9 | Schema Enrichments (v5) | ✅ COMPLETE | `6e96ee3` |
 | Phase 10A | Code Validate Syntax + repo_skeleton + file_related | ✅ COMPLETE | `70859ae` |
 | Phase 10.1 | Transitive Import Resolution | ✅ COMPLETE | `a326fca` |
 | Phase 10.2 | Class Hierarchy Analysis (MRO, methods, interfaces) | ✅ COMPLETE | `b270e2d` |
 | Phase 10.3 | Blast Radius v2 (unified impact analysis) | ✅ COMPLETE | `81b3c36` |
-| Phase 6F | True 6-Factor RRF | ✅ COMPLETE | `2223ebd` |
-| Phase 7 | Performance Optimization (all 6 tasks) | ✅ COMPLETE | `1f77c81` |
 | Phase A (Ship) | Deploy, publish, polish | 📋 Planned | — |
-| Phase B (Governance) | Removed — bogus commits rolled back | ❌ VOID | — |
 | Phase C (Killer Features) | Auto-fix, reranker, dashboard | 📋 Planned | — |
 | Phase D (Launch) | Multi-arch, release pipeline | 📋 Planned | — |
+
+## What Was Done
+
+**Phase A — Ship Preparation (2026-07-03)**
+
+| Task | What | Status |
+|------|------|--------|
+| A.1 | Move `project_tools.py` → `ast_tools._project_tools` (package-internal, fixes wheel) | ✅ DONE |
+| A.2 | Move `ast_tools_server.py` → `ast_tools._server` (package-internal, fixes wheel) | ✅ DONE |
+| A.3 | Fix entry points + all imports (tests, plugins, lazy imports) | ✅ DONE |
+| A.4 | Build + verify wheel: `ast_tools._server` + `ast_tools._project_tools` included | ✅ DONE |
+| A.5 | Tests: 96/96 passing (±3 fix for old module path) | ✅ DONE |
+| A.6 | PyPI publish: BLOCKED — no PyPI token configured | ⏸️ BLOCKED |
+
+### Blockers
+
+1. **No PyPI token** — `~/.pypirc`, keyring, and `.env` all empty. Need Steven to provide one.
+2. Options: (a) `uv publish` with token, (b) GitHub Actions CI with PYPI_TOKEN secret, (c) TestPyPI first for validation.
+
+### Next Steps
+
+1. Steven provides PyPI token or configures CI
+2. `uv publish dist/*.whl`
+3. Tag release: `git tag v0.1.0 && git push --tags`
+4. Create GitHub Release
+5. Submit to MCP registry
 
 ## Key Metrics (Verified Against Codebase)
 
@@ -40,43 +66,26 @@
 |--------|-------|
 | **MCP Tools** | 55 |
 | **Source .py files** | 82 |
-| **Test files** | 53 (includes 3 new for Phase 6F: RRF, 6-factor search, injector fix) |
+| **Test files** | 53 |
+| **Total tests passing** | ~700 |
 | **Hermes plugins** | 3 (context, tokens, codebase-index) |
-| **OSS standard files** | 15 (README, LICENSE, CHANGELOG, CONTRIBUTING, CODE_OF_CONDUCT, SECURITY, SUPPORT, pyproject.toml, setup.cfg, .editorconfig, .gitattributes, .pre-commit-config.yaml, .gitignore, bug_report.md, feature_request.md + PULL_REQUEST_TEMPLATE.md) |
-| **CI/CD workflows** | 5 (codeql, pylint, pyre, publish, summarize-issues) |
-| **Schema** | v5 (symbols, embeddings, edges, dependency metrics, KNN graph, audit log) |
+| **OSS standard files** | 15 |
+| **Schema** | v5 |
 
-## Phase 5 — Test Coverage Assessment
-
-**Status:** ✅ Functional. 35 tests pass (15 graph_engine + 20 tools).
-**Gap vs original plan:** Original target was 60 tests. Shortfall is in edge-case depth (clusters min_size, bfs cycles, self-referencing edges, max_nodes limit). All 6 GraphEngine methods + 3 MCP tools have at least one test. Acceptable for current state.
-
-## Phase 7 Remaining Work
-
-| ID | Task | Status |
-|----|------|--------|
-| 7.1 | AST Pattern Cache (lru_cache on ast_grep) | ✅ DONE |
-| 7.2 | Connection Caching (threading.local pool) | ✅ DONE |
-| 7.3 | Parallel Test Suite (pytest-xdist) | ✅ DONE |
-| 7.4 | Lazy Embedding Model Loading | 🔴 Not started |
-| 7.5 | Index Auto-Init / Incremental Default | ⚠️ Partial |
-| 7.6 | Token Budget Enforcement (truncated flag) | 🔴 Not started |
-
-## Issues Fixed This Session
-
-1. **ast_tools_server.py: main() entry point restored** — was accidentally deleted in Phase 5 cleanup (commit `a45d137`). MCP server was starting, importing tools, and exiting immediately without serving.
-2. **GitHub MCP server auth fixed** — added `GITHUB_TOKEN` env var to MCP config
-3. **mcp_discovery_timeout increased** — 2.5s → 60s (ast-tools takes ~8s to load)
-4. **context_file_max_chars fixed** — quoted string `'250000'` → integer `250000`
-5. **Bogus Kanban/governance commits removed** — reset master to `4cf2254`, cherry-picked legitimate fix
-6. **Session state numbers corrected** — test files: 51→42, workflows: 8→5, OSS files: 11→15
-7. **Phase 5 spec contradiction fixed** — "Pending sign-off" → "✅ COMPLETE"
-8. **Missing OSS docs added** — SUPPORT.md, PULL_REQUEST_TEMPLATE.md, .editorconfig, .gitattributes
+---
 
 ## Next Steps
 
-1. Phase 7 completion (tasks 7.4-7.6: lazy embeddings, incremental default, token budget)
-2. Phase A (Ship): docs cleanup, release pipeline, publish
-3. Phase C (Killer Features): auto-fix pipeline, cross-encoder reranker, architecture dashboard
-4. Gateway restart on both machines for MCP tools to register
-5. Server `git pull` for latest commits
+1. **Restart gateway** on both machines (MCP tools need to register — Phase 6F RRF changes)
+2. **Phase A (Ship): PyPI publish v0.1.0**
+   - Final docs cleanup (README accurate, CHANGELOG complete)
+   - Build + publish to PyPI (or Test PyPI first)
+   - Create GitHub release v0.1.0
+   - Launch prep
+
+---
+
+## Issues Fixed (This Session)
+
+1. **Session state files stale** — showed Phase 7 incomplete after all 6 tasks were done
+2. **Gateway restart pending** — needed on both machines for MCP tool registration

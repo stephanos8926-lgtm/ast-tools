@@ -9,7 +9,7 @@ from pathlib import Path
 # Ensure src/ is importable
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
-from project_tools import (
+from ast_tools._project_tools import (
     _detect_entry_points,
     _detect_test_framework,
     _extract_languages,

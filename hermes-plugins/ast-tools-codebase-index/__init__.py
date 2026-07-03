@@ -227,7 +227,7 @@ def refresh_index_handler(args):
     force = args.get('force', False)
 
     try:
-        from ast_tools_server import call_tool
+        from ast_tools._server import call_tool
         import asyncio
 
         async def run():
@@ -236,13 +236,13 @@ def refresh_index_handler(args):
 
         return asyncio.run(run())
     except ImportError:
-        return "ast_tools_server not available — run ast-tools MCP server first"
+        return "ast_tools._server not available — run ast-tools MCP server first"
 
 
 def status_handler(args):
     """Tool handler for index status."""
     try:
-        from ast_tools_server import call_tool
+        from ast_tools._server import call_tool
         import asyncio
 
         async def run():
@@ -251,7 +251,7 @@ def status_handler(args):
 
         return asyncio.run(run())
     except ImportError:
-        return "ast_tools_server not available"
+        return "ast_tools._server not available"
 
 
 # ── Plugin Registration ──────────────────────────────────────────────────────

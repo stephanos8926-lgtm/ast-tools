@@ -1,12 +1,12 @@
 {
   "name": "ast-tools",
   "version": "0.1.0",
-  "generated": "2026-07-03T15:46:34.798630+00:00",
+  "generated": "2026-07-03T16:23:22.187158+00:00",
   "generator": "ast-tools-project-v1",
   "languages": {
     "markdown": {
       "files": 103,
-      "lines": 33215
+      "lines": 33224
     },
     "yaml": {
       "files": 4,
@@ -38,7 +38,7 @@
   "config_languages": {
     "markdown": {
       "files": 103,
-      "lines": 33215
+      "lines": 33224
     },
     "yaml": {
       "files": 4,
@@ -58,10 +58,15 @@
     }
   },
   "entry_points": [
-    "ast_tools_server:main",
-    "project_tools:cli_main",
+    "ast_tools._server:main",
+    "ast_tools._project_tools:cli_main",
     "ast_tools.cli:main",
     "src/ast_tools/cli.py",
+    "src/ast_tools/_project_tools.py#if-__name__",
+    "src/ast_tools/_project_tools.py#main",
+    "src/ast_tools/_project_tools.py#argparse",
+    "src/ast_tools/_server.py#if-__name__",
+    "src/ast_tools/_server.py#main",
     "src/ast_tools/benchmarks/phase9_benchmark.py#if-__name__",
     "src/ast_tools/cli.py#if-__name__",
     "src/ast_tools/cli.py#main",
@@ -74,11 +79,6 @@
     "src/ast_tools/tools/curator.py#if-__name__",
     "src/ast_tools/watcher/daemon.py#if-__name__",
     "src/ast_tools/watcher/daemon.py#sys.argv",
-    "src/ast_tools_server.py#if-__name__",
-    "src/ast_tools_server.py#main",
-    "src/project_tools.py#if-__name__",
-    "src/project_tools.py#main",
-    "src/project_tools.py#argparse",
     "tests/test_cli.py#if-__name__",
     "tests/test_enhanced_dead_code.py#if-__name__",
     "tests/tools/test_semantic_search_context.py#if-__name__",
@@ -118,6 +118,22 @@
       "classes": [],
       "functions": [
         "register"
+      ]
+    },
+    {
+      "path": "src/ast_tools/_project_tools.py",
+      "lines": 1146,
+      "classes": [],
+      "functions": [
+        "find_project_root",
+        "read_project_json",
+        "write_project_json",
+        "generate_project_json",
+        "project_info",
+        "project_info_summary",
+        "project_init",
+        "project_verify",
+        "cli_main"
       ]
     },
     {
@@ -696,22 +712,6 @@
       ],
       "functions": [
         "reindex_file"
-      ]
-    },
-    {
-      "path": "src/project_tools.py",
-      "lines": 1146,
-      "classes": [],
-      "functions": [
-        "find_project_root",
-        "read_project_json",
-        "write_project_json",
-        "generate_project_json",
-        "project_info",
-        "project_info_summary",
-        "project_init",
-        "project_verify",
-        "cli_main"
       ]
     },
     {

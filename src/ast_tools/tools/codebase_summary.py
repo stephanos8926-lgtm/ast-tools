@@ -20,7 +20,7 @@ def _tool_codebase_summary(args: dict[str, Any]) -> dict[str, Any]:
     cwd = args.get("cwd", ".")
 
     try:
-        from project_tools import find_project_root, project_info_summary
+        from ast_tools._project_tools import find_project_root, project_info_summary
 
         summary = project_info_summary(cwd)
     except Exception as e:

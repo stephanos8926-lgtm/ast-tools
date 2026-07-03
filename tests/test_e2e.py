@@ -433,13 +433,13 @@ class TestCLI:
 class TestMCPServer:
     def test_server_import(self):
         """Server module imports without errors."""
-        from ast_tools_server import server
+        from ast_tools._server import server
 
         assert server is not None
 
     def test_list_tools(self):
         """Server lists all 11 tools."""
-        from ast_tools_server import list_tools
+        from ast_tools._server import list_tools
 
         tools = asyncio.run(list_tools())
         tool_names = [t.name for t in tools]
@@ -464,7 +464,7 @@ class TestMCPServer:
 
     def test_call_tool_ast_grep(self, test_project):
         """Call ast_grep through the MCP server interface."""
-        from ast_tools_server import call_tool
+        from ast_tools._server import call_tool
 
         result = asyncio.run(
             call_tool(
@@ -483,7 +483,7 @@ class TestMCPServer:
 
     def test_call_tool_ast_read(self, test_project):
         """Call ast_read through the MCP server interface."""
-        from ast_tools_server import call_tool
+        from ast_tools._server import call_tool
 
         core_file = os.path.join(test_project, "src", "mypackage", "core.py")
         result = asyncio.run(call_tool("ast_read", {"file": core_file}))
@@ -494,7 +494,7 @@ class TestMCPServer:
 
     def test_call_tool_unknown(self, test_project):
         """Call an unknown tool."""
-        from ast_tools_server import call_tool
+        from ast_tools._server import call_tool
 
         result = asyncio.run(call_tool("nonexistent_tool", {}))
         assert len(result) == 1

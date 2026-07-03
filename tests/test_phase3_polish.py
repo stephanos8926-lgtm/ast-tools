@@ -18,7 +18,7 @@ from ast_tools.tools.ast_grep import _tool_ast_grep
 from ast_tools.tools.ast_read import _tool_ast_read
 from ast_tools.tools.find_references import _tool_find_references
 from ast_tools.tools.structural_analysis import _tool_structural_analysis
-from ast_tools_server import call_tool
+from ast_tools._server import call_tool
 
 # Import extracted tools from package
 
@@ -368,7 +368,7 @@ class TestCLIPolish:
         env = os.environ.copy()
         env["PYTHONPATH"] = self._src_dir
         proc = subprocess.run(
-            [sys.executable, "-m", "project_tools", *args],
+            [sys.executable, "-m", "ast_tools._project_tools", *args],
             cwd=str(cwd),
             capture_output=True,
             text=True,
