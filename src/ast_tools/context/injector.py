@@ -9,6 +9,7 @@ from typing import Any
 import numpy as np
 
 from .history import InjectionHistory
+from ..database.connection import database_context
 
 
 @dataclass
@@ -193,8 +194,9 @@ class ContextInjector:
         except Exception:
             pass
 
-        # Callgraph depth (10%) - placeholder
-        callgraph_score = 0.5
+        # Callgraph centrality (10%)
+        callgraph_score = self._get_centrality_score(symbol.id) \
+            if hasattr(symbol, "id") else 0.5
 
         # Combine scores
         total_score = (
@@ -236,6 +238,26 @@ class ContextInjector:
         self, symbol_file: str, current_file: str | None = None
     ) -> float:
         return calculate_proximity_score(symbol_file, current_file)
+
+    def _get_centrality_score(self, symbol_id: str) -> float:
+        """Read PageRank centrality from dependency_metrics. Normalized to [0,1].
+
+        Falls back to 0.5 (neutral) if dependency_metrics table doesn't exist
+        or the symbol isn't in it.
+        """
+        if not hasattr(self, "db_path") or not self.db_path:
+            return 0.5
+        try:
+            with database_context(self.db_path) as conn:
+                row = conn.execute(
+                    "SELECT centrality FROM dependency_metrics WHERE symbol_id = ?",
+                    (symbol_id,),
+                ).fetchone()
+                if row and row[0] is not None:
+                    return min(1.0, max(0.0, float(row[0])))
+        except Exception:
+            pass
+        return 0.5  # Neutral fallback
 
     def estimate_symbol_tokens(self, symbol: Any) -> int:
         """Estimate token count for a symbol.

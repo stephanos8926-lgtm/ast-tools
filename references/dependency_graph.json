@@ -46,7 +46,8 @@
   "src/ast_tools/context/formatters.py": [],
   "src/ast_tools/context/history.py": [],
   "src/ast_tools/context/injector.py": [
-    "src/ast_tools/context/history.py"
+    "src/ast_tools/context/history.py",
+    "src/ast_tools/database/connection.py"
   ],
   "src/ast_tools/core/__init__.py": [],
   "src/ast_tools/curator/__init__.py": [

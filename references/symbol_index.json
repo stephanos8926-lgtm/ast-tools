@@ -161,27 +161,27 @@
   },
   "ContextInjector": {
     "file": "src/ast_tools/context/injector.py",
-    "line": 106,
+    "line": 107,
     "type": "class"
   },
   "calculate_recency_score": {
     "file": "src/ast_tools/context/injector.py",
-    "line": 35,
+    "line": 36,
     "type": "function"
   },
   "calculate_usage_score": {
     "file": "src/ast_tools/context/injector.py",
-    "line": 48,
+    "line": 49,
     "type": "function"
   },
   "calculate_kind_boost": {
     "file": "src/ast_tools/context/injector.py",
-    "line": 57,
+    "line": 58,
     "type": "function"
   },
   "calculate_proximity_score": {
     "file": "src/ast_tools/context/injector.py",
-    "line": 74,
+    "line": 75,
     "type": "function"
   },
   "run": {

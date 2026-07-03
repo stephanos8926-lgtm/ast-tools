@@ -1,7 +1,7 @@
 {
   "name": "ast-tools",
   "version": "0.1.0",
-  "generated": "2026-07-03T12:36:49.439200+00:00",
+  "generated": "2026-07-03T12:40:53.337543+00:00",
   "generator": "ast-tools-project-v1",
   "languages": {
     "markdown": {
@@ -26,13 +26,13 @@
     },
     "python": {
       "files": 141,
-      "lines": 34987
+      "lines": 35009
     }
   },
   "code_languages": {
     "python": {
       "files": 141,
-      "lines": 34987
+      "lines": 35009
     }
   },
   "config_languages": {
@@ -188,7 +188,7 @@
     },
     {
       "path": "src/ast_tools/context/injector.py",
-      "lines": 287,
+      "lines": 309,
       "classes": [
         "Symbol",
         "ContextInjector"
