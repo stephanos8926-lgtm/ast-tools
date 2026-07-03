@@ -936,12 +936,12 @@
   },
   "select_context_with_budget": {
     "file": "src/ast_tools/tools/semantic_search.py",
-    "line": 251,
+    "line": 255,
     "type": "function"
   },
   "fallback_search": {
     "file": "src/ast_tools/tools/semantic_search.py",
-    "line": 298,
+    "line": 302,
     "type": "function"
   },
   "ts_parse_ts": {

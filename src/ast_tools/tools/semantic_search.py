@@ -233,6 +233,8 @@ def hybrid_search_with_context(
             selected_symbols.append(symbol)
             tokens_used += token_cost
 
+    truncated = len(selected_symbols) < min(len(results), max_context_symbols)
+
     context_markdown = format_context_result(
         symbols=selected_symbols,
         tokens_used=tokens_used,
@@ -245,6 +247,8 @@ def hybrid_search_with_context(
         "context_markdown": context_markdown,
         "tokens_used": tokens_used,
         "budget_remaining": budget - tokens_used,
+        "truncated": truncated,
+        "total_tokens": sum(estimate_context_tokens(s) for s in selected_symbols),
     }
 
 
