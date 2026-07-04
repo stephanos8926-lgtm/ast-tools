@@ -122,6 +122,15 @@ python_functions = ["test_*"]
 addopts = "-v --tb=short"
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
+timeout = 120
+timeout_method = "thread"
+markers = [
+    "smoke: quick smoke tests (pre-commit gate, <5s)",
+    "unit: isolated unit tests, no external deps",
+    "integration: tests requiring DB or file I/O",
+    "e2e: full end-to-end workflows",
+    "slow: tests that take >5s (excluded from default run)",
+]
 
 # Coverage configuration
 [tool.coverage.run]
@@ -147,5 +156,6 @@ dev = [
     "pytest>=9.1.1",
     "pytest-asyncio>=1.4.0",
     "pytest-cov>=7.1.0",
+    "pytest-timeout>=2.4.0",
     "ruff>=0.15.20",
 ]

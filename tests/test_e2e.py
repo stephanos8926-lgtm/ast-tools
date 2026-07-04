@@ -19,6 +19,8 @@ from ast_tools.tools.structural_analysis import _tool_structural_analysis
 from tests.conftest import create_test_project
 
 
+pytestmark = pytest.mark.e2e
+
 @pytest.fixture
 def test_project(tmp_path):
     """Create a test project and return its path."""

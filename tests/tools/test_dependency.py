@@ -12,6 +12,9 @@ from ast_tools.tools.dependency import (
 )
 
 
+import pytest
+pytestmark = pytest.mark.integration
+
 class TestBuildImportGraph:
     """Test import graph building."""
 

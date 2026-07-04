@@ -8,6 +8,8 @@ import pytest
 from ast_tools.curator.vacuum import run, _human_size
 
 
+pytestmark = pytest.mark.unit
+
 class TestVacuum:
     """Test suite for vacuum/space reclamation."""
 

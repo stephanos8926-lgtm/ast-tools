@@ -9,6 +9,9 @@ from ast_tools.indexer.extractor import (
 from ast_tools.types import EdgeKind, SymbolKind
 
 
+import pytest
+pytestmark = pytest.mark.integration
+
 class TestSymbolExtractor:
     """Test SymbolExtractor class."""
 

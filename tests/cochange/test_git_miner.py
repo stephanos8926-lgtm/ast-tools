@@ -42,6 +42,8 @@ SAMPLE_WITH_BINARY = (
 SAMPLE_EMPTY = ""
 
 
+pytestmark = pytest.mark.integration
+
 class TestBasicParsing:
     def test_parses_single_commit(self, monkeypatch):
         from src.ast_tools.cochange.git_miner import GitMiner

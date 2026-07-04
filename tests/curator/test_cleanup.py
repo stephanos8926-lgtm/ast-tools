@@ -5,6 +5,9 @@ from pathlib import Path
 from ast_tools.curator.cleanup import run, _human_size
 
 
+import pytest
+pytestmark = pytest.mark.integration
+
 class TestCleanup:
     """Test suite for cleanup command."""
 

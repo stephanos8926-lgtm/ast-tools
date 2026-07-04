@@ -32,6 +32,7 @@ def run_cli(*args, cwd=None):
     return result
 
 
+@pytest.mark.smoke
 class TestCLIHelp:
     """Test CLI help and version commands."""
 
@@ -63,6 +64,7 @@ class TestCLIHelp:
             assert cmd in result.stdout
 
 
+@pytest.mark.integration
 class TestCLIProjectCommands:
     """Test CLI commands on the ast-tools project itself."""
 
@@ -175,6 +177,7 @@ class UnusedClass:
         # (though it may still appear with low confidence)
 
 
+@pytest.mark.integration
 class TestCLICallersCallees:
     """Test callers and callees commands."""
 
@@ -244,6 +247,7 @@ def inner_call():
         assert "inner_call" in callee_names
 
 
+@pytest.mark.integration
 class TestCLIDeps:
     """Test deps (dependencies) command."""
 
@@ -278,6 +282,7 @@ from flask import Flask
         assert "fan_in" in data or "fan_out" in data
 
 
+@pytest.mark.integration
 class TestCLISemanticSearch:
     """Test semantic search command."""
 
@@ -316,6 +321,7 @@ class AuthenticationHandler:
         assert result.returncode in (0, 1)
 
 
+@pytest.mark.smoke
 class TestCLIOutputFormats:
     """Test all output formats across commands."""
 
@@ -388,6 +394,7 @@ class TestCLIErrorHandling:
         assert result.returncode != 0
 
 
+@pytest.mark.e2e
 class TestCLIE2E:
     """End-to-end CLI workflow tests."""
 

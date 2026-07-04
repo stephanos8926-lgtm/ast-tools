@@ -28,6 +28,8 @@ from ast_tools.tools.class_hierarchy import (
 # ── helpers ────────────────────────────────────────────────────────────────
 
 
+pytestmark = pytest.mark.integration
+
 def _make_module(content: str) -> ast.Module:
     """Parse a string as Python source and return the AST module."""
     return ast.parse(content)

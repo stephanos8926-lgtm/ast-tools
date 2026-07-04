@@ -11,6 +11,8 @@ import pytest
 from ast_tools.curator.doctor import run, _track_trend
 
 
+pytestmark = pytest.mark.unit
+
 class TestDoctor:
     """Test suite for doctor healthcheck."""
 

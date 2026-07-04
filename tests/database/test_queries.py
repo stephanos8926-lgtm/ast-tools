@@ -27,6 +27,8 @@ from ast_tools.database.schema import init_schema
 from ast_tools.types import EdgeKind, FileCacheEntry, ResolutionState, Symbol, SymbolKind
 
 
+pytestmark = pytest.mark.integration
+
 @pytest.fixture
 def db_conn():
     """Fixture for a temporary in-memory database connection with schema initialized."""

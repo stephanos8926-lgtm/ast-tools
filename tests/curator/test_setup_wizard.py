@@ -9,6 +9,8 @@ import pytest
 from ast_tools.curator.setup_wizard import run, _create_config_dir, _check_environment
 
 
+pytestmark = pytest.mark.unit
+
 class TestSetupWizard:
     """Test suite for the setup wizard."""
 

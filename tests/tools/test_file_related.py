@@ -21,6 +21,8 @@ from ast_tools.tools.file_related import (
 )
 
 
+pytestmark = pytest.mark.integration
+
 class TestHelpers:
     """Test helper functions."""
 

@@ -14,6 +14,8 @@ from ast_tools.database.migrations.migration_009_schema_enrichments import migra
 from ast_tools.database.schema import get_schema_version, init_schema, migrate
 
 
+pytestmark = pytest.mark.integration
+
 @pytest.fixture
 def migrated_db():
     """Create a fresh in-memory database migrated to v5 with test data."""

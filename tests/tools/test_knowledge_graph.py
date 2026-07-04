@@ -7,6 +7,9 @@ from pathlib import Path
 from typing import Any
 
 
+import pytest
+pytestmark = pytest.mark.integration
+
 def _create_test_db(path: Path) -> None:
     """Create a test database with schema v5 and sample graph data."""
     conn = sqlite3.connect(str(path))

@@ -19,6 +19,8 @@ from ast_tools.embeddings.store import (
 )
 
 
+pytestmark = pytest.mark.slow
+
 @pytest.fixture
 def vec_conn():
     """Create an in-memory SQLite connection with sqlite-vec loaded."""

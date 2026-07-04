@@ -1,4 +1,7 @@
 """Tests for governance scanner module."""
+import pytest
+pytestmark = pytest.mark.unit
+
 
 import tempfile
 from pathlib import Path

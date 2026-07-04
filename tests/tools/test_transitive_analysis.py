@@ -10,6 +10,9 @@ from ast_tools.tools.transitive_analysis import (
 )
 
 
+import pytest
+pytestmark = pytest.mark.integration
+
 class TestRiskClassification:
     def test_none(self) -> None:
         assert _classify_risk(0) == "none"

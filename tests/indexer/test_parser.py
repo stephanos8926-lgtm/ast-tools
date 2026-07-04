@@ -12,6 +12,9 @@ from ast_tools.indexer.parser import (
 )
 
 
+import pytest
+pytestmark = pytest.mark.integration
+
 class TestComputeContentHash:
     """Test content hash computation."""
 

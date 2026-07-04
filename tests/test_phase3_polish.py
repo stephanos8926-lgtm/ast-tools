@@ -26,6 +26,8 @@ from ast_tools._server import call_tool
 # ─── Helpers ───────────────────────────────────────────────────────────────
 
 
+pytestmark = pytest.mark.integration
+
 def _make_file(directory: str, name: str, content: str) -> str:
     """Create a file and return its full path."""
     path = os.path.join(directory, name)

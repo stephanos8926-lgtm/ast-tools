@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+import pytest
+pytestmark = pytest.mark.integration
+
 """Tests for the watcher daemon."""
 
 import os
@@ -6,7 +9,6 @@ import tempfile
 import time
 from unittest.mock import patch
 
-import pytest
 
 from ast_tools.watcher.daemon import AstToolsHandler, IndexQueue, WatcherDaemon, reindex_file
 

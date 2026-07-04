@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
+import pytest
+pytestmark = pytest.mark.integration
+
 """Integration tests for incremental indexing (Phase 8)."""
 
 import hashlib
 import tempfile
 from pathlib import Path
 
-import pytest
 
 from ast_tools.database import (
     delete_symbol_cascade,

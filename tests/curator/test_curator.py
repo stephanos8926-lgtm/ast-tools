@@ -6,6 +6,9 @@ from pathlib import Path
 from ast_tools.curator.daemon import LLmCurator
 
 
+import pytest
+pytestmark = pytest.mark.unit
+
 class TestLLmCurator:
     """Test LLM curator functionality."""
 

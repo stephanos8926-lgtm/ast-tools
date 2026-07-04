@@ -10,6 +10,9 @@ from ast_tools.embeddings import (
 )
 
 
+import pytest
+pytestmark = pytest.mark.slow
+
 class TestModelLoading:
     """Test model loading and caching."""
 

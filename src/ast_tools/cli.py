@@ -418,6 +418,44 @@ def cmd_deps(args: argparse.Namespace) -> int:
     return 0
 
 
+def _browse_fallback(project_root: str, kind: str, limit: int) -> list[dict]:
+    """Fallback browse using filesystem scanning when no DB index exists."""
+    import ast as ast_mod
+
+    symbols = []
+    py_files = list(Path(project_root).rglob("*.py"))[:200]  # Cap at 200 files
+
+    for py_file in py_files:
+        if any(p in py_file.parts for p in (".venv", "__pycache__", ".git", ".eggs", "node_modules")):
+            continue
+        try:
+            source = py_file.read_text(encoding="utf-8", errors="replace")
+            tree = ast_mod.parse(source, filename=str(py_file))
+            for node in ast_mod.walk(tree):
+                if isinstance(node, (ast_mod.FunctionDef, ast_mod.AsyncFunctionDef)):
+                    sym_kind = "function"
+                elif isinstance(node, ast_mod.ClassDef):
+                    sym_kind = "class"
+                else:
+                    continue
+                if kind != "all" and sym_kind != kind:
+                    continue
+                rel_path = str(py_file.relative_to(project_root))
+                symbols.append({
+                    "name": node.name,
+                    "kind": sym_kind,
+                    "file": rel_path,
+                    "line": node.lineno,
+                    "start_line": node.lineno,
+                    "end_line": getattr(node, "end_lineno", node.lineno),
+                })
+                if len(symbols) >= limit:
+                    return symbols
+        except (SyntaxError, OSError, UnicodeDecodeError):
+            continue
+    return symbols
+
+
 def cmd_browse(args: argparse.Namespace) -> int:
     """Browse all symbols in project with filters command."""
     project_root = args.project_root or "."
@@ -425,7 +463,7 @@ def cmd_browse(args: argparse.Namespace) -> int:
     lang = args.lang or "all"
     limit = args.limit or 50
 
-    # Use list_symbols with no file_path to get all symbols
+    # Try DB-backed list first
     result = _tool_list_symbols({
         "file_path": None,  # All files
         "project_root": project_root,
@@ -434,11 +472,15 @@ def cmd_browse(args: argparse.Namespace) -> int:
         "limit": limit,
     })
 
-    if "error" in result:
+    # Fall back to filesystem scanning if no DB/index
+    if result.get("error_code") == "INDEX_NOT_FOUND":
+        symbols = _browse_fallback(project_root, kind, limit)
+        result = {"project_root": project_root, "symbols": symbols, "count": len(symbols)}
+    elif "error" in result:
         print(f"Error: {result['error']}", file=sys.stderr)
         return 1
-
-    symbols = result.get("symbols", [])
+    else:
+        symbols = result.get("symbols", [])
 
     if args.format == "json":
         print(json.dumps(result, indent=2, default=str))

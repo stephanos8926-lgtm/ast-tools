@@ -22,6 +22,8 @@ from src.ast_tools.tools.repo_skeleton import (
 # =============================================================================
 
 
+pytestmark = pytest.mark.integration
+
 class TestProjectTypeDetection:
     def test_python_pyproject(self, tmp_path: Path) -> None:
         """Python project with pyproject.toml."""

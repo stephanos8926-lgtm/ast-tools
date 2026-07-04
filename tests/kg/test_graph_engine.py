@@ -1,4 +1,7 @@
 """Tests for the knowledge graph engine."""
+import pytest
+pytestmark = pytest.mark.unit
+
 
 from pathlib import Path
 

@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+import pytest
+pytestmark = pytest.mark.integration
+
 """TDD tests for project_tools.py fixes (Phase 0 Batch B)."""
 
 import json

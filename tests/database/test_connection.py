@@ -13,6 +13,8 @@ from ast_tools.database.connection import (
 )
 
 
+pytestmark = pytest.mark.integration
+
 class TestRetryDecorator:
     """Test the retry_on_locked decorator."""
 

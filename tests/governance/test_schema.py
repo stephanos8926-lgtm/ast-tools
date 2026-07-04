@@ -11,6 +11,9 @@ from ast_tools.governance.schema import (
     validate_schema,
     init_governance_file,
 )
+import pytest
+pytestmark = pytest.mark.unit
+
 
 
 class TestGovernanceConfig:

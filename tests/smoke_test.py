@@ -2,6 +2,9 @@
 import sys
 
 
+import pytest
+pytestmark = pytest.mark.smoke
+
 def main() -> int:
     """Run smoke tests."""
     errors = []

@@ -24,6 +24,8 @@ from ast_tools.tools.blast_radius_v2 import (
 # ===========================================================================
 
 
+pytestmark = pytest.mark.integration
+
 class TestTargetResolution:
     def test_identifies_file_target(self, tmp_path: Path) -> None:
         py_file = tmp_path / "foo.py"

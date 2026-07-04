@@ -5,6 +5,9 @@ from datetime import datetime, timedelta
 from ast_tools.context.history import InjectionHistory
 
 
+import pytest
+pytestmark = pytest.mark.unit
+
 class TestInjectionHistory:
     """Test session-based injection history tracking."""
 

@@ -18,6 +18,8 @@ import pytest
 from ast_tools.database.schema import get_schema_version, migrate
 
 
+pytestmark = pytest.mark.integration
+
 @pytest.fixture
 def fresh_db():
     """Create a fresh in-memory database with schema v4."""

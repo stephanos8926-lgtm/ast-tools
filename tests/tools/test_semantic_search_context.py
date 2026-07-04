@@ -21,6 +21,8 @@ from ast_tools.tools.semantic_search import (
 )
 
 
+pytestmark = pytest.mark.slow
+
 class TestContextInjectionIntegration:
     """Test ContextInjector integration with semantic search."""
 

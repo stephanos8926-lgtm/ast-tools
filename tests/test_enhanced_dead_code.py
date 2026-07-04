@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
+import pytest
+pytestmark = pytest.mark.integration
+
 """Tests for enhanced dead code detection."""
 
 import tempfile
 from pathlib import Path
 
-import pytest
 
 from ast_tools.tools.enhanced_dead_code import find_dead_code_enhanced
 

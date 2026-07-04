@@ -17,22 +17,23 @@ logger = logging.getLogger(__name__)
 
 
 def _tool_list_symbols(args: dict[str, Any]) -> dict[str, Any]:
-    """List all symbols in a specific file.
+    """List symbols — either in a specific file or all symbols in the project.
 
     Args:
-        file_path: Path to the source file
+        file_path: Path to the source file (None/empty for all symbols)
+        project_root: Project root for context (optional)
+        kind: Filter by symbol kind (optional)
+        lang: Filter by language (optional)
+        limit: Max results (default 50)
 
     Returns:
         Dict with list of symbols or error message
     """
     file_path = args.get("file_path", "")
-
-    if not file_path:
-        return {
-            "error": "file_path is required",
-            "error_code": "INVALID_INPUT",
-            "tool": "list_symbols",
-        }
+    kind = args.get("kind")
+    lang = args.get("lang")
+    limit = args.get("limit", 50)
+    project_root = args.get("project_root")
 
     try:
         db_path = get_db_path()
@@ -46,16 +47,39 @@ def _tool_list_symbols(args: dict[str, Any]) -> dict[str, Any]:
             }
 
         with database_context() as conn:
-            results = list_symbols_by_file(conn, file_path)
+            if file_path:
+                results = list_symbols_by_file(conn, file_path)
+            else:
+                # List all symbols with optional filters
+                query = """
+                    SELECT id, name, qualified_name, kind, file_path as file_path,
+                           start_line, end_line, signature, is_public, lang
+                    FROM symbols
+                    WHERE 1=1
+                """
+                params = []
+                if kind:
+                    query += " AND kind = ?"
+                    params.append(kind)
+                if lang:
+                    query += " AND lang = ?"
+                    params.append(lang)
+                query += " ORDER BY file_path, start_line"
+                if limit:
+                    query += " LIMIT ?"
+                    params.append(limit)
+                results = conn.execute(query, params).fetchall()
 
             return {
-                "file_path": file_path,
+                "project_root": project_root or ".",
                 "symbols": [
                     {
                         "id": row["id"],
                         "name": row["name"],
                         "qualified_name": row["qualified_name"],
                         "kind": row["kind"],
+                        "file": row["file_path"] if "file_path" in row.keys() else file_path,
+                        "line": row["start_line"],
                         "start_line": row["start_line"],
                         "end_line": row["end_line"],
                         "signature": row["signature"],

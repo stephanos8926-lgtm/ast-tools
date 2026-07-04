@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+import pytest
+pytestmark = pytest.mark.unit
+
 """Unit tests for symbol-level diff engine (Phase 8: Incremental Indexing)."""
 
 import pytest

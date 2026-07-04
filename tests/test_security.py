@@ -13,6 +13,8 @@ from ast_tools.utils.security import (
 )
 
 
+pytestmark = pytest.mark.integration
+
 class TestValidateProjectPath:
     """Tests for validate_project_path function."""
 

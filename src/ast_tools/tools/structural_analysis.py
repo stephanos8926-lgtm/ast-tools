@@ -96,6 +96,7 @@ def _ast_find_callees(symbol: str, file_path: str, _project_root: str) -> list[d
             for child in ast.iter_child_nodes(node):
                 _walk(child)
             in_target = False
+            return  # Already recursed into children, skip general descent
         elif in_target and isinstance(node, ast.Call):
             callee_name = None
             if isinstance(node.func, ast.Name):
@@ -112,6 +113,9 @@ def _ast_find_callees(symbol: str, file_path: str, _project_root: str) -> list[d
                         else "",
                     }
                 )
+        # General recursive descent — covers Module, Expr, etc.
+        for child in ast.iter_child_nodes(node):
+            _walk(child)
 
     _walk(tree)
     return callees
