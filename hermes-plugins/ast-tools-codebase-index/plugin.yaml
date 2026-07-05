@@ -14,4 +14,4 @@ author: "RapidWebs Enterprise (Lucien)"
 license: "MIT"
 tags: ["ast", "codebase", "index", "intelligence", "semantic"]
 hooks:
-  - agent:end
+  - on_session_end

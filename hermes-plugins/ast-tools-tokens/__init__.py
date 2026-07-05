@@ -1,59 +1,21 @@
 """AST-Tools Token Management Plugin
 
-Tracks token usage for ast-tools and provides compression-aware context injection.
-Now reads token budgets from ~/.ast-tools/config/tokens.yaml.
+Tracks token usage for ast-tools and provides context pressure warnings.
+Reads token budgets from ~/.ast-tools/config/tokens.yaml (fallback to defaults).
 """
 
-import json
 import logging
-import os
 from functools import partial
 from pathlib import Path
 from typing import Any
 
 from hermes_cli.plugins import PluginContext
-from ast_tools.config.loader import load_tokens_config
-from ast_tools.config.tokens_schema import DEFAULT_TOKENS
 
 logger = logging.getLogger(__name__)
 
+# ── Default budgets ────────────────────────────────────────────────────
 
-# ── Config loader ──────────────────────────────────────────────────────
-
-
-def _load_tokens_config() -> dict[str, Any]:
-    """Load token budgets from ~/.ast-tools/config/tokens.yaml.
-
-    Falls back to default token budgets if file doesn't exist.
-    """
-    config_path = Path.home() / ".ast-tools" / "config" / "tokens.yaml"
-
-    if not config_path.exists():
-        return dict(DEFAULT_TOKENS)
-
-    try:
-        import yaml
-        raw = yaml.safe_load(config_path.read_text())
-        if raw and isinstance(raw, dict):
-            # Merge: raw values override defaults
-            merged = dict(DEFAULT_TOKENS)
-            for key, val in raw.items():
-                if key in merged and isinstance(merged[key], dict) and isinstance(val, dict):
-                    merged[key].update(val)
-                else:
-                    merged[key] = val
-            return merged
-    except Exception as e:
-        logger.warning(f"Failed to load tokens.yaml from {config_path}: {e}")
-
-    return dict(DEFAULT_TOKENS)
-
-
-# ── Error correction patterns ───────────────────────────────────────────
-
-_AST_TOOLS_ERROR_CORRECTIONS: dict[str, dict[str, str]] = {
-    # ... (rest of the original _AST_TOOLS_ERROR_CORRECTIONS)
-
+_DEFAULT_BUDGETS: dict[str, int] = {
     "ast_grep": 2000,
     "structural_analysis": 4000,
     "impact_analysis": 3000,
@@ -76,8 +38,6 @@ def _load_tokens_config() -> dict[str, Any]:
 
     Falls back to hardcoded defaults if file doesn't exist.
     """
-    config_path = Path.home() / ".ast-tools" / "config" / "tokens.yaml"
-
     defaults: dict[str, Any] = {
         "token_budgets": dict(_DEFAULT_BUDGETS),
         "context_window": {
@@ -91,14 +51,15 @@ def _load_tokens_config() -> dict[str, Any]:
         },
     }
 
+    config_path = Path.home() / ".ast-tools" / "config" / "tokens.yaml"
     if not config_path.exists():
         return defaults
 
     try:
         import yaml
+
         raw = yaml.safe_load(config_path.read_text())
         if raw and isinstance(raw, dict):
-            # Merge: raw values override defaults
             merged = dict(defaults)
             for key, val in raw.items():
                 if key in merged and isinstance(merged[key], dict) and isinstance(val, dict):
@@ -107,31 +68,31 @@ def _load_tokens_config() -> dict[str, Any]:
                     merged[key] = val
             return merged
     except Exception as e:
-        logger.warning(f"Failed to load tokens.yaml from {config_path}: {e}")
+        logger.warning("Failed to load tokens.yaml from %s: %s", config_path, e)
 
     return defaults
 
 
-# ── Error correction patterns ───────────────────────────────────────────
+# ── Error correction patterns ──────────────────────────────────────────
 
 _AST_TOOLS_ERROR_CORRECTIONS: dict[str, dict[str, str]] = {
     "ast_edit": {
         "Invalid operation": (
-            "**Correct usage:** ast_edit operations are specific:\n"
+            "**Correct usage:** ast_edit operations:\n"
             "- `rename_function`: {\"function\": \"old_name\", \"new_name\": \"new_name\"}\n"
             "- `replace_node`: {\"pattern\": \"old\", \"replacement\": \"new\"}\n"
             "- `insert_after`: {\"anchor\": \"func\", \"code\": \"new code\"}\n"
             "- `add_parameter`: {\"function\": \"foo\", \"param\": \"bar\", \"type\": \"str\"}\n"
             "Always dry_run=true first!"
         ),
-        "dry_run": "⚠️ Always run dry_run=true FIRST to preview changes. Then re-run with dry_run=false.",
+        "dry_run": "⚠️ Always run dry_run=true FIRST to preview changes.",
     },
     "semantic_search": {
-        "k exceeds": "⚠️ k=50 is large. Use k=10 + diversity_limit=5 for broad results, or add lang='python' filter.",
-        "no results": "Try broader query or remove kind/lang filters. FTS5 needs keyword matches for recall.",
+        "k exceeds": "⚠️ k=50 is large. Use k=10 + diversity_limit=5 or add lang='python' filter.",
+        "no results": "Try broader query or remove kind/lang filters.",
     },
     "ast_grep": {
-        "Invalid pattern": "Use $VAR for single node, $$$VAR for multiple nodes. Example: def $FUNC($$$ARGS)",
+        "Invalid pattern": "Use $VAR for single node, $$$VAR for multiple. Example: def $FUNC($$$ARGS)",
     },
     "impact_analysis": {
         "symbol not found": "Use find_references first to locate symbol, then impact_analysis on the file.",
@@ -155,23 +116,60 @@ def register(ctx: PluginContext):
     ctx.register_hook("post_tool_call", _correct_ast_tools_errors)
     logger.info(
         "ast-tools-tokens plugin registered "
-        f"(config: {'loaded' if Path.home().joinpath('.ast-tools/config/tokens.yaml').exists() else 'defaults'})"
+        "(config: %s)",
+        "loaded" if Path.home().joinpath(".ast-tools/config/tokens.yaml").exists() else "defaults",
     )
 
 
 # ── Tool usage tracking ────────────────────────────────────────────────
 
+_AST_TOOLS_TOOL_NAMES = {
+    # Core AST
+    "ast_grep", "ast_edit", "ast_read", "ast_generate_stub",
+    "ast_refactor_extract_interface", "ast_capsule", "ast_query", "ts_edit",
+    # Analysis
+    "structural_analysis", "impact_analysis", "module_imports",
+    "find_references", "blast_radius_v2", "class_hierarchy",
+    "transitive_dependents", "circular_dependencies",
+    "dependency_chain", "external_dependencies", "api_surface_diff",
+    # Knowledge Graph
+    "kg_query", "kg_shortest_path", "kg_neighborhood",
+    # Co-change
+    "co_change_diff", "co_change_history", "co_change_hotspots", "co_change_predict",
+    # Dead code / quality
+    "dead_code_detection", "dead_code_enhanced", "code_validate_syntax",
+    "codebase_summary", "project_info", "repo_skeleton", "file_related_suggest",
+    # LSP
+    "lsp_available_languages", "lsp_call_hierarchy_in", "lsp_call_hierarchy_out",
+    "lsp_check_server", "lsp_definition", "lsp_hover", "lsp_references", "lsp_symbols",
+    # Index
+    "semantic_search", "search_symbols", "find_symbol_definition", "list_symbols",
+    "refresh_index", "index_status", "reindex_path",
+    "watch_add", "watch_status",
+}
+
+
+def _is_ast_tools_tool(tool_name: str) -> bool:
+    """Check if a tool name belongs to ast-tools (supports both bare and MCP-prefixed names)."""
+    if tool_name.startswith("mcp_ast_tools_tool_"):
+        return tool_name[len("mcp_ast_tools_tool_"):] in _AST_TOOLS_TOOL_NAMES
+    return tool_name in _AST_TOOLS_TOOL_NAMES
+
 
 def _track_ast_tools_usage(tool_name: str, params: dict, result: str, budgets: dict[str, int], **kwargs):
-    if not tool_name.startswith("mcp_ast_tools_"):
+    """Log token usage when ast-tools tools return large results."""
+    if not _is_ast_tools_tool(tool_name):
         return
-    tool_key = tool_name.replace("mcp_ast_tools_", "").split("_")[0]
-    budget = budgets.get(tool_key, budgets.get("default", 1000))
+    # Strip prefix for budget lookup
+    raw_name = tool_name
+    if raw_name.startswith("mcp_ast_tools_tool_"):
+        raw_name = raw_name[len("mcp_ast_tools_tool_"):]
+    budget = budgets.get(raw_name, budgets.get("default", 1000))
     estimated = len(result) // 4
     if estimated > budget:
         logger.warning(
-            f"ast-tools result exceeded budget: {tool_name} ~{estimated}tok "
-            f"(budget: {budget})"
+            "ast-tools result exceeded budget: %s ~%dtok (budget: %d)",
+            tool_name, estimated, budget,
         )
 
 
@@ -187,6 +185,7 @@ def _check_context_pressure(
     cfg: dict[str, Any],
     **kwargs,
 ) -> dict | None:
+    """Warn when context usage approaches compression threshold."""
     cw = cfg.get("context_window", {})
     per_model = cw.get("per_model", {})
     context_length = per_model.get(model, cw.get("default", _DEFAULT_CONTEXT_WINDOW))
@@ -203,10 +202,10 @@ def _check_context_pressure(
         return {
             "context": (
                 f"\n⚠️ **Context Pressure Alert**\n"
-                f"- Usage: ~{estimated:,} tokens ({estimated/context_length*100:.1f}%)\n"
-                f"- Compression at: {threshold:,} tokens ({threshold_ratio*100:.0f}%)\n"
+                f"- Usage: ~{estimated:,} tokens ({estimated / context_length * 100:.1f}%)\n"
+                f"- Compression at: {threshold:,} tokens ({threshold_ratio * 100:.0f}%)\n"
                 f"- Use `/compress` or focus queries.\n"
-            )
+            ),
         }
     return None
 
@@ -215,14 +214,18 @@ def _check_context_pressure(
 
 
 def _correct_ast_tools_errors(tool_name: str, params: dict, result: str, **kwargs):
-    if not tool_name.startswith("mcp_ast_tools_"):
-        return
-    tool_key = tool_name.replace("mcp_ast_tools_", "")
+    """Intercept failed ast-tools calls and inject usage guidance."""
+    if not _is_ast_tools_tool(tool_name):
+        return None
+    # Strip prefix for correction lookup
+    raw_name = tool_name
+    if raw_name.startswith("mcp_ast_tools_tool_"):
+        raw_name = raw_name[len("mcp_ast_tools_tool_"):]
     if "Error:" in str(result) or "error" in str(result).lower()[:50]:
-        corrections = _AST_TOOLS_ERROR_CORRECTIONS.get(tool_key, {})
+        corrections = _AST_TOOLS_ERROR_CORRECTIONS.get(raw_name, {})
         for pattern, correction in corrections.items():
             if pattern.lower() in str(result).lower():
                 return {"context": f"\n⚠️ **AST-Tools Usage Correction:**\n{correction}\n"}
-        if tool_key in _AST_TOOLS_ERROR_CORRECTIONS:
-            return {"context": f"\n⚠️ **AST-Tools Usage:** Check docs for {tool_key}.\n"}
+        if raw_name in _AST_TOOLS_ERROR_CORRECTIONS:
+            return {"context": f"\n⚠️ **AST-Tools Usage:** Check docs for {raw_name}.\n"}
     return None

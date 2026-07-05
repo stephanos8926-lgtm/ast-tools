@@ -79,98 +79,96 @@ def build_ast_tools_context(query: str) -> str:
     return """
 ## AST-Tools MCP Server Capabilities
 
-**Structural Code Analysis & Editing** available via 43 MCP tools:
+**Structural Code Analysis & Editing** — 55 MCP tools available.
 
-### Core Tools
+### Core AST Tools
+| Tool | What it does |
+|------|-------------|
+| `ast_grep` | Structural search with AST patterns (Python/JS/TS/Rust/Go/Java/C++) |
+| `ast_read` | Extract API surface (classes, functions, imports + line numbers) |
+| `ast_edit` | Surgical AST edits via libcst — **always dry_run=true first!** |
+| `ast_generate_stub` | Generate .pyi stub files or interface summaries |
+| `ast_refactor_extract_interface` | Extract ABC/Protocol from a class |
+| `ast_capsule` | Export code as self-contained capsule with deps |
+| `ast_query` | Smart router — auto-selects best tool for your query |
+| `ts_edit` | TypeScript structural editing (TSX/JSX support) |
 
-**ast_grep** - Structural code search using AST patterns
-- Pattern: `def $FUNC($$$ARGS)` matches any function definition
-- Pattern: `call($OBJ, $METHOD)` matches method calls with 2 args
-- Supports: Python, JS/TS, Rust, Go, Java, C/C++, and 20+ languages
-- Returns: Matches with file, line, column, code snippet
+### Analysis & Impact
+| Tool | What it does |
+|------|-------------|
+| `structural_analysis` | Call graphs, type hierarchies, references, dependencies |
+| `impact_analysis` | **Use before refactoring** — shows affected files + risk |
+| `module_imports` | Fan-in/fan-out import graph, circular dep detection |
+| `find_references` | All usages of a symbol across the codebase |
+| `blast_radius_v2` | Unified blast radius (import + hierarchy + call graph) |
+| `class_hierarchy` | MRO, bases, subclasses, method categories |
+| `transitive_dependents` | Full transitive dependency chain |
+| `circular_dependencies` | Detect circular imports |
+| `dependency_chain` | Trace dependency paths end-to-end |
+| `external_dependencies` | Find third-party imports |
+| `api_surface_diff` | Compare API surfaces between versions |
 
-**ast_read** - Structural context extraction
-- Input: File path
-- Output: Imports, classes, functions, variables (all with line numbers)
-- Use: Understand code structure before making changes
+### Knowledge Graph (KG)
+| Tool | What it does |
+|------|-------------|
+| `kg_query` | Natural language graph traversal — find related symbols |
+| `kg_shortest_path` | Shortest path between two symbols |
+| `kg_neighborhood` | All symbols within N hops of a given symbol |
 
-**ast_edit** - Surgical AST-based modifications
-- Operations: replace_node, insert_after, insert_before, remove_node, 
-             rename_function, add_parameter, change_signature
-- Uses libcst for lossless transformations (preserves formatting/comments)
-- Always use `dry_run: true` first!
+### Co-Change Analysis
+| Tool | What it does |
+|------|-------------|
+| `co_change_diff` | Diff-level co-change patterns |
+| `co_change_history` | Historical co-change frequency |
+| `co_change_hotspots` | Files that change together most often |
+| `co_change_predict` | Predict what else needs changing given a file |
 
-**ast_generate_stub** - Generate .pyi stub files
-- Creates type stubs from existing code
-- Use for library interface documentation
+### Dead Code & Code Quality
+| Tool | What it does |
+|------|-------------|
+| `dead_code_detection` | Find unused code |
+| `dead_code_enhanced` | Deeper dead code analysis with cross-ref tracing |
+| `code_validate_syntax` | Syntax check files |
+| `codebase_summary` | Architecture overview (<500 tokens) |
+| `project_info` | Full project manifest with modules and symbols |
+| `repo_skeleton` | File tree + type detection + dep graph |
+| `file_related_suggest` | Find related files by import/test/dir patterns |
 
-### Analysis Tools
+### LSP Integration
+| Tool | What it does |
+|------|-------------|
+| `lsp_definition` | Go-to-definition |
+| `lsp_references` | Find references via LSP |
+| `lsp_hover` | Type/signature on hover |
+| `lsp_symbols` | Document symbols |
+| `lsp_call_hierarchy_in` | Incoming calls |
+| `lsp_call_hierarchy_out` | Outgoing calls |
+| `lsp_available_languages` | Which LSP servers are running |
+| `lsp_check_server` | Check LSP server health |
 
-**structural_analysis** - Comprehensive code analysis
-- Call graphs (who calls whom)
-- Type hierarchies (class inheritance)
-- Symbol references and usage
+### Semantic Search & Index
+| Tool | What it does |
+|------|-------------|
+| `semantic_search` | Vector + FTS5 hybrid — search by meaning |
+| `search_symbols` | FTS5 keyword search of indexed symbols |
+| `find_symbol_definition` | Lookup by qualified name |
+| `list_symbols` | All symbols in a file |
+| `refresh_index` | Index (incremental via SHA256) |
+| `index_status` | Stats: files, symbols, edges, embeddings |
+| `reindex_path` | Re-index a specific path |
+| `watch_add` / `watch_status` | File watcher for auto-reindex |
 
-**impact_analysis** - Change impact assessment
-- Input: File path or symbol name
-- Output: List of affected files/code locations
-- **Use before making changes!**
+### Best Practice Workflows
 
-**module_imports** - Import dependency analysis
-- Fan-in: Which modules import this one?
-- Fan-out: Which modules does this one import?
-- Circular dependency detection
+**Making changes:** `impact_analysis` → `blast_radius_v2` → `ast_edit` (dry_run!) → `ast_edit` (apply) → `code_validate_syntax`
 
-**find_references** - Cross-file symbol search
-- Find all usages of a symbol across the codebase
+**Understanding code:** `codebase_summary` → `ast_read` → `module_imports` → `kg_query`
 
-### Search & Discovery
+**Finding code:** `semantic_search` → `ast_grep` (refine) → `ast_read` (full context)
 
-**semantic_search** - Vector + FTS5 hybrid search
-- Search code by meaning, not just keywords
-- Retrieves most relevant code sections
-- `inject_context=True` (default), `token_budget=4096`, `diversity_limit=3`
+**Debugging deps:** `circular_dependencies` → `external_dependencies` → `dependency_chain`
 
-**search_symbols** - Full-text symbol search
-- Search through indexed symbol names
-
-**find_symbol_definition** - Find symbol by qualified name
-- Input: "module.func" or "Class.method"
-- Output: File path and line number
-
-**list_symbols** - List all symbols in a file
-- Returns: All functions, classes, variables with locations
-
-### Index Management
-
-**refresh_index** - Index/re-index a project
-- Incremental (only changed files)
-- Content hashing for change detection
-
-**index_status** - Get index statistics
-- Number of symbols, files, embeddings
-
-### Usage Patterns
-
-**For code search:**
-1. Start with `semantic_search` for conceptual queries
-2. Refine with `ast_grep` for structural patterns
-3. Verify with `ast_read` to see full context
-
-**For making changes:**
-1. Analyze with `structural_analysis` to understand dependencies
-2. Check impact with `impact_analysis`
-3. Preview edit with `ast_edit` (dry_run=true)
-4. Apply edit (dry_run=false)
-5. Verify with `ast_read`
-
-**For understanding code:**
-1. Get overview with `codebase_summary`
-2. Extract structure with `ast_read`
-3. Find dependencies with `module_imports`
-4. Locate usages with `find_references`
-
-**Tip:** Use Context7 (say "use context7") for library documentation when working with external APIs.
+**Tip:** Use Context7 for library docs — say "use context7" before asking about external APIs.
 """
 
 
@@ -178,11 +176,13 @@ def inject_session_onboarding(session_id: str, **kwargs) -> dict:
     """Inject compact ast-tools index at session start."""
     return {
         "context": """
-## AST-Tools Quick Index (43 tools available)
+## AST-Tools Quick Index (55 tools available)
 
 **Core:** ast_grep (structural search), ast_read (API surface), ast_edit (surgical edits—dry_run FIRST!), semantic_search (inject_context=True)
 
-**Analysis:** impact_analysis (before API changes), module_imports (before splits), structural_analysis (callers/callees), find_references (before renaming)
+**Analysis:** impact_analysis (before API changes), module_imports (before splits), blast_radius_v2 (unified impact), circular_dependencies, class_hierarchy, transitive_dependents
+
+**Advanced:** kg_query (semantic graph traversal), co_change_predict (what else needs changing), lsp_* (IDE-grade code nav), dead_code_enhanced, api_surface_diff
 
 **Gotchas:** 
 - ast_edit: Always dry_run=true before applying
