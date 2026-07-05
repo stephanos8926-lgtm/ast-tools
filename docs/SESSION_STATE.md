@@ -1,15 +1,15 @@
-# Session State — 2026-07-03 (Updated 12:03 EDT)
+# Session State — 2026-07-05
 
-## Active Project: ast-tools
+## Active Project: rw-ast-tools
 
 **Repo:** `~/Workspaces/ast-tools/`  
 **Branch:** master  
-**Last commit:** `b65162e` — docs: update SESSION_STATE for Phase 7 completion  
+**Last commit:** `6c220dc` — feat: testing infrastructure overhaul (Steven, Jul 4)  
 **Working tree:** Clean  
 
 ---
 
-## Actual Phase Status (verified against git log)
+## Phase Status (Verified Against Git Log)
 
 | Phase | Description | Status | Commit |
 |-------|-------------|--------|--------|
@@ -30,62 +30,86 @@
 | Phase 10.1 | Transitive Import Resolution | ✅ COMPLETE | `a326fca` |
 | Phase 10.2 | Class Hierarchy Analysis (MRO, methods, interfaces) | ✅ COMPLETE | `b270e2d` |
 | Phase 10.3 | Blast Radius v2 (unified impact analysis) | ✅ COMPLETE | `81b3c36` |
-| Phase A (Ship) | Deploy, publish, polish | 📋 Planned | — |
+| **Phase 0 (new)** | **Foundation & Configuration** | ✅ **COMPLETE** | `b6b6058` |
+| **Phase B** | **Architecture Governance Engine** | ✅ **COMPLETE** | `b8a7b33` |
+| Phase A (Ship) | Deploy, publish, polish | 🟡 **Partial — see below** | — |
 | Phase C (Killer Features) | Auto-fix, reranker, dashboard | 📋 Planned | — |
 | Phase D (Launch) | Multi-arch, release pipeline | 📋 Planned | — |
 
+---
+
 ## What Was Done
 
-**Phase A — Ship Preparation (2026-07-03)**
+### Phase A — Ship Preparation (2026-07-03, agent + Steven)
 
 | Task | What | Status |
 |------|------|--------|
-| A.1 | Move `project_tools.py` → `ast_tools._project_tools` (package-internal, fixes wheel) | ✅ DONE |
-| A.2 | Move `ast_tools_server.py` → `ast_tools._server` (package-internal, fixes wheel) | ✅ DONE |
+| A.1 | Move `project_tools.py` → `ast_tools._project_tools` (package-internal) | ✅ DONE |
+| A.2 | Move `ast_tools_server.py` → `ast_tools._server` (package-internal) | ✅ DONE |
 | A.3 | Fix entry points + all imports (tests, plugins, lazy imports) | ✅ DONE |
-| A.4 | Build + verify wheel: `ast_tools._server` + `ast_tools._project_tools` included | ✅ DONE |
-| A.5 | Tests: 96/96 passing (±3 fix for old module path) | ✅ DONE |
-| A.6 | PyPI publish: BLOCKED — no PyPI token configured | ⏸️ BLOCKED |
+| A.4 | Build + verify wheel | ✅ DONE |
+| A.5 | Tests: ~700 passing | ✅ DONE |
+| **Rename** | Rename project to `rw-ast-tools` | ✅ **DONE (Steven)** |
+| **CI/CD** | Add GitHub Actions CI/publish + release workflows | ✅ **DONE (Steven)** |
+| A.6 | **Publish to PyPI** | 📋 **Ready — tag & push** |
 
-### Blockers
+### Phase 0 (new) — Foundation & Configuration (Steven, Jul 3)
 
-1. **No PyPI token** — `~/.pypirc`, keyring, and `.env` all empty. Need Steven to provide one.
-2. Options: (a) `uv publish` with token, (b) GitHub Actions CI with PYPI_TOKEN secret, (c) TestPyPI first for validation.
+Foundation layer setup and configuration infrastructure. Committed at `b6b6058`.
 
-### Next Steps
+### Phase B — Architecture Governance Engine (Steven, Jul 3)
 
-1. Steven provides PyPI token or configures CI
-2. `uv publish dist/*.whl`
-3. Tag release: `git tag v0.1.0 && git push --tags`
-4. Create GitHub Release
-5. Submit to MCP registry
+Layer-based architecture enforcement added:
+- `governance.yaml` — layer rules (infrastructure → domain → application → presentation)
+- Allowed deps enforcement, violation detection
 
-## Key Metrics (Verified Against Codebase)
+### Testing Infrastructure Overhaul (Steven, Jul 4)
+
+- Tier markers: `smoke`, `unit`, `integration`, `e2e`, `slow`
+- `Makefile` for common test targets
+- Model fixture for test isolation
+- Timeout settings per tier
+
+---
+
+## PyPI Publishing — No Token Needed
+
+The `release.yml` workflow uses **Trusted Publishing** (OIDC):
+- `id-token: write` permission
+- GitHub Actions `pypi` environment configured for OIDC trust
+- `uv publish` — no API token required
+
+**To publish:**
+```bash
+git tag v0.1.0
+git push --tags
+```
+
+This triggers the Release workflow which:
+1. Builds wheel + sdist
+2. Smoke-tests both
+3. Publishes to PyPI
+4. Creates GitHub Release with changelog
+
+---
+
+## Key Metrics (Verified Jul 5)
 
 | Metric | Value |
 |--------|-------|
-| **MCP Tools** | 55 |
-| **Source .py files** | 82 |
-| **Test files** | 53 |
-| **Total tests passing** | ~700 |
+| **Registered MCP tools** | **61** (was 55) |
+| **Source .py files** | 98 |
+| **Test files** | 45 |
+| **Total tests** | **731** (was ~700) |
 | **Hermes plugins** | 3 (context, tokens, codebase-index) |
-| **OSS standard files** | 15 |
+| **OSS standard files** | 7 root docs + 14 `docs/` files |
 | **Schema** | v5 |
 
 ---
 
 ## Next Steps
 
-1. **Restart gateway** on both machines (MCP tools need to register — Phase 6F RRF changes)
-2. **Phase A (Ship): PyPI publish v0.1.0**
-   - Final docs cleanup (README accurate, CHANGELOG complete)
-   - Build + publish to PyPI (or Test PyPI first)
-   - Create GitHub release v0.1.0
-   - Launch prep
-
----
-
-## Issues Fixed (This Session)
-
-1. **Session state files stale** — showed Phase 7 incomplete after all 6 tasks were done
-2. **Gateway restart pending** — needed on both machines for MCP tool registration
+1. ✅ **This:** Update SESSION_STATE to reflect Phase 0, Phase B, rename, testing overhaul
+2. 📋 Tag & push `v0.1.0` → PyPI publish + GitHub Release
+3. 📋 RapidWebs sysstable: tag `v0.2.0` → trigger its pipeline
+4. 📋 Phase C (Killer Features) or D (Launch) planning
