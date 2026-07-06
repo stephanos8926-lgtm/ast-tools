@@ -11,9 +11,7 @@ from __future__ import annotations
 import logging
 from functools import partial
 from pathlib import Path
-from typing import Any
-
-from hermes_cli.plugins import PluginContext
+from typing import TYPE_CHECKING, Any
 
 logger = logging.getLogger(__name__)
 
@@ -21,13 +19,16 @@ logger = logging.getLogger(__name__)
 
 from ast_tools.agent_integration import (
     build_ast_tools_context,
-    detect_ast_query,
     correct_tool_error,
+    detect_ast_query,
 )
 from ast_tools.agent_integration.token_tracker import (
-    TokenTracker,
     ContextPressureMonitor,
+    TokenTracker,
 )
+
+if TYPE_CHECKING:
+    from hermes_cli.plugins import PluginContext
 
 _TRACKER = TokenTracker()
 _PRESSURE_MONITOR = ContextPressureMonitor()

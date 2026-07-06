@@ -3,6 +3,8 @@
 import tempfile
 from pathlib import Path
 
+import pytest
+
 from ast_tools.tools.dependency import (
     build_import_graph,
     find_circular_dependencies,
@@ -11,8 +13,6 @@ from ast_tools.tools.dependency import (
     get_external_dependencies,
 )
 
-
-import pytest
 pytestmark = pytest.mark.integration
 
 class TestBuildImportGraph:

@@ -26,8 +26,8 @@ def main() -> int:
     try:
         from ast_tools._project_tools import (
             find_project_root,
-            project_info_summary,
             generate_project_json,
+            project_info_summary,
         )
         assert callable(find_project_root)
         assert callable(project_info_summary)

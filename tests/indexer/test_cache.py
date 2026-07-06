@@ -4,13 +4,13 @@ import tempfile
 import time
 from pathlib import Path
 
+import pytest
+
 from ast_tools.indexer.cache import (
     ASTCache,
     ASTNodeEncoder,
 )
 
-
-import pytest
 pytestmark = pytest.mark.integration
 
 class TestASTNodeEncoder:

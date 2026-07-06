@@ -6,6 +6,7 @@ from .impact import build_reverse_deps, classify_risk, get_transitive_deps
 from .rrf import RRF_K, kind_rank, rank_symbols, rrf_fuse
 
 __all__ = [
+    "RRF_K",
     "_annotation_to_str",
     "_extract_all_names",
     "_get_function_signature",
@@ -16,7 +17,6 @@ __all__ = [
     "find_python_files",
     "get_transitive_deps",
     "is_test_file",
-    "RRF_K",
     "kind_rank",
     "rank_symbols",
     "rrf_fuse",

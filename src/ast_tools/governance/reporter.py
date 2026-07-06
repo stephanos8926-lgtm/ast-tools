@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING
 
-from .scanner import Violation
+if TYPE_CHECKING:
+    from .scanner import Violation
 
 
 def format_violations(

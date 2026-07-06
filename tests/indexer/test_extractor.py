@@ -2,14 +2,14 @@
 
 import ast
 
+import pytest
+
 from ast_tools.indexer.extractor import (
     SymbolExtractor,
     extract_symbols,
 )
 from ast_tools.types import EdgeKind, SymbolKind
 
-
-import pytest
 pytestmark = pytest.mark.integration
 
 class TestSymbolExtractor:

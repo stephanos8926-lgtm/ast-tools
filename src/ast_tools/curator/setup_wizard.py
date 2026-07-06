@@ -14,13 +14,9 @@ embedding model, and creates initial index.
 from __future__ import annotations
 
 import hashlib
-import json
 import logging
-import os
 import shutil
 import sqlite3
-import subprocess
-import sys
 import time
 from pathlib import Path
 from typing import Any
@@ -151,8 +147,6 @@ def _check_environment() -> tuple[bool, list[str]]:
     issues: list[str] = []
 
     # Python version
-    if sys.version_info < (3, 10):
-        issues.append(f"Python >= 3.10 required, found {sys.version_info.major}.{sys.version_info.minor}")
 
     # Disk space
     try:
@@ -247,8 +241,8 @@ def _create_initial_index(project_root: Path) -> bool:
     Falls back to counting Python files if import fails.
     """
     try:
-        from ast_tools.indexer.extractor import extract_symbols_ts
         from ast_tools.database.connection import get_connection
+        from ast_tools.indexer.extractor import extract_symbols_ts
 
         db_path = AST_TOOLS_DIR / "cache" / "codebase.db"
         conn = get_connection(db_path)

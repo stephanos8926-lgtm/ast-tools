@@ -12,7 +12,6 @@ from ast_tools.database.connection import (
     retry_on_locked,
 )
 
-
 pytestmark = pytest.mark.integration
 
 class TestRetryDecorator:

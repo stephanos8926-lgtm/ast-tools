@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 import os
-import re
 from pathlib import Path
 from typing import Any
 
@@ -119,7 +118,7 @@ def _parse_python_deps(root: Path) -> dict[str, list[str]]:
             project = config.get("project", {})
             deps["direct"] = project.get("dependencies", [])
             opt_deps = project.get("optional-dependencies", {})
-            for group, group_deps in opt_deps.items():
+            for _group, group_deps in opt_deps.items():
                 deps["dev"].extend(group_deps)
             return deps
         except Exception:
@@ -221,7 +220,7 @@ def _build_dep_graph(root: Path, project_type: str, deps: dict[str, list[str]]) 
 
     # Remove duplicates and sort for consistent output
     for dir_path in dep_graph:
-        dep_graph[dir_path] = sorted(list(set(dep_graph[dir_path])))
+        dep_graph[dir_path] = sorted(set(dep_graph[dir_path]))
 
     return dep_graph
 
@@ -293,10 +292,7 @@ def _collect_structure(
                 config_files.append(frel)
             elif fname in {"README.md", "LICENSE", "CONTRIBUTING.md", "CHANGELOG.md"}:
                 role = "documentation"
-            elif fname in {"Dockerfile", "docker-compose.yml", ".env.example", ".gitignore"}:
-                role = "config"
-                config_files.append(frel)
-            elif Path(fname).suffix in config_extensions and include_configs:
+            elif fname in {"Dockerfile", "docker-compose.yml", ".env.example", ".gitignore"} or (Path(fname).suffix in config_extensions and include_configs):
                 role = "config"
                 config_files.append(frel)
 
@@ -395,7 +391,7 @@ def _tool_repo_skeleton(params: dict[str, Any]) -> dict[str, Any]:
         },
         "dependencies": dependencies,
         "tree_ascii": tree_ascii,
-        "files": sorted(set(f["path"] for f in structure["key_files"])),
+        "files": sorted({f["path"] for f in structure["key_files"]}),
         "summary": summary,
         "dependencies_graph": dependency_graph, # Add the dependency graph
     }

@@ -1,29 +1,29 @@
 """Tests for class hierarchy analysis tool."""
 
 import ast
-import pytest
-from pathlib import Path
 import sys
+from pathlib import Path
+
+import pytest
 
 _src = str(Path(__file__).resolve().parent.parent.parent / "src")
 if _src not in sys.path:
     sys.path.insert(0, _src)
 
 from ast_tools.tools.class_hierarchy import (
-    _tool_class_hierarchy,
-    _resolve_target,
-    _extract_class_definitions,
-    _compute_mro,
-    _find_methods,
-    _get_method_categories,
-    _detect_interface,
-    _find_subclasses,
-    _is_final,
     _compute_metrics,
+    _compute_mro,
+    _detect_interface,
+    _extract_class_definitions,
+    _find_methods,
+    _find_subclasses,
     _get_base_names,
+    _get_method_categories,
     _has_abstract_methods,
+    _is_final,
+    _resolve_target,
+    _tool_class_hierarchy,
 )
-
 
 # ── helpers ────────────────────────────────────────────────────────────────
 
@@ -53,30 +53,30 @@ class TestTargetResolution:
     def test_class_name_only_finds_class(self, tmp_path: Path) -> None:
         _make_file(tmp_path, "mymod.py", "class MyClass:\n    pass\n")
         # _resolve_target with workspace = str(tmp_path) — it scans files
-        cls, fpath, classes = _resolve_target("MyClass", None, str(tmp_path))
+        cls, fpath, _classes = _resolve_target("MyClass", None, str(tmp_path))
         assert cls == "MyClass"
         assert fpath is not None
         assert Path(fpath).name == "mymod.py"
 
     def test_file_colon_class_format(self, tmp_path: Path) -> None:
         _make_file(tmp_path, "mod.py", "class Target:\n    pass\n")
-        cls, fpath, classes = _resolve_target("mod.py:Target", str(tmp_path / "mod.py"), str(tmp_path))
+        cls, fpath, _classes = _resolve_target("mod.py:Target", str(tmp_path / "mod.py"), str(tmp_path))
         assert cls == "Target"
         assert fpath is not None
         assert Path(fpath).name == "mod.py"
 
     def test_nonexistent_class_returns_none(self, tmp_path: Path) -> None:
         _make_file(tmp_path, "mod.py", "class Real:\n    pass\n")
-        cls, fpath, classes = _resolve_target("Fake", None, str(tmp_path))
+        cls, _fpath, _classes = _resolve_target("Fake", None, str(tmp_path))
         assert cls is None  # class not found
 
     def test_nonexistent_file_returns_none(self, tmp_path: Path) -> None:
-        cls, fpath, classes = _resolve_target("nope.py:MyClass", str(tmp_path / "nope.py"), str(tmp_path))
+        cls, fpath, _classes = _resolve_target("nope.py:MyClass", str(tmp_path / "nope.py"), str(tmp_path))
         assert cls is None
         assert fpath is None  # file doesn't exist → returns (None, None, None)
 
     def test_class_name_only_no_workspace_returns_none(self) -> None:
-        cls, fpath, classes = _resolve_target("MyClass", None, None)
+        cls, fpath, _classes = _resolve_target("MyClass", None, None)
         assert cls is None
         assert fpath is None
 

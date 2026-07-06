@@ -6,16 +6,15 @@ from pathlib import Path
 import pytest
 
 from src.ast_tools.tools.repo_skeleton import (
-    _tool_repo_skeleton,
-    _detect_project_type,
     _build_ascii_tree,
     _collect_structure,
-    _parse_python_deps,
-    _parse_node_deps,
+    _detect_project_type,
     _parse_go_deps,
+    _parse_node_deps,
+    _parse_python_deps,
     _parse_rust_deps,
+    _tool_repo_skeleton,
 )
-
 
 # =============================================================================
 # Project Type Detection
@@ -30,14 +29,14 @@ class TestProjectTypeDetection:
         (tmp_path / "pyproject.toml").write_text("[project]\nname = \"test\"")
         (tmp_path / "src").mkdir(parents=True)
         (tmp_path / "src" / "__init__.py").write_text("")
-        proj_type, confidence, indicators = _detect_project_type(tmp_path)
+        proj_type, confidence, _indicators = _detect_project_type(tmp_path)
         assert proj_type == "python"
         assert confidence >= 0.5
 
     def test_python_setup_py(self, tmp_path: Path) -> None:
         """Python project with setup.py."""
         (tmp_path / "setup.py").write_text("from setuptools import setup\nsetup(name='test')")
-        proj_type, confidence, indicators = _detect_project_type(tmp_path)
+        proj_type, confidence, _indicators = _detect_project_type(tmp_path)
         assert proj_type == "python"
         assert confidence >= 0.4
 
@@ -45,28 +44,28 @@ class TestProjectTypeDetection:
         """Node.js project with package.json."""
         (tmp_path / "package.json").write_text("{}")
         (tmp_path / "index.js").write_text("console.log('hi')")
-        proj_type, confidence, indicators = _detect_project_type(tmp_path)
+        proj_type, confidence, _indicators = _detect_project_type(tmp_path)
         assert proj_type == "node"
         assert confidence >= 0.4
 
     def test_go_mod(self, tmp_path: Path) -> None:
         """Go project with go.mod."""
         (tmp_path / "go.mod").write_text("module example.com/test")
-        proj_type, confidence, indicators = _detect_project_type(tmp_path)
+        proj_type, confidence, _indicators = _detect_project_type(tmp_path)
         assert proj_type == "go"
         assert confidence >= 0.4
 
     def test_rust_cargo(self, tmp_path: Path) -> None:
         """Rust project with Cargo.toml."""
         (tmp_path / "Cargo.toml").write_text("[package]\nname = \"test\"")
-        proj_type, confidence, indicators = _detect_project_type(tmp_path)
+        proj_type, confidence, _indicators = _detect_project_type(tmp_path)
         assert proj_type == "rust"
         assert confidence >= 0.4
 
     def test_unknown_project(self, tmp_path: Path) -> None:
         """Unknown project type with no recognized files."""
         (tmp_path / "random.txt").write_text("hello")
-        proj_type, confidence, indicators = _detect_project_type(tmp_path)
+        proj_type, confidence, _indicators = _detect_project_type(tmp_path)
         assert proj_type == "unknown"
         assert confidence == 0.0
 
@@ -75,7 +74,7 @@ class TestProjectTypeDetection:
         (tmp_path / "pyproject.toml").write_text("")
         (tmp_path / "tsconfig.json").write_text("{}")
         (tmp_path / "app.py").write_text("")
-        proj_type, confidence, indicators = _detect_project_type(tmp_path)
+        proj_type, confidence, _indicators = _detect_project_type(tmp_path)
         assert proj_type == "python"  # pyproject.toml (3) > tsconfig (1) + *.py (1)
         assert confidence >= 0.5
 

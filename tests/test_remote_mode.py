@@ -7,6 +7,8 @@ Integration tests are skipped — run manually with:
 
 from __future__ import annotations
 
+import contextlib
+
 import pytest
 
 
@@ -65,6 +67,7 @@ class TestRemoteModeIntegration:
         """Test tools/list returns 57 tools."""
         import asyncio
         import random
+
         from ast_tools._server import _run_remote_mode
         from ast_tools.server_config import DEFAULT_CONFIG
 
@@ -91,10 +94,8 @@ class TestRemoteModeIntegration:
                 assert len(tools) >= 50
         finally:
             server_task.cancel()
-            try:
+            with contextlib.suppress(asyncio.CancelledError, Exception):
                 await server_task
-            except (asyncio.CancelledError, Exception):
-                pass
 
     @pytest.mark.skip(reason="Manual: requires free port on localhost")
     @pytest.mark.asyncio
@@ -102,6 +103,7 @@ class TestRemoteModeIntegration:
         """Test tools/call with codebase_summary returns valid response."""
         import asyncio
         import random
+
         from ast_tools._server import _run_remote_mode
         from ast_tools.server_config import DEFAULT_CONFIG
 
@@ -133,10 +135,8 @@ class TestRemoteModeIntegration:
                 assert "name" in text or "version" in text
         finally:
             server_task.cancel()
-            try:
+            with contextlib.suppress(asyncio.CancelledError, Exception):
                 await server_task
-            except (asyncio.CancelledError, Exception):
-                pass
 
 
 class TestLegacyHTTPFallback:

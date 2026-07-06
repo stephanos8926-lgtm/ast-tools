@@ -18,7 +18,6 @@ from ast_tools.tools.ast_read import _tool_ast_read
 from ast_tools.tools.structural_analysis import _tool_structural_analysis
 from tests.conftest import create_test_project
 
-
 pytestmark = pytest.mark.e2e
 
 @pytest.fixture
@@ -462,7 +461,7 @@ class TestMCPServer:
         assert "list_symbols" in tool_names
         assert "index_status" in tool_names
         assert "refresh_index" in tool_names
-        assert len(tools) == 55, f"Expected 55 MCP tools, got {len(tools)}"
+        assert len(tools) == 57, f"Expected 57 MCP tools, got {len(tools)}"
 
     def test_call_tool_ast_grep(self, test_project):
         """Call ast_grep through the MCP server interface."""

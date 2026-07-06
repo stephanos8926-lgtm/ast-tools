@@ -6,14 +6,16 @@ and usage validation. Backed by agent_integration modules — no Hermes dependen
 
 from __future__ import annotations
 
-from collections.abc import Callable
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from ast_tools.agent_integration import (
     build_ast_tools_context,
-    detect_ast_query,
     correct_tool_error,
+    detect_ast_query,
 )
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 
 def _tool_context_inject(args: dict[str, Any]) -> dict[str, Any]:

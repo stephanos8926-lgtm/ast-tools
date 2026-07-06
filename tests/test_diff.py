@@ -1,20 +1,19 @@
 #!/usr/bin/env python3
 import pytest
+
 pytestmark = pytest.mark.unit
 
 """Unit tests for symbol-level diff engine (Phase 8: Incremental Indexing)."""
 
 import pytest
-from ast_tools.types import Symbol, SymbolKind, Edge, EdgeKind
+
 from ast_tools.indexer.diff import (
     compute_symbol_diff,
-    DiffResult,
-    SymbolStatus,
     find_symbol_by_key,
-    is_symbol_unchanged,
     is_symbol_modified,
+    is_symbol_unchanged,
 )
-
+from ast_tools.types import Symbol, SymbolKind
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Fixtures
@@ -118,7 +117,7 @@ class TestComputeSymbolDiff:
         assert len(diff.modified) == 0
 
     def test_one_symbol_added(self, sample_symbols):
-        new = sample_symbols + [make_symbol("func_c", signature="def func_c()")]
+        new = [*sample_symbols, make_symbol("func_c", signature="def func_c()")]
         diff = compute_symbol_diff(sample_symbols, new)
         assert len(diff.added) == 1
         assert diff.added[0].name == "func_c"

@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import sqlite3
-from pathlib import Path
-from typing import Any
-
+from typing import TYPE_CHECKING, Any
 
 import pytest
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
 pytestmark = pytest.mark.integration
 
 def _create_test_db(path: Path) -> None:
@@ -56,7 +58,6 @@ def _make_mock_searcher(
     results: list[dict[str, Any]] | None = None,
 ) -> Any:
     """Return a mock semantic_search function that returns predictable results."""
-    from ast_tools.tools import knowledge_graph as kg
 
     def searcher(params: dict[str, Any]) -> dict[str, Any]:
         return {"results": results or []}
@@ -85,7 +86,7 @@ class TestKGNeighborhood:
 
         try:
             _tool_kg_neighborhood({"symbol": ""})
-            assert False, "Should have raised ValueError"
+            raise AssertionError("Should have raised ValueError")
         except ValueError:
             pass
 
@@ -173,7 +174,7 @@ class TestKGShortestPath:
 
         try:
             _tool_kg_shortest_path({"to_symbol": "x"})
-            assert False
+            raise AssertionError()
         except ValueError:
             pass
 
@@ -182,7 +183,7 @@ class TestKGShortestPath:
 
         try:
             _tool_kg_shortest_path({"from_symbol": "x"})
-            assert False
+            raise AssertionError()
         except ValueError:
             pass
 
@@ -310,7 +311,7 @@ class TestKGQuery:
 
         try:
             _tool_kg_query({"max_depth": 1})
-            assert False
+            raise AssertionError()
         except ValueError:
             pass
 

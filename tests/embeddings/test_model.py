@@ -1,5 +1,7 @@
 """Tests for embeddings model."""
 
+import pytest
+
 from ast_tools.embeddings import (
     EMBEDDING_DIM,
     MODEL_NAME,
@@ -9,8 +11,6 @@ from ast_tools.embeddings import (
     unload_model,
 )
 
-
-import pytest
 pytestmark = pytest.mark.slow
 
 class TestModelLoading:

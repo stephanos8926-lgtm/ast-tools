@@ -8,8 +8,6 @@ from typing import Any
 
 import yaml
 
-from ast_tools.config.loader import get_config_dir
-
 
 class GovernanceError(Exception):
     """Raised on governance config errors."""

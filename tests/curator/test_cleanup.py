@@ -1,11 +1,10 @@
 """Tests for cleanup command."""
 
-from pathlib import Path
-
-from ast_tools.curator.cleanup import run, _human_size
-
 
 import pytest
+
+from ast_tools.curator.cleanup import _human_size, run
+
 pytestmark = pytest.mark.integration
 
 class TestCleanup:

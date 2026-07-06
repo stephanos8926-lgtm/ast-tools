@@ -23,6 +23,7 @@ import argparse
 import asyncio
 import json
 import sys
+from pathlib import Path
 
 from ast_tools.tools.blast_radius_v2 import _tool_blast_radius_v2
 
@@ -60,7 +61,6 @@ from ast_tools.tools.dependency_tools import dead_code_detection
 from ast_tools.tools.enhanced_dead_code import find_dead_code_enhanced
 from ast_tools.tools.find_references import _tool_find_references
 from ast_tools.tools.find_symbol_definition import _tool_find_symbol_definition
-from ast_tools.tools.impact_analysis import _tool_impact_analysis
 from ast_tools.tools.list_symbols import _tool_list_symbols
 from ast_tools.tools.module_imports import _tool_module_imports
 from ast_tools.tools.project_info import _tool_project_info
@@ -70,7 +70,6 @@ from ast_tools.tools.structural_analysis import _ast_find_callees, _ast_find_cal
 
 def cmd_search(args: argparse.Namespace) -> int:
     """Semantic search command."""
-    project_root = args.project_root or "."
     query = args.query
     limit = args.limit or 10
 
@@ -147,7 +146,6 @@ def cmd_blast_radius(args: argparse.Namespace) -> int:
     """Unified blast radius analysis command (import graph + class hierarchy + call graph)."""
     project_root = args.project_root or "."
     file_path = args.file_path
-    line = args.line
 
     # Parse file:line format if provided as single arg — convert to target
     target = file_path
@@ -463,24 +461,33 @@ def cmd_browse(args: argparse.Namespace) -> int:
     lang = args.lang or "all"
     limit = args.limit or 50
 
-    # Try DB-backed list first
-    result = _tool_list_symbols({
-        "file_path": None,  # All files
-        "project_root": project_root,
-        "kind": kind if kind != "all" else None,
-        "lang": lang if lang != "all" else None,
-        "limit": limit,
-    })
+    # If project_root is explicitly set (not default), use filesystem fallback
+    # to avoid polluting/reading from global cache
+    use_fallback = project_root != "."
 
-    # Fall back to filesystem scanning if no DB/index
-    if result.get("error_code") == "INDEX_NOT_FOUND":
+    if not use_fallback:
+        # Try DB-backed list first
+        result = _tool_list_symbols({
+            "file_path": None,  # All files
+            "project_root": project_root,
+            "kind": kind if kind != "all" else None,
+            "lang": lang if lang != "all" else None,
+            "limit": limit,
+        })
+
+        # Fall back to filesystem scanning if no DB/index
+        if result.get("error_code") == "INDEX_NOT_FOUND":
+            symbols = _browse_fallback(project_root, kind, limit)
+            result = {"project_root": project_root, "symbols": symbols, "count": len(symbols)}
+        elif "error" in result:
+            print(f"Error: {result['error']}", file=sys.stderr)
+            return 1
+        else:
+            symbols = result.get("symbols", [])
+    else:
+        # Explicit project root: use filesystem scanning
         symbols = _browse_fallback(project_root, kind, limit)
         result = {"project_root": project_root, "symbols": symbols, "count": len(symbols)}
-    elif "error" in result:
-        print(f"Error: {result['error']}", file=sys.stderr)
-        return 1
-    else:
-        symbols = result.get("symbols", [])
 
     if args.format == "json":
         print(json.dumps(result, indent=2, default=str))
@@ -628,8 +635,8 @@ def _print_blast_radius_markdown(result: dict) -> None:
     files = summary.get("distinct_files", 0)
 
     print(f"## 🎯 Blast Radius: `{target}` ({target_kind})\n")
-    print(f"| Metric | Value |")
-    print(f"|--------|-------|")
+    print("| Metric | Value |")
+    print("|--------|-------|")
     print(f"| Risk | **{risk}** |")
     print(f"| Confidence | {confidence:.0%} |")
     print(f"| Affected | {total} items across {files} files |")
@@ -763,7 +770,7 @@ def _print_summary_concise(result: dict) -> None:
     # Count files and lines
     total_files = 0
     total_lines = 0
-    for lang, stats in result.get("languages", {}).items():
+    for _lang, stats in result.get("languages", {}).items():
         total_files += stats.get("files", 0)
         total_lines += stats.get("lines", 0)
 
@@ -930,9 +937,9 @@ def cmd_governance_init(args: argparse.Namespace) -> int:
 
 def cmd_governance_check(args: argparse.Namespace) -> int:
     """Scan project for governance violations."""
-    from ast_tools.governance.schema import load_governance
-    from ast_tools.governance.scanner import scan_project
     from ast_tools.governance.reporter import format_violations
+    from ast_tools.governance.scanner import scan_project
+    from ast_tools.governance.schema import load_governance
 
     config = load_governance()
     if config is None:
@@ -972,10 +979,11 @@ def cmd_governance_diff(args: argparse.Namespace) -> int:
 
 def cmd_governance_report(args: argparse.Namespace) -> int:
     """Generate HTML governance report."""
-    from ast_tools.governance.schema import load_governance
-    from ast_tools.governance.scanner import scan_project
-    from ast_tools.governance.reporter import generate_report_html
     from pathlib import Path
+
+    from ast_tools.governance.reporter import generate_report_html
+    from ast_tools.governance.scanner import scan_project
+    from ast_tools.governance.schema import load_governance
 
     config = load_governance()
     if config is None:

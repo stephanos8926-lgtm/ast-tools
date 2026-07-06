@@ -10,15 +10,14 @@ import ast
 from pathlib import Path
 from typing import Any
 
-from ast_tools.tools.module_imports import _build_import_graph
-from ast_tools.tools.transitive_analysis import _resolve_target, _classify_risk
 from ast_tools.tools.class_hierarchy import (
     _extract_class_definitions,
     _find_subclasses,
 )
-from ast_tools.utils.file_utils import file_to_module, find_python_files
-from ast_tools.utils.impact import build_reverse_deps, get_transitive_deps
-
+from ast_tools.tools.module_imports import _build_import_graph
+from ast_tools.tools.transitive_analysis import _classify_risk, _resolve_target
+from ast_tools.utils.file_utils import find_python_files
+from ast_tools.utils.impact import build_reverse_deps
 
 # ---------------------------------------------------------------------------
 # Axis configurations — base confidence per analysis method

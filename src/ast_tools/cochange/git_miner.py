@@ -121,7 +121,7 @@ class GitMiner:
                 if len(parts) < 4:
                     i += 1
                     continue
-                commit_hash = parts[0]
+                parts[0]
                 try:
                     timestamp = int(parts[1])
                 except ValueError:
@@ -190,10 +190,7 @@ class GitMiner:
         for (f1, f2), data in co_change_counts.items():
             fc1 = file_changes[f1]["commits"]
             fc2 = file_changes[f2]["commits"]
-            if fc1 > 0 and fc2 > 0:
-                coupling = data["frequency"] / min(fc1, fc2)
-            else:
-                coupling = 0.0
+            coupling = data["frequency"] / min(fc1, fc2) if fc1 > 0 and fc2 > 0 else 0.0
             timestamps = sorted(data["timestamps"])
             gaps = []
             for t in range(1, len(timestamps)):
@@ -266,7 +263,7 @@ class GitMiner:
         stored = 0
         try:
             # Store co-change pairs (resolve file paths to symbol IDs)
-            for pair_key, data in result["pairs"].items():
+            for _pair_key, data in result["pairs"].items():
                 symbols1 = self._resolve_file_to_symbols(data["file1"], conn)
                 symbols2 = self._resolve_file_to_symbols(data["file2"], conn)
 

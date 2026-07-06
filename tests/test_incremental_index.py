@@ -1,12 +1,10 @@
 #!/usr/bin/env python3
 import pytest
+
 pytestmark = pytest.mark.integration
 
 """Integration tests for incremental indexing (Phase 8)."""
 
-import hashlib
-import tempfile
-from pathlib import Path
 
 
 from ast_tools.database import (
@@ -18,9 +16,8 @@ from ast_tools.database import (
     update_symbol_fields,
 )
 from ast_tools.database.connection import database_context
-from ast_tools.indexer.diff import compute_symbol_diff, DiffResult
+from ast_tools.indexer.diff import compute_symbol_diff
 from ast_tools.types import Symbol, SymbolKind
-
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Fixtures
@@ -75,7 +72,7 @@ class TestIncrementalUpdate:
             make_symbol("func_b", file_path="src/new.py", symbol_id="src/new.py:func_b"),
         ]
 
-        diff = compute_symbol_diff(old_symbols, new_symbols)
+        compute_symbol_diff(old_symbols, new_symbols)
 
         with database_context(tmp_db) as conn:
             init_schema(conn)

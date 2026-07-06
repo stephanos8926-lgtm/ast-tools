@@ -8,9 +8,8 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
-from .schema import GovernanceConfig, load_governance
 from .scanner import Violation, scan_project
-from .reporter import format_violations
+from .schema import GovernanceConfig, load_governance
 
 
 def diff_branches(

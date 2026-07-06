@@ -20,7 +20,6 @@ from ast_tools.tools.semantic_search import (
     select_context_with_budget,
 )
 
-
 pytestmark = pytest.mark.slow
 
 class TestContextInjectionIntegration:

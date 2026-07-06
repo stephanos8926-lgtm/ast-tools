@@ -2,10 +2,10 @@
 
 from datetime import datetime, timedelta
 
+import pytest
+
 from ast_tools.context.history import InjectionHistory
 
-
-import pytest
 pytestmark = pytest.mark.unit
 
 class TestInjectionHistory:

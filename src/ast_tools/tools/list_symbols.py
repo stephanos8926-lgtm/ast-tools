@@ -78,7 +78,7 @@ def _tool_list_symbols(args: dict[str, Any]) -> dict[str, Any]:
                         "name": row["name"],
                         "qualified_name": row["qualified_name"],
                         "kind": row["kind"],
-                        "file": row["file_path"] if "file_path" in row.keys() else file_path,
+                        "file": row.get("file_path", file_path),
                         "line": row["start_line"],
                         "start_line": row["start_line"],
                         "end_line": row["end_line"],

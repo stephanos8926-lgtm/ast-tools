@@ -3,6 +3,8 @@
 import tempfile
 from pathlib import Path
 
+import pytest
+
 from ast_tools.database.connection import get_connection
 from ast_tools.database.schema import (
     SCHEMA_VERSION,
@@ -10,8 +12,6 @@ from ast_tools.database.schema import (
     migrate,
 )
 
-
-import pytest
 pytestmark = pytest.mark.integration
 
 class TestInitSchema:

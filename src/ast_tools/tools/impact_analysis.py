@@ -2,7 +2,6 @@ from ast_tools.tools.module_imports import _build_import_graph
 
 """impact_analysis tool — analyze the impact of changing a file or symbol."""
 
-import json
 from pathlib import Path
 from typing import Any
 
@@ -82,8 +81,8 @@ def _tool_impact_analysis(args: dict[str, Any]) -> dict[str, Any]:
         def _dotted_to_filepath(d: str) -> str:
             return d.replace(".", "/") + ".py"
 
-        direct = sorted(set(_dotted_to_filepath(d) for d in direct_dotted))
-        transitive_only = sorted(set(_dotted_to_filepath(d) for d in transitive_only_dotted))
+        direct = sorted({_dotted_to_filepath(d) for d in direct_dotted})
+        transitive_only = sorted({_dotted_to_filepath(d) for d in transitive_only_dotted})
 
         result["direct_dependents"] = direct
         result["transitive_dependents"] = transitive_only

@@ -1,16 +1,15 @@
 """Tests for transitive_analysis tool — the "what breaks?" query."""
 
 from pathlib import Path
-from unittest.mock import patch
-
-from ast_tools.tools.transitive_analysis import (
-    _tool_transitive_dependents,
-    _classify_risk,
-    _resolve_target,
-)
-
 
 import pytest
+
+from ast_tools.tools.transitive_analysis import (
+    _classify_risk,
+    _resolve_target,
+    _tool_transitive_dependents,
+)
+
 pytestmark = pytest.mark.integration
 
 class TestRiskClassification:

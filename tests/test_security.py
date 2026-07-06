@@ -1,17 +1,17 @@
 """Tests for security utilities."""
 
-import pytest
 import tempfile
 from pathlib import Path
 
+import pytest
+
 from ast_tools.utils.security import (
-    validate_project_path,
+    sanitize_fts5_query,
     sanitize_search_query,
     validate_limit,
+    validate_project_path,
     validate_timeout,
-    sanitize_fts5_query,
 )
-
 
 pytestmark = pytest.mark.integration
 
@@ -20,7 +20,7 @@ class TestValidateProjectPath:
 
     def test_valid_relative_path(self):
         """Test that relative paths within CWD are accepted."""
-        with tempfile.TemporaryDirectory() as tmpdir:
+        with tempfile.TemporaryDirectory():
             result = validate_project_path(".")
             assert result == Path.cwd().resolve()
 

@@ -41,7 +41,7 @@ def _tool_ast_grep(args: dict[str, Any]) -> dict[str, Any]:
     cache_stats = args.get("cache_stats", False)
 
     # Compile pattern and cache it
-    compiled_pattern, compiled_lang = _compile_pattern(pattern, lang)
+    _compiled_pattern, _compiled_lang = _compile_pattern(pattern, lang)
 
     cmd = ["ast-grep", "--pattern", pattern, path] # Use original pattern for CLI
     if lang:

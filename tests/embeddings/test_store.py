@@ -18,7 +18,6 @@ from ast_tools.embeddings.store import (
     search_similar,
 )
 
-
 pytestmark = pytest.mark.slow
 
 @pytest.fixture

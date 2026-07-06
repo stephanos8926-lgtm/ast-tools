@@ -1,8 +1,8 @@
 """Tests for ast_tools.server_config module."""
 
 import os
-from pathlib import Path
-from ast_tools.server_config import load_server_config, DEFAULT_CONFIG
+
+from ast_tools.server_config import DEFAULT_CONFIG, load_server_config
 
 
 class TestLoadServerConfig:

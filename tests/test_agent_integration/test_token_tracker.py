@@ -1,6 +1,6 @@
 """Tests for ast_tools.agent_integration token_tracker module."""
 
-from ast_tools.agent_integration.token_tracker import TokenTracker, ContextPressureMonitor
+from ast_tools.agent_integration.token_tracker import ContextPressureMonitor, TokenTracker
 
 
 class TestTokenTracker:

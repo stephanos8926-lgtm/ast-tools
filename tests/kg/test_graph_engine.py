@@ -1,5 +1,6 @@
 """Tests for the knowledge graph engine."""
 import pytest
+
 pytestmark = pytest.mark.unit
 
 
@@ -128,6 +129,7 @@ class TestGraphEngine:
     def test_centrality_hotspots_empty_table(self, tmp_path: Path) -> None:
         """With no dependency_metrics data, should return empty."""
         import sqlite3
+
         from ast_tools.kg.graph_engine import GraphEngine
 
         db_path = tmp_path / "empty.db"
@@ -155,6 +157,7 @@ class TestGraphEngine:
 
     def test_clusters_no_edges(self, tmp_path: Path) -> None:
         import sqlite3
+
         from ast_tools.kg.graph_engine import GraphEngine
 
         db_path = tmp_path / "no_edges.db"

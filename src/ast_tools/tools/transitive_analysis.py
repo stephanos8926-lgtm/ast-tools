@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from collections import deque
 from pathlib import Path
 from typing import Any
 
@@ -118,7 +117,7 @@ def _tool_transitive_dependents(params: dict[str, Any]) -> dict[str, Any]:
 
         if current_level:
             # Only include modules that haven't appeared in a prior depth
-            new_at_this_depth = [m for m in current_level if m not in visited or m == current_level[0]]
+            [m for m in current_level if m not in visited or m == current_level[0]]
             # Simpler: just include all non-target, non-duplicate at this depth
             seen_before = {m for layer in transitive_by_depth for m in layer["modules"]} | set(direct)
             fresh = sorted(m for m in current_level if m not in seen_before and m != module_target)

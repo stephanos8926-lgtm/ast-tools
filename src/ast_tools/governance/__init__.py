@@ -1,5 +1,10 @@
 """Governance module for ast-tools."""
 
+from .reporter import format_violations, generate_report_html
+from .scanner import (
+    Violation,
+    scan_project,
+)
 from .schema import (
     DEFAULT_GOVERNANCE,
     GovernanceConfig,
@@ -8,22 +13,17 @@ from .schema import (
     load_governance,
     validate_schema,
 )
-from .scanner import (
-    Violation,
-    scan_project,
-)
-from .reporter import format_violations, generate_report_html
 
 __all__ = [
+    "DEFAULT_GOVERNANCE",
     "GovernanceConfig",
     "GovernanceRule",
     "LayerDef",
-    "Violation",
     "Scanner",
-    "DEFAULT_GOVERNANCE",
-    "load_governance",
-    "validate_schema",
-    "scan_project",
+    "Violation",
     "format_violations",
     "generate_report_html",
+    "load_governance",
+    "scan_project",
+    "validate_schema",
 ]

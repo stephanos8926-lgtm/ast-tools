@@ -19,6 +19,7 @@ Mode selection (in priority order):
 
 from __future__ import annotations
 
+import contextlib
 import json
 import logging
 import os
@@ -32,7 +33,7 @@ from mcp.server import Server
 from mcp.server.stdio import stdio_server
 from mcp.types import TextContent, Tool
 
-from ast_tools.server_config import load_server_config, add_server_args, config_from_args
+from ast_tools.server_config import add_server_args, config_from_args
 from ast_tools.tools import TOOL_REGISTRY, get_tool_handler, list_tool_names
 
 logging.basicConfig(level=logging.WARNING, stream=sys.stderr)
@@ -181,10 +182,11 @@ async def _run_remote_mode(config: dict[str, Any]) -> None:
     logger.info("Starting remote mode on %s:%s", host, port)
 
     try:
-        import uvicorn
         from contextlib import asynccontextmanager
-        from mcp.server.streamable_http_manager import StreamableHTTPSessionManager
+
+        import uvicorn
         from mcp.server.fastmcp.server import StreamableHTTPASGIApp
+        from mcp.server.streamable_http_manager import StreamableHTTPSessionManager
         from starlette.applications import Starlette
         from starlette.routing import Route
 
@@ -231,7 +233,6 @@ async def _run_remote_mode(config: dict[str, Any]) -> None:
 
 async def _run_legacy_http(host: str, port: int, auth_token: str) -> None:
     """Fallback HTTP server when MCP v2 streamable_http is unavailable."""
-    import json
     import asyncio
 
     from aiohttp import web
@@ -303,7 +304,6 @@ async def _run_legacy_http(host: str, port: int, auth_token: str) -> None:
 
 async def main():
     """Run the ast-tools MCP server in the configured mode."""
-    import os
     import argparse
 
     parser = argparse.ArgumentParser(description="rw-ast-tools MCP Server")
@@ -330,10 +330,8 @@ async def main():
 def main_sync():
     """Synchronous entry point for console_scripts."""
     import anyio
-    try:
+    with contextlib.suppress(KeyboardInterrupt):
         anyio.run(main)
-    except KeyboardInterrupt:
-        pass
 
 
 if __name__ == "__main__":

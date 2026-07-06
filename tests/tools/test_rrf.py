@@ -1,9 +1,10 @@
 """Tests for the RRF (Reciprocal Rank Fusion) utility."""
 import pytest
+
 pytestmark = pytest.mark.unit
 
 
-from ast_tools.utils.rrf import RRF_K, kind_rank, rank_symbols, rrf_fuse
+from ast_tools.utils.rrf import kind_rank, rank_symbols, rrf_fuse
 
 
 class TestRrfFuse:

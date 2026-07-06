@@ -1,17 +1,18 @@
 """Tests for governance schema module."""
 
-import json
 import tempfile
 from pathlib import Path
+
+import pytest
 
 from ast_tools.governance.schema import (
     DEFAULT_GOVERNANCE,
     GovernanceConfig,
+    init_governance_file,
     load_governance,
     validate_schema,
-    init_governance_file,
 )
-import pytest
+
 pytestmark = pytest.mark.unit
 
 

@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 import sqlite3
-from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING
 
 import pytest
 
+if TYPE_CHECKING:
+    from pathlib import Path
 
 pytestmark = pytest.mark.integration
 
@@ -72,7 +73,7 @@ class TestHotspots:
         _create_test_db(db)
         hotspots = compute_hotspots(str(db))
         # app.py: instability=0.3333, avg_coupling=(0.8+0.6)/2=0.7 -> score=0.2333
-        app = [h for h in hotspots if h["file_path"] == "app.py"][0]
+        app = next(h for h in hotspots if h["file_path"] == "app.py")
         assert app["hotspot_score"] == pytest.approx(0.2333, abs=0.01)
         assert app["instability"] == 0.3333
         assert app["coupled_files"] == 2
@@ -91,8 +92,9 @@ class TestHotspots:
         assert config[0]["coupled_files"] == 0
 
     def test_empty_db_returns_empty(self, tmp_path):
-        from src.ast_tools.cochange.hotspot import compute_hotspots
         import sqlite3
+
+        from src.ast_tools.cochange.hotspot import compute_hotspots
 
         db = tmp_path / "empty.db"
         conn = sqlite3.connect(str(db))
@@ -107,8 +109,8 @@ class TestHotspots:
 
 class TestCoChangePredict:
     def test_returns_suggestions_for_symbol(self, tmp_path):
-        from src.ast_tools.tools.co_change import _tool_co_change_predict, _get_db_path
         import src.ast_tools.tools.co_change as cc
+        from src.ast_tools.tools.co_change import _tool_co_change_predict
 
         db = tmp_path / "test.db"
         _create_test_db(db)
@@ -124,8 +126,8 @@ class TestCoChangePredict:
             cc._get_db_path = original
 
     def test_suggestions_sorted_by_coupling(self, tmp_path):
-        from src.ast_tools.tools.co_change import _tool_co_change_predict
         import src.ast_tools.tools.co_change as cc
+        from src.ast_tools.tools.co_change import _tool_co_change_predict
 
         db = tmp_path / "test.db"
         _create_test_db(db)
@@ -144,13 +146,13 @@ class TestCoChangePredict:
 
         try:
             _tool_co_change_predict({})
-            assert False, "Should raise ValueError"
+            raise AssertionError("Should raise ValueError")
         except ValueError:
             pass
 
     def test_symbol_not_found_returns_empty(self, tmp_path):
-        from src.ast_tools.tools.co_change import _tool_co_change_predict
         import src.ast_tools.tools.co_change as cc
+        from src.ast_tools.tools.co_change import _tool_co_change_predict
 
         db = tmp_path / "test.db"
         _create_test_db(db)
@@ -167,8 +169,8 @@ class TestCoChangePredict:
 
 class TestCoChangeHistory:
     def test_returns_churn_for_existing_file(self, tmp_path):
-        from src.ast_tools.tools.co_change import _tool_co_change_history
         import src.ast_tools.tools.co_change as cc
+        from src.ast_tools.tools.co_change import _tool_co_change_history
 
         db = tmp_path / "test.db"
         _create_test_db(db)
@@ -184,8 +186,8 @@ class TestCoChangeHistory:
             cc._get_db_path = original
 
     def test_missing_file_returns_not_found(self, tmp_path):
-        from src.ast_tools.tools.co_change import _tool_co_change_history
         import src.ast_tools.tools.co_change as cc
+        from src.ast_tools.tools.co_change import _tool_co_change_history
 
         db = tmp_path / "test.db"
         _create_test_db(db)
@@ -204,15 +206,15 @@ class TestCoChangeHistory:
 
         try:
             _tool_co_change_history({})
-            assert False
+            raise AssertionError()
         except ValueError:
             pass
 
 
 class TestCoChangeDiff:
     def test_returns_at_risk_symbols(self, tmp_path):
-        from src.ast_tools.tools.co_change import _tool_co_change_diff
         import src.ast_tools.tools.co_change as cc
+        from src.ast_tools.tools.co_change import _tool_co_change_diff
 
         db = tmp_path / "test.db"
         _create_test_db(db)

@@ -1,12 +1,9 @@
 """Tests for vacuum command."""
 
-from pathlib import Path
-from unittest.mock import patch
 
 import pytest
 
-from ast_tools.curator.vacuum import run, _human_size
-
+from ast_tools.curator.vacuum import _human_size, run
 
 pytestmark = pytest.mark.unit
 

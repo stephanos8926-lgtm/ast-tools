@@ -1,9 +1,9 @@
 """Tests for MarkdownFormatter - token counting, output formatting."""
 
+import pytest
+
 from ast_tools.context.formatters import MarkdownFormatter, count_tokens
 
-
-import pytest
 pytestmark = pytest.mark.unit
 
 class TestTokenCounting:

@@ -9,7 +9,6 @@ Usage:
 
 from __future__ import annotations
 
-import json
 import logging
 import shutil
 import time
@@ -132,7 +131,6 @@ def _cleanup_tmp(tmp_dir: Path, dry_run: bool) -> int:
 
 def _rotate_logs(log_dir: Path, dry_run: bool, retention_days: int = 30) -> int:
     """Remove logs older than retention_days."""
-    import time
     total = 0
     cutoff = time.time() - retention_days * 86400
     for f in log_dir.iterdir():

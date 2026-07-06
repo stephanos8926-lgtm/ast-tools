@@ -148,10 +148,7 @@ _SKIP_DIRS = frozenset({
 
 def _is_skip_dir(path: Path) -> bool:
     """Check if a directory should be skipped (dotfiles or known skip dirs)."""
-    for part in path.parts:
-        if part.startswith(".") or part in _SKIP_DIRS:
-            return True
-    return False
+    return any(part.startswith(".") or part in _SKIP_DIRS for part in path.parts)
 
 
 def _find_name_matches(
@@ -387,7 +384,7 @@ def _find_imported_by(
                         for line in content.splitlines():
                             s = line.strip()
                             if re.match(rf"^\s*(from\s+{re.escape(pattern)}|import\s+{re.escape(pattern)})", s):
-                                rel_path = pyfile.relative_to(workspace)
+                                pyfile.relative_to(workspace)
                                 suggestions.append({
                                     "path": resolved_path,
                                     "reason": "imported_by",
@@ -472,10 +469,7 @@ def _tool_file_related_suggest(params: dict[str, Any]) -> dict[str, Any]:
         workspace = Path(raw_workspace).expanduser().resolve()
     else:
         git_root = _find_git_root(target_path)
-        if git_root:
-            workspace = git_root
-        else:
-            workspace = target_path.parent
+        workspace = git_root or target_path.parent
 
     stem = _file_stem(target_path)
     all_suggestions: list[dict[str, Any]] = []

@@ -38,7 +38,7 @@ def list_tool_names() -> list[str]:
 def find_similar_tool(name: str, max_results: int = 3) -> list[str]:
     """Find similar tool names for 'did you mean?' suggestions."""
     import difflib
-    
+
     all_names = list(TOOL_REGISTRY.keys())
     return difflib.get_close_matches(name, all_names, n=max_results, cutoff=0.5)
 
@@ -52,6 +52,8 @@ from .ast_grep import _tool_ast_grep
 from .ast_query import _tool_ast_query
 from .ast_read import _tool_ast_read
 from .ast_refactor_extract_interface import _tool_ast_refactor_extract_interface
+from .blast_radius_v2 import _tool_blast_radius_v2
+from .class_hierarchy import _tool_class_hierarchy
 from .code_validate import _tool_code_validate
 from .codebase_summary import _tool_codebase_summary
 from .curator import _tool_curator_audit, _tool_curator_status, _tool_curator_summary
@@ -63,24 +65,22 @@ from .dependency_tools import (
     _tool_external_dependencies,
 )
 from .enhanced_dead_code import _tool_dead_code_enhanced
+from .file_related import _tool_file_related_suggest
 from .find_references import _tool_find_references
 from .find_symbol_definition import _tool_find_symbol_definition
 from .impact_analysis import _tool_impact_analysis
 from .index_status import _tool_index_status
+from .knowledge_graph import kg_neighborhood, kg_query, kg_shortest_path
 from .list_symbols import _tool_list_symbols
 from .lsp_tools import register_lsp_tools
 from .module_imports import _tool_module_imports
 from .project_info import _tool_project_info
 from .refresh_index import _tool_refresh_index
-from .file_related import _tool_file_related_suggest
-from .knowledge_graph import kg_query, kg_shortest_path, kg_neighborhood
 from .repo_skeleton import _tool_repo_skeleton
-from .blast_radius_v2 import _tool_blast_radius_v2
-from .class_hierarchy import _tool_class_hierarchy
-from .transitive_analysis import _tool_transitive_dependents
 from .search_symbols import _tool_search_symbols
 from .semantic_search import _tool_semantic_search
 from .structural_analysis import _ast_find_callees, _ast_find_callers, _tool_structural_analysis
+from .transitive_analysis import _tool_transitive_dependents
 from .ts_edit import _tool_ts_edit
 from .watcher import _tool_reindex_path, _tool_watch_add, _tool_watch_status
 

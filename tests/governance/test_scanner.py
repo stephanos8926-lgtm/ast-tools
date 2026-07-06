@@ -1,15 +1,14 @@
 """Tests for governance scanner module."""
 import pytest
+
 pytestmark = pytest.mark.unit
 
 
 import tempfile
 from pathlib import Path
 
-import yaml
-
-from ast_tools.governance.schema import DEFAULT_GOVERNANCE, GovernanceConfig
 from ast_tools.governance.scanner import scan_project
+from ast_tools.governance.schema import DEFAULT_GOVERNANCE, GovernanceConfig
 
 
 def _create_test_project(tmp: Path, structure: dict[str, str]) -> None:
@@ -92,7 +91,7 @@ class TestScanProject:
                 "domain/model.py": "import database.conn",
             })
             violations = scan_project(root, cfg)
-            forbidden = [v for v in violations if v.rule_type == "layer" and "forbidden" in v.message.lower() if hasattr(v, 'message')]
+            [v for v in violations if v.rule_type == "layer" and "forbidden" in v.message.lower() if hasattr(v, 'message')]
             assert isinstance(violations, list)
 
 

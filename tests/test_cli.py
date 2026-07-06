@@ -10,7 +10,6 @@ Tests cover:
 
 import json
 import subprocess
-import sys
 from pathlib import Path
 
 import pytest
@@ -22,7 +21,7 @@ VENV_PYTHON = Path(__file__).parent.parent / ".venv" / "bin" / "python"
 
 def run_cli(*args, cwd=None):
     """Run CLI command and return result."""
-    cmd = [str(VENV_PYTHON), str(CLI_PATH)] + list(args)
+    cmd = [str(VENV_PYTHON), str(CLI_PATH), *list(args)]
     result = subprocess.run(
         cmd,
         capture_output=True,
@@ -72,7 +71,7 @@ class TestCLIProjectCommands:
     def test_project(self, tmp_path_factory):
         """Create a test project structure."""
         test_dir = tmp_path_factory.mktemp("test_project")
-        
+
         # Create test Python files
         main_py = test_dir / "main.py"
         main_py.write_text("""
@@ -85,7 +84,7 @@ def main():
 if __name__ == "__main__":
     main()
 """)
-        
+
         utils_py = test_dir / "utils.py"
         utils_py.write_text("""
 def helper():
@@ -97,14 +96,14 @@ def unused_function():
 class UnusedClass:
     pass
 """)
-        
+
         return test_dir
 
     def test_summary_json(self, test_project):
         """Test summary command with JSON output."""
         result = run_cli("-p", str(test_project), "summary", "--format", "json")
         assert result.returncode == 0
-        
+
         data = json.loads(result.stdout)
         assert "name" in data or "languages" in data
         assert "python" in str(data).lower()
@@ -123,7 +122,7 @@ class UnusedClass:
             "--format", "json"
         )
         assert result.returncode == 0
-        
+
         data = json.loads(result.stdout)
         symbols = data.get("symbols", [])
         # Should find 'main' and 'helper' functions
@@ -138,7 +137,7 @@ class UnusedClass:
             "--format", "json"
         )
         assert result.returncode == 0
-        
+
         data = json.loads(result.stdout)
         symbols = data.get("symbols", [])
         class_names = [s.get("name") for s in symbols if s.get("kind") == "class"]
@@ -151,15 +150,15 @@ class UnusedClass:
             "--format", "json"
         )
         assert result.returncode == 0
-        
+
         data = json.loads(result.stdout)
         # Should find unused_function and UnusedClass
         dead_funcs = data.get("dead_functions", [])
         dead_classes = data.get("dead_classes", [])
-        
+
         func_names = [f.get("name") for f in dead_funcs]
         class_names = [c.get("name") for c in dead_classes]
-        
+
         assert "unused_function" in func_names
         assert "UnusedClass" in class_names
 
@@ -171,8 +170,8 @@ class UnusedClass:
             "--format", "json"
         )
         assert result.returncode == 0
-        
-        data = json.loads(result.stdout)
+
+        json.loads(result.stdout)
         # helper() should be marked as reachable from main.py
         # (though it may still appear with low confidence)
 
@@ -185,7 +184,7 @@ class TestCLICallersCallees:
     def call_test_project(self, tmp_path_factory):
         """Create a test project with call relationships."""
         test_dir = tmp_path_factory.mktemp("call_test")
-        
+
         # Create files with call relationships
         caller_py = test_dir / "caller.py"
         caller_py.write_text("""
@@ -199,7 +198,7 @@ def calling_function():
 def another_caller():
     return target_function() + 1
 """)
-        
+
         callee_py = test_dir / "callee.py"
         callee_py.write_text("""
 def target_function():
@@ -212,7 +211,7 @@ def another_function():
 def inner_call():
     pass
 """)
-        
+
         return test_dir
 
     def test_callers_basic(self, call_test_project):
@@ -222,10 +221,10 @@ def inner_call():
             "--format", "json"
         )
         assert result.returncode == 0
-        
+
         data = json.loads(result.stdout)
         callers = data.get("callers", [])
-        
+
         # Should find calling_function and another_caller
         caller_names = [c.get("caller") for c in callers]
         assert "calling_function" in caller_names or "another_caller" in caller_names
@@ -238,10 +237,10 @@ def inner_call():
             "--format", "json"
         )
         assert result.returncode == 0
-        
+
         data = json.loads(result.stdout)
         callees = data.get("callees", [])
-        
+
         # Should find inner_call
         callee_names = [c.get("name") for c in callees]
         assert "inner_call" in callee_names
@@ -255,7 +254,7 @@ class TestCLIDeps:
     def deps_test_project(self, tmp_path_factory):
         """Create a test project with imports."""
         test_dir = tmp_path_factory.mktemp("deps_test")
-        
+
         # Create module with imports
         module_py = test_dir / "module.py"
         module_py.write_text("""
@@ -266,7 +265,7 @@ from pathlib import Path
 import requests
 from flask import Flask
 """)
-        
+
         return test_dir
 
     def test_deps_json(self, deps_test_project):
@@ -277,7 +276,7 @@ from flask import Flask
             "--format", "json"
         )
         assert result.returncode == 0
-        
+
         data = json.loads(result.stdout)
         assert "fan_in" in data or "fan_out" in data
 
@@ -290,22 +289,22 @@ class TestCLISemanticSearch:
     def search_test_project(self, tmp_path_factory):
         """Create a test project for semantic search."""
         test_dir = tmp_path_factory.mktemp("search_test")
-        
+
         # Create files with semantic content
         auth_py = test_dir / "auth.py"
         auth_py.write_text("""
 class AuthenticationHandler:
     \"\"\"Handles user authentication.\"\"\"
-    
+
     def verify_credentials(self, username, password):
         \"\"\"Verify user credentials.\"\"\"
         return True
-    
+
     def create_session(self, user_id):
         \"\"\"Create authentication session.\"\"\"
         return {"user_id": user_id}
 """)
-        
+
         return test_dir
 
     def test_semantic_search_json(self, search_test_project):
@@ -329,7 +328,7 @@ class TestCLIOutputFormats:
     def format_test_project(self, tmp_path_factory):
         """Create a simple test project."""
         test_dir = tmp_path_factory.mktemp("format_test")
-        
+
         test_py = test_dir / "test.py"
         test_py.write_text("""
 def sample_function():
@@ -338,7 +337,7 @@ def sample_function():
 class SampleClass:
     pass
 """)
-        
+
         return test_dir
 
     def test_table_format(self, format_test_project):
@@ -402,15 +401,15 @@ class TestCLIE2E:
     def e2e_project(self, tmp_path_factory):
         """Create a realistic test project."""
         test_dir = tmp_path_factory.mktemp("e2e_test")
-        
+
         # Create a small but realistic project
         (test_dir / "api").mkdir()
         (test_dir / "utils").mkdir()
-        
+
         # API module
         api_init = test_dir / "api" / "__init__.py"
         api_init.write_text("")
-        
+
         handlers_py = test_dir / "api" / "handlers.py"
         handlers_py.write_text("""
 from utils.helpers import process_data
@@ -420,11 +419,11 @@ class APIHandler:
         result = process_data(data)
         return {"status": "ok", "data": result}
 """)
-        
+
         # Utils module
         utils_init = test_dir / "utils" / "__init__.py"
         utils_init.write_text("")
-        
+
         helpers_py = test_dir / "utils" / "helpers.py"
         helpers_py.write_text("""
 def process_data(data):
@@ -440,7 +439,7 @@ def transform(data):
 def unused_helper():
     pass
 """)
-        
+
         # Main entry point
         main_py = test_dir / "main.py"
         main_py.write_text("""
@@ -454,7 +453,7 @@ def main():
 if __name__ == "__main__":
     main()
 """)
-        
+
         return test_dir
 
     def test_e2e_discover_then_analyze(self, e2e_project):
@@ -469,7 +468,7 @@ if __name__ == "__main__":
         data = json.loads(result.stdout)
         functions = data.get("symbols", [])
         assert len(functions) > 0
-        
+
         # Step 2: Find callers of a specific function
         func_name = "process_data"
         result = run_cli(
@@ -487,12 +486,12 @@ if __name__ == "__main__":
         )
         assert result.returncode == 0
         data = json.loads(result.stdout)
-        
+
         dead_funcs = data.get("dead_functions", [])
         # Should find unused_helper
         dead_names = [f.get("name") for f in dead_funcs]
         assert "unused_helper" in dead_names
-        
+
         # Step 2: Verify no callers for dead code
         result = run_cli(
             "-p", str(e2e_project), "callers", "unused_helper",
@@ -511,13 +510,13 @@ if __name__ == "__main__":
         )
         assert result.returncode == 0
         data = json.loads(result.stdout)
-        
+
         # Should have fan-out (imports)
         fan_out = data.get("fan_out", [])
         assert len(fan_out) > 0
-        
+
         # Should have fan-in (who imports this)
-        fan_in = data.get("fan_in", [])
+        data.get("fan_in", [])
         # main.py imports from api.handlers indirectly
 
 

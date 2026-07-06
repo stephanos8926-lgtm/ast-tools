@@ -18,7 +18,6 @@ from ast_tools.database.queries import (
 from ast_tools.database.schema import init_schema
 from ast_tools.types import Symbol, SymbolKind
 
-
 pytestmark = pytest.mark.integration
 
 @pytest.fixture

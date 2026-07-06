@@ -7,6 +7,7 @@ import pytest
 
 from ast_tools.tools.file_related import (
     _file_stem,
+    _find_call_graph,
     _find_git_root,
     _find_imported_by,
     _find_imports_this,
@@ -14,12 +15,9 @@ from ast_tools.tools.file_related import (
     _find_siblings,
     _find_source_from_test,
     _find_test_files,
-    _find_call_graph,
     _parse_imports,
-    _resolve_import_to_path,
     _tool_file_related_suggest,
 )
-
 
 pytestmark = pytest.mark.integration
 

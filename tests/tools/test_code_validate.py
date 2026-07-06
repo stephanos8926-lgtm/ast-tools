@@ -12,6 +12,8 @@ Covers:
 - Error handling: timeouts, missing parsers, permission errors
 """
 
+import pytest
+
 from src.ast_tools.tools.code_validate import (
     _parse_bash_errors,
     _parse_go_errors,
@@ -31,8 +33,6 @@ from src.ast_tools.tools.code_validate import (
     _validate_typescript,
 )
 
-
-import pytest
 pytestmark = pytest.mark.integration
 
 class TestPythonValidation:

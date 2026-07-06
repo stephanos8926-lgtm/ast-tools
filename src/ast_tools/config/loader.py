@@ -16,7 +16,7 @@ _AST_TOOLS_HOME = "AST_TOOLS_HOME"
 
 def _validate_safe_path(path: Path) -> None:
     """Reject paths with traversal, symlink escape, or non-absolute."""
-    resolved = path.resolve()
+    path.resolve()
     if ".." in str(path):
         raise ConfigError(f"Path contains '..': {path}")
     if not path.is_absolute():

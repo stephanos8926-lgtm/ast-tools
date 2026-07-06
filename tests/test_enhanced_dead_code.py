@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
 import pytest
+
 pytestmark = pytest.mark.integration
 
 """Tests for enhanced dead code detection."""
 
-import tempfile
 from pathlib import Path
-
 
 from ast_tools.tools.enhanced_dead_code import find_dead_code_enhanced
 
@@ -68,8 +67,8 @@ def api_endpoint():
 
         # These should NOT be flagged as dead (or should have low confidence)
         dead_funcs = result["dead_functions"]
-        route_names = {f["name"] for f in dead_funcs}
-        
+        {f["name"] for f in dead_funcs}
+
         # Should not flag decorated routes as high-confidence dead code
         for func in dead_funcs:
             if func["name"] in ("index", "api_endpoint"):
@@ -97,7 +96,7 @@ if __name__ == "__main__":
         # helper() should be reachable from main.py
         dead_funcs = result["dead_functions"]
         helper_dead = [f for f in dead_funcs if f["name"] == "helper"]
-        
+
         # Should either not be dead, or have low confidence (referenced in code)
         if helper_dead:
             # Since helper() IS referenced in the code, it should have low confidence
@@ -130,14 +129,14 @@ class _PrivateClass:
         # public_function and PublicClass should have medium confidence (exported)
         dead_funcs = result["dead_functions"]
         public_funcs = [f for f in dead_funcs if f["name"] == "public_function"]
-        
+
         if public_funcs:
             assert public_funcs[0]["confidence"] == "medium"
             assert "exported_in_all" in public_funcs[0].get("alive_signals", [])
 
         dead_classes = result["dead_classes"]
         public_classes = [c for c in dead_classes if c["name"] == "PublicClass"]
-        
+
         if public_classes:
             assert public_classes[0]["confidence"] == "medium"
             assert "exported_in_all" in public_classes[0].get("alive_signals", [])
@@ -155,7 +154,7 @@ class Derived(Base):
     def process(self):
         # Override marker would be here in real code
         return "derived"
-    
+
     def extra_method(self):
         # This one is truly dead
         pass
@@ -165,7 +164,7 @@ class Derived(Base):
 
         # process() might be marked as polymorphism
         dead_methods = result.get("dead_methods", [])
-        
+
         # extra_method should be dead with high confidence
         extra_dead = [m for m in dead_methods if m["name"] == "extra_method"]
         if extra_dead:
@@ -191,7 +190,7 @@ def odd(n):
 
         # even and odd form an SCC cluster
         dead_funcs = result["dead_functions"]
-        
+
         # They might still be flagged as dead (no external references)
         # but should be marked as being in an SCC
         for func in dead_funcs:
@@ -213,7 +212,7 @@ def main():
         # Check summary structure
         assert "summary" in result
         assert "false_positive_mitigations" in result["summary"]
-        
+
         mitigations = result["summary"]["false_positive_mitigations"]
         assert "framework_decorators" in mitigations
         assert "exported_symbols" in mitigations

@@ -4,6 +4,8 @@ import ast
 import tempfile
 from pathlib import Path
 
+import pytest
+
 from ast_tools.indexer.parser import (
     Parser,
     compute_content_hash,
@@ -11,8 +13,6 @@ from ast_tools.indexer.parser import (
     parse_source,
 )
 
-
-import pytest
 pytestmark = pytest.mark.integration
 
 class TestComputeContentHash:

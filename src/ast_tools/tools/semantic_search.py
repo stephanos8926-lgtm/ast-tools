@@ -11,7 +11,7 @@ from typing import Any
 from ..context import ContextInjector, MarkdownFormatter
 from ..database.connection import get_connection
 from ..embeddings import generate_embedding, search_similar
-from ..utils.rrf import RRF_K, kind_rank, rrf_fuse
+from ..utils.rrf import rrf_fuse
 
 logger = logging.getLogger(__name__)
 

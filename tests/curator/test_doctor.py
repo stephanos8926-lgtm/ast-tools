@@ -1,15 +1,9 @@
 """Tests for doctor command."""
 
-import json
-import sqlite3
-import tempfile
-from pathlib import Path
-from unittest.mock import patch
 
 import pytest
 
-from ast_tools.curator.doctor import run, _track_trend
-
+from ast_tools.curator.doctor import _track_trend, run
 
 pytestmark = pytest.mark.unit
 

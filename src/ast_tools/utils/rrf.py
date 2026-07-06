@@ -6,7 +6,7 @@ the formula: score(id) = Σ 1 / (rank_i(id) + k) for each factor i.
 This is the official RRF implementation used by all ast-tools ranking.
 """
 
-from typing import Callable
+from collections.abc import Callable
 
 # Standard RRF constant for 6-factor fusion.
 # Literature recommends k=60 for 4+ ranking dimensions to prevent

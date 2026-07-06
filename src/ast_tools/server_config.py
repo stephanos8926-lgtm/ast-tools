@@ -6,10 +6,11 @@ Named 'server_config' to avoid collision with existing ast_tools.config package.
 
 from __future__ import annotations
 
+import contextlib
 import copy
 import os
 from pathlib import Path
-from typing import Any, TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING, Any, Literal
 
 if TYPE_CHECKING:
     import argparse
@@ -129,15 +130,13 @@ def _apply_env_value(cfg: dict, keys: tuple[str, ...], raw: str) -> None:
     if isinstance(default_val, bool):
         target[key] = raw.lower() in ("1", "true", "yes")
     elif isinstance(default_val, int):
-        try:
+        with contextlib.suppress(ValueError):
             target[key] = int(raw)
-        except ValueError:
-            pass
     else:
         target[key] = raw
 
 
-def add_server_args(parser: "argparse.ArgumentParser") -> None:
+def add_server_args(parser: argparse.ArgumentParser) -> None:
     """Add server-mode arguments to an ArgumentParser."""
     parser.add_argument(
         "--mode", "-m",

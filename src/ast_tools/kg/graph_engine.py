@@ -8,8 +8,10 @@ from __future__ import annotations
 
 import sqlite3
 from collections import defaultdict, deque
-from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 class GraphEngine:
@@ -103,7 +105,7 @@ class GraphEngine:
             "root_symbol": symbol_id,
             "symbols": [details[s] for s in all_nodes if s in details],
             "edges": collected_edges,
-            "levels": {k: v for k, v in levels.items()},
+            "levels": dict(levels.items()),
         }
 
     def shortest_path(
@@ -226,7 +228,7 @@ class GraphEngine:
 
         # Union-Find
         parent: dict[str, str] = {n: n for n in nodes}
-        rank: dict[str, int] = {n: 0 for n in nodes}
+        rank: dict[str, int] = dict.fromkeys(nodes, 0)
 
         def find(x: str) -> str:
             while parent[x] != x:

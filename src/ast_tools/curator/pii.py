@@ -10,11 +10,8 @@ Default mode is "flag" — NEVER auto-removes. All flags are logged to audit tra
 
 from __future__ import annotations
 
-import json
 import logging
 import re
-from datetime import datetime
-from pathlib import Path
 from typing import Any
 
 logger = logging.getLogger(__name__)

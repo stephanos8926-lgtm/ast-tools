@@ -16,7 +16,6 @@ Usage:
 
 import ast
 import logging
-import os
 from collections import defaultdict
 from dataclasses import dataclass, field
 from pathlib import Path

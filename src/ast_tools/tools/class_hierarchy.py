@@ -8,11 +8,10 @@ imports.
 from __future__ import annotations
 
 import ast
-from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
-from ast_tools.utils.file_utils import file_to_module, find_python_files
+from ast_tools.utils.file_utils import find_python_files
 
 # ── helpers ──────────────────────────────────────────────────────────────
 
@@ -114,7 +113,7 @@ def _compute_mro(
     # C3 merge
     result = [class_name]
     # merge: [list(bases)] + parent_mros + [list(object)]
-    merge_lists: list[list[str]] = [list(base_names)] + parent_mros + [["object"]]
+    merge_lists: list[list[str]] = [list(base_names), *parent_mros, ["object"]]
 
     while any(merge_lists):
         # Find a head that is not in the tail of any other list
@@ -495,7 +494,7 @@ def _tool_class_hierarchy(params: dict[str, Any]) -> dict[str, Any]:
         if not workspace:
             workspace = str(resolved.parent)
 
-    max_depth = int(params.get("max_depth", 10))
+    int(params.get("max_depth", 10))
 
     # ── Resolve target ──────────────────────────────────────────────
     class_name, resolved_file, all_classes = _resolve_target(

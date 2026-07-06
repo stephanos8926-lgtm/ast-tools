@@ -13,7 +13,6 @@ import pytest
 from ast_tools.database.migrations.migration_009_schema_enrichments import migrate_v4_to_v5
 from ast_tools.database.schema import get_schema_version, init_schema, migrate
 
-
 pytestmark = pytest.mark.integration
 
 @pytest.fixture

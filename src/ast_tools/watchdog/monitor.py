@@ -14,7 +14,6 @@ Usage:
 
 from __future__ import annotations
 
-import json
 import logging
 import time
 from pathlib import Path
@@ -58,8 +57,8 @@ class CodebaseWatcher:
             return f"Error: Path does not exist: {root}"
 
         try:
-            from watchdog.observers import Observer
             from watchdog.events import FileSystemEventHandler
+            from watchdog.observers import Observer
         except ImportError:
             return "Watchdog library not installed: pip install watchdog"
 

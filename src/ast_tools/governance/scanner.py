@@ -3,14 +3,15 @@
 from __future__ import annotations
 
 import fnmatch
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from ast_tools.governance.schema import GovernanceConfig
-from ast_tools.tools.module_imports import _build_import_graph
 from ast_tools.tools.dependency import build_import_graph as build_dep_graph
-from ast_tools.utils.file_utils import find_python_files
+from ast_tools.tools.module_imports import _build_import_graph
+
+if TYPE_CHECKING:
+    from ast_tools.governance.schema import GovernanceConfig
 
 
 @dataclass
@@ -123,7 +124,7 @@ def scan_project(
     layer_names = list(config.layers.keys())
 
     # Build layer index for quick lookup
-    layer_order = {name: i for i, name in enumerate(layer_names)}
+    {name: i for i, name in enumerate(layer_names)}
 
     for module_path, deps in import_graph.items():
         # Convert module path to file path

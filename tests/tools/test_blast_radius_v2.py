@@ -2,22 +2,23 @@
 
 from __future__ import annotations
 
-from pathlib import Path
-from unittest.mock import patch
+from typing import TYPE_CHECKING
 
 import pytest
 
 from ast_tools.tools.blast_radius_v2 import (
-    _tool_blast_radius_v2,
-    _resolve_target_kind,
-    _compute_confidence,
     _aggregate_risk,
     _combine_axes,
-    _generate_recommendations,
+    _compute_confidence,
     _find_class_in_workspace,
     _find_function_in_workspace,
+    _generate_recommendations,
+    _resolve_target_kind,
+    _tool_blast_radius_v2,
 )
 
+if TYPE_CHECKING:
+    from pathlib import Path
 
 # ===========================================================================
 # Target resolution

@@ -8,8 +8,8 @@ from typing import Any
 
 import numpy as np
 
-from .history import InjectionHistory
 from ..database.connection import database_context
+from .history import InjectionHistory
 
 
 @dataclass

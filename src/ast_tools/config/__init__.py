@@ -14,9 +14,9 @@ from .tokens_schema import DEFAULT_TOKENS, TOKENS_SCHEMA
 from .validate import validate_config
 
 __all__ = [
-    "ConfigError",
     "DEFAULT_TOKENS",
     "TOKENS_SCHEMA",
+    "ConfigError",
     "ensure_config_dir",
     "get_cache_dir",
     "get_config_dir",

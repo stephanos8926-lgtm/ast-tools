@@ -17,7 +17,6 @@ import pytest
 
 from ast_tools.database.schema import get_schema_version, migrate
 
-
 pytestmark = pytest.mark.integration
 
 @pytest.fixture

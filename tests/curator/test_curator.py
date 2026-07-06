@@ -3,10 +3,10 @@
 import tempfile
 from pathlib import Path
 
+import pytest
+
 from ast_tools.curator.daemon import LLmCurator
 
-
-import pytest
 pytestmark = pytest.mark.unit
 
 class TestLLmCurator:

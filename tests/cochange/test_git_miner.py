@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
 
 import pytest
 
@@ -167,7 +166,7 @@ class TestCoChangePairs:
         monkeypatch.setattr(m, "_run_git_log", lambda max_commits=5000: SAMPLE_SINGLE)
         result = m.mine()
         # Two files in one commit -> coupling = 1/1 = 1.0
-        for pair_key, data in result["pairs"].items():
+        for _pair_key, data in result["pairs"].items():
             assert data["coupling"] == 1.0
 
 
@@ -241,8 +240,9 @@ class TestIntegration:
 
     def test_mine_pairs_creates_db(self, tmp_path):
         """Test mine_pairs writes to a temp SQLite database."""
-        from src.ast_tools.cochange.git_miner import GitMiner
         import sqlite3
+
+        from src.ast_tools.cochange.git_miner import GitMiner
 
         m = GitMiner(Path(__file__).resolve().parent.parent.parent)
         db_path = tmp_path / "cochange.db"
