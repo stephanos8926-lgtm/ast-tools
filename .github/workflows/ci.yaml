@@ -53,6 +53,8 @@ jobs:
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq tree-sitter-cli 2>/dev/null || true
+          # Install ast-grep for structural search tests
+          cargo install ast-grep 2>/dev/null || true
       - name: Install project
         run: uv sync --all-extras
       - name: Run tests
