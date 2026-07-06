@@ -1,22 +1,25 @@
-# ast-tools
+# rw-ast-tools
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/downloads/)
 [![Code style: Ruff](https://img.shields.io/badge/code%20style-Ruff-261230.svg)](https://github.com/astral-sh/ruff)
-[![Tests](https://img.shields.io/badge/tests-686%20passing-brightgreen.svg)](https://github.com/stephanos8926-lgtm/ast-tools)
+[![Tests](https://img.shields.io/badge/tests-770%20passing-brightgreen.svg)](https://github.com/stephanos8926-lgtm/ast-tools)
 [![MCP](https://img.shields.io/badge/MCP-server-7C3AED.svg)](https://modelcontextprotocol.io)
 
-Structural code analysis and editing MCP server — **55 tools** for Python, TypeScript, JavaScript, Rust, Go, Java, C, C++, C#, Ruby, PHP, Swift, Kotlin, and more.
+Structural code analysis and editing MCP server — **57 tools** for Python, TypeScript, JavaScript, Rust, Go, Java, C, C++, and more.
 
-**ast-tools** gives LLMs the ability to search, read, edit, and analyze code structurally, not as text. Built on tree-sitter parsing for accuracy across 20+ languages, with a hybrid semantic + keyword search engine powered by sqlite-vec.
+**rw-ast-tools** gives LLMs the ability to search, read, edit, and analyze code structurally, not as text. Built on tree-sitter parsing for accuracy across 20+ languages, with a hybrid semantic + keyword search engine powered by sqlite-vec.
 
 ## Features
 
-- **55 MCP tools** across 12 categories — structural search, semantic analysis, code editing, dependency analysis, class hierarchy, blast radius, knowledge graphs, co-change analysis, and more
-- **Hybrid search**: True 6-factor RRF fusion — FTS5 keyword + vector semantic + recency + usage frequency + symbol kind + callgraph centrality. Fused via Reciprocal Rank Fusion (k=60) for robust multi-dimension ranking. — finds code by meaning, not just name
+- **57 MCP tools** across 13 categories — structural search, semantic analysis, code editing, dependency analysis, class hierarchy, blast radius, knowledge graphs, co-change analysis, and more
+- **Three server modes** — `timeout` (stdio + idle TTL, default), `daemon` (systemd + file watcher), `remote` (Streamable HTTP + auth)
+- **Agent-agnostic integration** — `ast_tools.agent_integration` package has zero Hermes dependency. Use with FORGE, Claude Code, Cursor, or any MCP client
+- **Hybrid search**: True 6-factor RRF fusion — FTS5 keyword + vector semantic + recency + usage frequency + symbol kind + callgraph centrality
 - **Multi-language**: 20+ languages via tree-sitter with full structural awareness
 - **Incremental indexing**: SHA256 content-hash based, symbol-level diff — reindex in milliseconds
-- **Hermes plugins**: 3 auto-injecting plugins for context, tokens, and codebase indexing
+- **Watchdog auto-indexer**: Inotify-based file watcher for live codebase updates
+- **Metrics store**: Time-series SQLite for codebase growth tracking
 - **CLI**: 11 commands for terminal-first workflows
 - **Schema v5**: symbols, embeddings, edges, dependency metrics, KNN graph, audit log
 
@@ -30,31 +33,28 @@ uv sync --all-extras
 
 ### MCP Server Configuration
 
-Add to your Hermes config (`~/.hermes/config.yaml`):
+**Any MCP client** (Hermes, FORGE, Claude Code):
 
-```yaml
-mcp_servers:
-  ast-tools:
-    command: /path/to/ast-tools/.venv/bin/python3
-    args: [/path/to/ast-tools/src/ast_tools_server.py]
-    connect_timeout: 60
+```json
+{
+  "mcpServers": {
+    "rw-ast-tools": {
+      "command": "ast-tools-server",
+      "args": ["--mode", "timeout"]
+    }
+  }
+}
 ```
 
-### Hermes Plugin Installation
+### Server Modes
 
-```bash
-# Install 3 auto-injecting plugins
-cp -r hermes-plugins/ast-tools-context ~/.hermes/plugins/
-cp -r hermes-plugins/ast-tools-tokens ~/.hermes/plugins/
-cp -r hermes-plugins/ast-tools-project-context ~/.hermes/plugins/
+| Mode | Flag | Transport | Lifecycle | Use Case |
+|------|------|-----------|-----------|----------|
+| `timeout` (default) | `--mode timeout` | stdio | Per-connection, idle TTL | Desktop CLI agents |
+| `daemon` | `--mode daemon` | stdio + systemd | Persistent, auto-restart | Multi-agent workstations |
+| `remote` | `--mode remote` | HTTP | Persistent, auth | Server deployment |
 
-# Add to hermes config under plugins.enabled:
-  #   - ast-tools-context
-  #   - ast-tools-tokens
-  #   - ast-tools-project-context
-```
-
-See [SETUP_INSTRUCTIONS.md](SETUP_INSTRUCTIONS.md) for full setup details.
+Override via env var: `AST_TOOLS_MODE=daemon ast-tools-server`
 
 ## Tool Categories
 
@@ -67,9 +67,9 @@ See [SETUP_INSTRUCTIONS.md](SETUP_INSTRUCTIONS.md) for full setup details.
 | **Dependency Analysis** | 6 | Fan-in/out (`module_imports`), circular deps, external deps, dead code (basic + enhanced), API surface diff |
 | **Index Management** | 4 | Refresh, reindex path, watch add, watch status |
 | **LSP Integration** | 8 | Go-to-def, references, hover, symbols, call hierarchy (in/out), available languages, server check |
-| **Context Injection** | 2 | Inject context, context status |
-| **Code Validation** | 1 | Multi-language syntax validation (10+ languages) |
-| **Knowledge Graph** | 3 | KG query (`kg_query`), shortest path (`kg_shortest_path`), neighborhood (`kg_neighborhood`) |
+| **Agent Integration** | 4 | Context inject, context status, token status, validate usage |
+| **Code Validation** | 1 | Multi-language syntax validation |
+| **Knowledge Graph** | 3 | KG query, shortest path, neighborhood |
 | **Co-Change Analysis** | 4 | Predict, hotspots, history, diff |
 | **Phase 10** | 7 | Transitive deps, class hierarchy (MRO), blast radius v2, repo skeleton, file related, code validate |
 | **CLI** | 11 | Commands (`ast search`, `ast blast-radius`, `ast find-dead`, `ast callers`, `ast deps`, etc.) |
@@ -89,28 +89,29 @@ See [docs/CLI_REFERENCE.md](docs/CLI_REFERENCE.md) for the complete CLI referenc
 ## Architecture
 
 ```
-ast-tools/
+rw-ast-tools/
 ├── src/
 │   └── ast_tools/
-│       ├── tools/              # All 55 tool implementations
-│       ├── kg/                 # Knowledge graph engine (Phase 5)
-│       ├── cochange/           # Co-change analysis (Phase 6)
-│       ├── database/           # Schema v5 (symbols, embeddings, edges, metrics, KNN, audit)
-│       ├── embeddings/         # 384-dim vector embeddings via sentence-transformers
-│       ├── indexer/            # Symbol extraction, diff engine, KNN builder
-│       ├── context/            # Context injection (6-factor RRF)
-│       ├── curator/            # Automated index curation
-│       ├── watcher/            # File watcher daemon
-│       └── utils/              # Security, file ops, annotations
-├── tests/                      # 42 test files — 686 tests passing
-├── docs/                       # Full documentation (19 active + 21 archived)
-├── hermes-plugins/             # 3 Hermes integration plugins
-├── .github/                    # Issue/PR templates, 5 CI/CD workflows
-├── SUPPORT.md                  # Support channels
-├── CONTRIBUTING.md             # Contribution guide
-├── CODE_OF_CONDUCT.md          # Community standards
-├── SECURITY.md                 # Security policy
-└── CHANGELOG.md                # Release changelog
+│       ├── agent_integration/   # Standalone modules (zero Hermes dep)
+│       ├── tools/               # All 57 tool implementations
+│       ├── watchdog/            # File watcher + metrics store
+│       ├── kg/                  # Knowledge graph engine
+│       ├── cochange/            # Co-change analysis
+│       ├── database/            # Schema v5
+│       ├── embeddings/          # 384-dim vector embeddings
+│       ├── indexer/             # Symbol extraction, diff engine
+│       ├── context/             # Context injection (6-factor RRF)
+│       ├── watcher/             # File watcher daemon
+│       ├── curator/             # Automated index curation
+│       ├── utils/               # Security, file ops
+│       ├── _server.py           # 3-mode MCP server
+│       ├── server_config.py     # Config (CLI/env/file)
+│       └── cli.py               # CLI commands
+├── tests/                       # 770 tests passing
+├── docs/                        # Full documentation
+├── hermes-plugins/rw-ast-tools/ # Unified Hermes plugin
+├── deploy/                      # systemd service files
+└── CHANGELOG.md                 # Release changelog
 ```
 
 ## Documentation
@@ -119,11 +120,12 @@ ast-tools/
 |----------|---------|
 | `docs/AST_TOOLS_QUICKSTART.md` | User guide & workflows |
 | `docs/CLI_REFERENCE.md` | Complete CLI reference |
-| `docs/ENHANCED_DEAD_CODE.md` | Dead code detection guide |
 | `docs/TROUBLESHOOTING.md` | Common issues & fixes |
-| `docs/SESSION_STATE.md` | Project state & phase tracking |
 | `docs/DOCUMENTATION_INDEX.md` | Full documentation index |
-| `SUPPORT.md` | Support channels |
+| `docs/reports/server-architecture-completion.md` | 3-mode server architecture report |
+| `docs/specs/server-architecture-redesign-v1.md` | Architecture specification |
+| `docs/adrs/0012-server-architecture-multi-mode.md` | Architecture decision record |
+| `SETUP_INSTRUCTIONS.md` | Installation guide |
 
 ## License
 

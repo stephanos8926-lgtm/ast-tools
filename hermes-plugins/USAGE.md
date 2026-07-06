@@ -1,6 +1,6 @@
-# AST-Tools Hermes Plugins - Usage Documentation
+# rw-ast-tools Hermes Plugin - Usage Documentation
 
-Comprehensive guide for using AST-Tools plugins with Hermes Agent.
+Comprehensive guide for using the rw-ast-tools plugin with Hermes Agent.
 
 ## Table of Contents
 
@@ -16,7 +16,7 @@ Comprehensive guide for using AST-Tools plugins with Hermes Agent.
 
 ### Basic Usage
 
-Once installed, the plugins work automatically:
+Once installed, the plugin works automatically:
 
 1. **Start a conversation** with Hermes Agent
 2. **Ask about code analysis** topics
@@ -31,51 +31,23 @@ Once installed, the plugins work automatically:
 
 ## Plugin Capabilities
 
-### ast-tools-context
+### rw-ast-tools
 
-**Purpose:** Provide tool documentation automatically
+**Purpose:** Provide tool documentation automatically, monitor token usage, track session intelligence
 
 **When it activates:**
 - User mentions AST, code structure, or analysis topics
 - Queries about code search or dependencies
 - Discussions about structural editing
+- Any ast-tools related queries
 
 **What it provides:**
-- Overview of 26 AST-Tools MCP capabilities
+- Overview of 57 AST-Tools MCP capabilities
 - Usage patterns for common workflows
 - Tool-specific guidance
 - Best practices
-
-**Example:**
-```
-User: "How can I find all references to this function?"
-
-Injected Context: Documentation about find_references tool
-Response: "You can use the find_references tool to locate all usages..."
-```
-
-### ast-tools-tokens
-
-**Purpose:** Monitor and manage token usage
-
-**When it activates:**
-- After any ast-tools operation (silent monitoring)
-- When context approaches compression threshold (50%)
-- When tool results exceed token budgets
-
-**What it provides:**
-- Token budget tracking
-- Usage warnings in logs
-- Context pressure alerts
-- Recommendations for optimization
-
-**Example:**
-```
-[After extensive conversation]
-
-Injected Alert: "⚠️ Context Pressure Alert - Current usage: ~100k tokens..."
-Recommendations: Use /compress, focus queries, etc.
-```
+- Token budget tracking and pressure warnings
+- Session intelligence and metrics
 
 ## Common Workflows
 
@@ -214,31 +186,46 @@ Or ask:
 
 ### Available Tools
 
-The plugins document these 26 tools:
+The plugin supports all **57 tools**:
 
 **Core Tools:**
-- ast_grep
-- ast_read
-- ast_edit
-- ast_generate_stub
+- ast_grep, ast_read, ast_edit, ast_generate_stub
+- ast_refactor_extract_interface, ts_edit
 
 **Analysis Tools:**
-- structural_analysis
-- impact_analysis
-- module_imports
-- find_references
+- structural_analysis, impact_analysis, module_imports
+- find_references, find_symbol_definition
+- blast_radius_v2, class_hierarchy
+- circular_dependencies, dependency_chain
+- external_dependencies, dead_code_detection, dead_code_enhanced
 
 **Search Tools:**
-- semantic_search
-- search_symbols
-- find_symbol_definition
-- list_symbols
+- semantic_search (6-factor RRF), search_symbols
+- find_symbol_definition, list_symbols
+- ast_query, codebase_summary, project_info
+
+**Agent Integration:**
+- context_inject, context_status, token_status, validate_usage
 
 **Index Tools:**
-- refresh_index
-- index_status
+- refresh_index, index_status, reindex_path
+- watch_add, watch_status
 
-And more specialized tools for code generation, validation, etc.
+**Knowledge Graph:**
+- kg_query, kg_shortest_path, kg_neighborhood
+- kg_shortest_path
+
+**Co-Change Analysis:**
+- co_change_predict, co_change_hotspots, co_change_history, co_change_diff
+
+**Repository Analysis:**
+- api_surface_diff, repo_skeleton, file_related_suggest
+- transitive_dependents, code_validate_syntax
+
+**LSP Integration:**
+- lsp_available_languages, lsp_check_server, lsp_definition
+- lsp_references, lsp_hover, lsp_symbols
+- lsp_call_hierarchy_in, lsp_call_hierarchy_out
 
 ## Advanced Configuration
 

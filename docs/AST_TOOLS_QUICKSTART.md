@@ -1,12 +1,15 @@
-# AST-Tools Usage Guide
+# rw-ast-tools Usage Guide
 
 **Quick Reference for Structural Code Analysis**
 
 ---
 
-## What is AST-Tools?
+## What is rw-ast-tools?
 
-AST-Tools is an MCP server with **55 structural code analysis tools** organized across 12 categories (core AST, project intelligence, symbol search, structural analysis, dependency analysis, index management, LSP integration, context injection, code validation, TypeScript editing, knowledge graph, co-change analysis, and curator). It understands your code's syntax tree, not just text patterns. Think of it as "code intelligence" — it knows the difference between a function call and a variable named the same thing.
+rw-ast-tools is an MCP server with **57 structural code analysis tools** organized across 13 categories (core AST, project intelligence, symbol search, structural analysis, dependency analysis, index management, LSP integration, agent integration, code validation, TypeScript editing, knowledge graph, co-change analysis, and curator). It understands your code's syntax tree, not just text patterns. Think of it as "code intelligence" — it knows the difference between a function call and a variable named the same thing.
+
+**Package name:** `rw-ast-tools` (PyPI)  
+**MCP server command:** `ast-tools-server`
 
 ---
 
@@ -438,18 +441,18 @@ grep "process_payment" -r src/
 
 ---
 
-## Verification Commands
+### Verification Commands
 
-Test that AST-Tools is working:
+Test that rw-ast-tools is working:
 
 ```bash
 # Test structural search
-hermes mcp call ast-tools ast_grep '{"pattern": "def $FUNC", "lang": "python", "limit": 1}'
+hermes mcp call rw-ast-tools ast_grep '{"pattern": "def $FUNC", "lang": "python", "limit": 1}'
 
 # Test semantic search
-hermes mcp call ast-tools semantic_search '{"query": "test", "k": 1}'
+hermes mcp call rw-ast-tools semantic_search '{"query": "test", "k": 1}'
 
-# Verify tool count (should be 55)
+# Verify tool count (should be 57)
 python3 -c "from ast_tools.tools import TOOL_REGISTRY; print(len(TOOL_REGISTRY))"
 ```
 

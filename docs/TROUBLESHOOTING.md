@@ -1,7 +1,7 @@
-# AST-Tools Troubleshooting Guide
+# rw-ast-tools Troubleshooting Guide
 
-**Last updated:** 2026-08-01  
-**Version:** v0.1.2-dev (55 tools)
+**Last updated:** 2026-07-05  
+**Version:** v0.1.0 (57 tools)
 
 ---
 
@@ -321,7 +321,7 @@ Before claiming ANY task done:
 mcp_ast_tools_ast_read file="src/ast_tools/tools/semantic_search.py"
 
 # Find tool registration
-grep -n "register_tool" src/ast_tools/tools/__init__.py
+grep -n "TOOL_REGISTRY" src/ast_tools/tools/__init__.py
 
 # Check test coverage
 pytest tests/test_semantic_search.py --cov --cov-report=term-missing
@@ -331,7 +331,7 @@ pytest tests/test_semantic_search.py --cov --cov-report=term-missing
 
 ```bash
 # Check plugin syntax
-python3 -m py_compile ~/.hermes/plugins/ast-tools-context/__init__.py
+python3 -m py_compile ~/.hermes/plugins/rw-ast-tools/__init__.py
 
 # List loaded plugins (in Hermes Python)
 from hermes_cli.plugins import get_all_plugins
@@ -451,21 +451,30 @@ mcp_ast_tools_semantic_search query="websocket" k=10
 
 ## Changelog
 
-### v0.2.0 (2026-07-26)
+### v0.1.0 (2026-07-05)
 
-- Added 29 tools (up from 11 in v0.1.0)
-- Hermes plugins: ast-tools-context, ast-tools-tokens
-- verification-gate plugin (cross-project quality gate)
-- semantic_search with inject_context, token_budget, diversity_limit
+- **57 MCP tools** (was 55)
+- **770 tests** passing (was 304)
+- **Three server modes**: timeout (default), daemon, remote
+- **Unified Hermes plugin**: `rw-ast-tools` replaces 3 old plugins
+- **Agent integration package**: `ast_tools.agent_integration` (zero Hermes dependency)
+- **New MCP tools**: `context_inject`, `context_status`, `token_status`, `validate_usage`, `session_intel`, `index_watch`
+- **Watchdog auto-indexer** (daemon mode only)
+- **Metrics store** with time-series SQLite
+- **systemd service** for persistent daemon mode
+- **Streamable HTTP** support for remote mode
+- **Config system**: CLI > env > file > defaults
 - 6-factor RRF fusion (semantic + FTS5 + callgraph + metrics + recency + usage)
-- 304 tests passing
+- Schema v5: symbols, embeddings, edges, dependency metrics, KNN graph, audit log
+- 11 CLI commands
 
-### v0.1.0 (2026-06-01)
+### v0.0.1 (2026-06-01)
 
-- Initial release: 11 core tools
-- Phase 0-9 complete
-- Basic semantic search + FTS5
+### Initial Release
 
----
+**Tools:** 11 core tools  
+**Schema:** v1 (basic symbols + embeddings)  
+**Tests:** 79 passing  
+**Server:** Monolithic 1,348-line `ast_tools_server.py`
 
 **Need more help?** Load the `ast-tools-usage` skill or ask "show me ast_edit examples".

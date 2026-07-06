@@ -1,4 +1,4 @@
-# AST-Tools CLI Reference
+# rw-ast-tools CLI Reference
 
 **Complete guide to the `ast` command-line interface.**
 

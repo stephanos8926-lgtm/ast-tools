@@ -86,23 +86,22 @@ To temporarily disable a plugin:
 ```yaml
 plugins:
   disabled:
-    - ast-tools-context
-    - ast-tools-tokens
+    - rw-ast-tools
 ```
 
 Or rename the plugin directory:
 
 ```bash
-mv ~/.hermes/plugins/ast-tools-context ~/.hermes/plugins/ast-tools-context.disabled
+mv ~/.hermes/plugins/rw-ast-tools ~/.hermes/plugins/rw-ast-tools.disabled
 ```
 
 ## Plugin Configuration
 
-### ast-tools-context Configuration
+### rw-ast-tools Configuration
 
-**File:** `~/.hermes/plugins/ast-tools-context/__init__.py`
+**File:** `~/.hermes/plugins/rw-ast-tools/__init__.py`
 
-#### Keywords Configuration
+#### Context Injection Configuration
 
 Edit the `ast_keywords` list to customize trigger detection:
 
@@ -174,9 +173,9 @@ For React components:
     return context
 ```
 
-### ast-tools-tokens Configuration
+### rw-ast-tools Token Configuration
 
-**File:** `~/.hermes/plugins/ast-tools-tokens/__init__.py`
+**File:** `~/.hermes/plugins/rw-ast-tools/__init__.py`
 
 #### Token Budgets Configuration
 

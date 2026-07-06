@@ -1,6 +1,6 @@
-# AST-Tools Documentation Index
+# rw-ast-tools Documentation Index
 
-**Last updated:** 2026-07-03
+**Last updated:** 2026-07-05  
 **Version:** 0.1.0
 
 ---
@@ -89,16 +89,18 @@ See [archive/](archive/) for obsolete docs (21 files):
 
 | Metric | Value |
 |--------|-------|
-| **MCP Tools** | 55 |
-| **Source files** | 82 |
-| **Test files** | 42 |
+| **MCP Tools** | 57 |
+| **Source files** | ~30 (tools directory) |
+| **Test files** | ~50 |
 | **CLI commands** | 11 |
 | **Schema** | v5 (symbols, embeddings, edges, dependency metrics, KNN graph, audit log) |
-| **Hermes plugins** | 3 (context, tokens, codebase-index) |
+| **Hermes plugins** | 1 (rw-ast-tools unified) |
 | **Active docs** | 19 |
 | **Archived docs** | 21 |
 | **CI/CD workflows** | 5 |
 | **OSS standard files** | 15 |
+| **Tests passing** | 770 |
+| **Server modes** | 3 (timeout, daemon, remote) |
 
 ## Community & Support
 
