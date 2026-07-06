@@ -135,3 +135,41 @@ def _apply_env_value(cfg: dict, keys: tuple[str, ...], raw: str) -> None:
             pass
     else:
         target[key] = raw
+
+
+def add_server_args(parser: "argparse.ArgumentParser") -> None:
+    """Add server-mode arguments to an ArgumentParser."""
+    parser.add_argument(
+        "--mode", "-m",
+        choices=["timeout", "daemon", "remote"],
+        help="Server mode (default: timeout, overrides AST_TOOLS_MODE)",
+    )
+    parser.add_argument(
+        "--port", "-p", type=int,
+        help="HTTP port for remote mode (overrides AST_TOOLS_REMOTE_PORT)",
+    )
+    parser.add_argument(
+        "--host", help="Bind host (overrides AST_TOOLS_REMOTE_HOST)",
+    )
+    parser.add_argument(
+        "--timeout", "-t", type=int,
+        help="Idle timeout in seconds (overrides AST_TOOLS_TIMEOUT)",
+    )
+    parser.add_argument(
+        "--auth-token", help="Bearer auth token (overrides AST_TOOLS_AUTH_TOKEN)",
+    )
+    parser.add_argument(
+        "--config", type=Path, help="Path to config file",
+    )
+
+
+def config_from_args(args: Any) -> dict[str, Any]:
+    """Build a config dict from parsed CLI args."""
+    return load_server_config(
+        config_path=getattr(args, "config", None),
+        cli_mode=getattr(args, "mode", None),
+        cli_port=getattr(args, "port", None),
+        cli_host=getattr(args, "host", None),
+        cli_timeout=getattr(args, "timeout", None),
+        cli_auth_token=getattr(args, "auth_token", None),
+    )
