@@ -1,0 +1,25 @@
+[Unit]
+Description=rw-ast-tools MCP Server (Persistent Daemon)
+Documentation=https://github.com/stephanos8926-lgtm/ast-tools
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=%h/.local/bin/ast-tools-server --mode daemon --foreground
+Restart=on-failure
+RestartSec=5
+WatchdogSec=120
+StartLimitBurst=5
+StartLimitIntervalSec=300
+MemoryMax=1G
+Environment=AST_TOOLS_MODE=daemon
+
+# Security hardening
+NoNewPrivileges=true
+ProtectHome=read-only
+ProtectSystem=strict
+PrivateTmp=true
+ReadWritePaths=%h/.cache/rw-ast-tools %h/.config/rw-ast-tools
+
+[Install]
+WantedBy=default.target

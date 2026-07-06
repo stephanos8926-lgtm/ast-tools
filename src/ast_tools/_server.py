@@ -143,22 +143,28 @@ async def _idle_monitor(timeout_seconds: int, get_last_activity) -> None:
 
 
 async def _run_daemon_mode(config: dict[str, Any]) -> None:
-    """Run server in daemon mode — persistent Unix socket."""
+    """Run server in daemon mode — persistent stdio with watchdog."""
     socket_path = config["daemon"]["socket_path"]
-    import pathlib
-    path = pathlib.Path(socket_path)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    if path.exists():
-        path.unlink()
+    logger.info("Starting daemon mode (socket: %s)", socket_path)
 
-    logger.info("Starting daemon mode on %s", socket_path)
+    # Start watchdog in background
+    from ast_tools.watchdog.monitor import CodebaseWatcher
+    watcher = CodebaseWatcher(config)
+    if watcher.enabled:
+        try:
+            cwd = os.getcwd()
+            msg = watcher.start(cwd)
+            logger.info("Watchdog: %s", msg)
+        except Exception as e:
+            logger.warning("Watchdog failed to start: %s", e)
 
-    # For daemon mode, use stdio-based MCP over a socket — run simple for now
-    # A full daemon would use the MCP v2 streamable HTTP transport
-    import anyio
-    async with await anyio.connect_unix(socket_path) as client_sock:
-        # We'll use stdio server locally for now; daemon is wired next phase
-        logger.info("Daemon connected on %s", socket_path)
+    # Run stdio server persistently (systemd manages lifecycle)
+    async with stdio_server() as (read_stream, write_stream):
+        await server.run(
+            read_stream,
+            write_stream,
+            server.create_initialization_options(),
+        )
 
 
 # ─── Mode: Remote (Streamable HTTP) ──────────────────────────────────────
