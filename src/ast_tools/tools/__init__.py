@@ -699,26 +699,56 @@ from .context_tools import register_tools as register_context_tools
 
 register_context_tools(register_tool)
 
-# Register context tool schemas
-register_tool("context_inject", lambda x: x, {
-    "description": "Inject relevant context based on query and current file",
+# Register context tools schemas
+from ast_tools.tools.context_tools import (
+    _tool_context_inject,
+    _tool_context_status,
+    _tool_token_status,
+    _tool_validate_usage,
+)
+
+register_tool("context_inject", _tool_context_inject, {
+    "description": "Inject relevant AST-tools context based on a query — detects if query relates to code analysis and returns tool descriptions",
     "inputSchema": {
         "type": "object",
         "properties": {
-            "query": {"type": "string", "description": "Search query"},
-            "current_file": {"type": "string", "description": "Current file context"},
-            "max_symbols": {"type": "integer", "description": "Max symbols to return", "default": 10},
+            "query": {"type": "string", "description": "Search query to match against AST-tools keywords"},
+            "current_file": {"type": "string", "description": "Current file context for scoping"},
         },
         "required": ["query"],
     },
 })
 
-register_tool("context_status", lambda x: x, {
-    "description": "Get context injection system status",
+register_tool("context_status", _tool_context_status, {
+    "description": "Get context injection system status and available metadata tools",
     "inputSchema": {
         "type": "object",
         "properties": {},
         "required": [],
+    },
+})
+
+register_tool("token_status", _tool_token_status, {
+    "description": "Get token budget status — check default budgets or test a specific tool call's budget adherence",
+    "inputSchema": {
+        "type": "object",
+        "properties": {
+            "tool_name": {"type": "string", "description": "Optional tool name to check budget for"},
+            "result_length": {"type": "integer", "description": "Result length in chars to test against budget"},
+        },
+        "required": [],
+    },
+})
+
+register_tool("validate_usage", _tool_validate_usage, {
+    "description": "Validate an ast-tools tool call before execution — checks for common error patterns",
+    "inputSchema": {
+        "type": "object",
+        "properties": {
+            "tool_name": {"type": "string", "description": "Name of the tool to validate"},
+            "query_or_result": {"type": "string", "description": "Example query or result text to check for error patterns"},
+        },
+        "required": ["tool_name"],
     },
 })
 # TypeScript editing
