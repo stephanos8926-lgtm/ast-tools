@@ -1,31 +1,22 @@
-# Hermes Plugins — Installation Notes
+# rw-ast-tools Hermes Plugin — Installation Notes
 
-**Last updated:** 2026-07-26  
+**Last updated:** 2026-07-06  
 **Author:** Lucien
 
 ---
 
-## Installed Plugins
+## Installed Plugin
 
-Plugins are copied to `~/.hermes/plugins/` and loaded automatically on Hermes session start.
+The unified `rw-ast-tools` plugin replaces the three legacy plugins:
 
-### From ast-tools project (`hermes-plugins/` subdirectory)
+| Legacy Plugin | Replaced By |
+|---------------|-------------|
+| `ast-tools-context` | `rw-ast-tools` |
+| `ast-tools-tokens` | `rw-ast-tools` |
+| `ast-tools-codebase-index` | `rw-ast-tools` |
 
-These plugins are developed alongside ast-tools but installed globally:
-
-| Plugin | Purpose | Location |
-|--------|---------|----------|
-| `ast-tools-context` | Injects AST-tools docs on relevant queries | `~/.hermes/plugins/ast-tools-context/` |
-| `ast-tools-tokens` | Tracks token usage, warns on context pressure | `~/.hermes/plugins/ast-tools-tokens/` |
-| `ast-tools-codebase-index` | Watchdog watcher, session intelligence, codebase indexing | `~/.hermes/plugins/ast-tools-codebase-index/` |
-
-### Global plugins (not in ast-tools repo)
-
-These are cross-project workflow enhancements:
-
-| Plugin | Purpose | Location |
-|--------|---------|----------|
-| `verification-gate` | Injects verification-before-completion reminder | `~/.hermes/plugins/verification-gate/` |
+Other global plugins (unchanged):
+- `verification-gate` — Injects verification-before-completion reminder
 
 ---
 
@@ -35,12 +26,15 @@ These are cross-project workflow enhancements:
 
 ```bash
 cd ~/Workspaces/ast-tools/hermes-plugins
-cp -r ast-tools-context ast-tools-tokens ast-tools-codebase-index ~/.hermes/plugins/
+cp -r rw-ast-tools ~/.hermes/plugins/
 ```
 
-### Manual plugins (verification-gate):
+### Or use the installer script:
 
-Already installed at `~/.hermes/plugins/verification-gate/` — created directly in global plugins directory.
+```bash
+cd ~/Workspaces/ast-tools/hermes-plugins
+./scripts/install.sh rw-ast-tools
+```
 
 ---
 
@@ -57,9 +51,7 @@ print([p.name for p in plugins])
 ```
 
 Expected output includes:
-- `ast-tools-context`
-- `ast-tools-tokens`
-- `ast-tools-codebase-index`
+- `rw-ast-tools`
 - `verification-gate`
 
 ---
@@ -69,9 +61,9 @@ Expected output includes:
 Plugins register hooks via `ctx.register_hook(event_name, callback_function)`.
 
 **Supported events:**
-- `on_session_start` — injected at session beginning (used by verification-gate, ast-tools-context)
-- `pre_llm_call` — before LLM processes user message (used by ast-tools-context)
-- `post_tool_call` — after tool execution (used by ast-tools-tokens for error correction)
+- `on_session_start` — injected at session beginning (used by rw-ast-tools, verification-gate)
+- `pre_llm_call` — before LLM processes user message (used by rw-ast-tools)
+- `post_tool_call` — after tool execution (used by rw-ast-tools)
 
 **Note:** Hook names are **case-sensitive** and use **underscores** (`on_session_start` NOT `OnSessionStart`).
 
@@ -80,19 +72,16 @@ Plugins register hooks via `ctx.register_hook(event_name, callback_function)`.
 ## Troubleshooting
 
 ### Plugin not loading
-
 1. Check syntax: `python3 -m py_compile ~/.hermes/plugins/<plugin>/__init__.py`
 2. Verify plugin.yaml exists with valid YAML
 3. Check Hermes logs: `journalctl --user -u hermes-gateway -n 50`
 
 ### Hook not firing
-
 1. Verify hook name matches exactly (case + underscores)
 2. Check plugin is in the loaded list (see verification command above)
 3. Ensure callback function signature matches expected params
 
 ### Gateway restart blocked
-
 If running inside the gateway process, restart commands are blocked. Workaround:
 ```bash
 # Write script to file, then execute
@@ -112,7 +101,7 @@ bash /tmp/restart.sh
 1. Develop plugin in `~/Workspaces/ast-tools/hermes-plugins/` (for ast-tools plugins)
 2. Test by copying to `~/.hermes/plugins/`
 3. Start new Hermes session to verify behavior
-4. Commit to ast-tools repo (only for ast-tools-context, ast-tools-tokens, and ast-tools-codebase-index)
+4. Commit to ast-tools repo (only for rw-ast-tools)
 5. Global plugins (verification-gate) live only in `~/.hermes/plugins/` — not versioned in ast-tools
 
 ---
