@@ -1,7 +1,4 @@
 #!/usr/bin/env python3
-import pytest
-pytestmark = pytest.mark.integration
-
 """Tests for the watcher daemon."""
 
 import os
@@ -9,8 +6,11 @@ import tempfile
 import time
 from unittest.mock import patch
 
+import pytest
 
 from ast_tools.watcher.daemon import AstToolsHandler, IndexQueue, WatcherDaemon, reindex_file
+
+pytestmark = pytest.mark.integration
 
 
 class TestIndexQueue:
@@ -123,7 +123,7 @@ class TestAstToolsHandler:
         assert handler._should_index("/test/file.Py") is True
 
     @patch("ast_tools.watcher.daemon.FileModifiedEvent", spec=True)
-    def test_on_modified_queues_file(self, mock_event_class):
+    def test_on_modified_queues_file(self, _mock_event_class):
         """Test on_modified event queues eligible files."""
         queue = IndexQueue()
         AstToolsHandler(queue, include_extensions=[".py"], exclude_patterns=[])
@@ -135,7 +135,7 @@ class TestAstToolsHandler:
         assert queue.size() >= 1
 
     @patch("ast_tools.watcher.daemon.FileCreatedEvent", spec=True)
-    def test_on_created_queues_file(self, mock_event_class):
+    def test_on_created_queues_file(self, _mock_event_class):
         """Test on_created event queues files."""
         queue = IndexQueue()
         AstToolsHandler(queue, include_extensions=[".py"], exclude_patterns=[])
