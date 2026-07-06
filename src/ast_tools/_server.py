@@ -304,9 +304,14 @@ async def main():
         await _run_timeout_mode(config)
 
 
-if __name__ == "__main__":
+def main_sync():
+    """Synchronous entry point for console_scripts."""
+    import anyio
     try:
-        import anyio
         anyio.run(main)
     except KeyboardInterrupt:
         pass
+
+
+if __name__ == "__main__":
+    main_sync()

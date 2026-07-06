@@ -1,0 +1,22 @@
+name: rw-ast-tools
+version: "1.0.0"
+description: |-
+  Unified plugin for rw-ast-tools integration with Hermes Agent.
+
+  Thin shim around ast_tools.agent_integration — all logic lives in
+  the rw-ast-tools package. Handles:
+  - Context injection (pre_llm_call)
+  - Token tracking + pressure warnings (post_tool_call, pre_llm_call)
+  - Session intelligence (on_session_end)
+  - Error correction for common tool mistakes (post_tool_call)
+  - CLI commands: index-watch
+
+  Replaces: ast-tools-context, ast-tools-tokens, ast-tools-codebase-index
+author: "RapidWebs Enterprise (Lucien)"
+license: "MIT"
+tags: ["ast", "codebase", "context", "tokens", "intelligence"]
+hooks:
+  - pre_llm_call
+  - post_tool_call
+  - on_session_end
+  - on_session_start

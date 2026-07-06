@@ -64,7 +64,7 @@ tree-sitter = [
 ]
 
 [project.scripts]
-ast-tools-server = "ast_tools._server:main"
+ast-tools-server = "ast_tools._server:main_sync"
 ast-tools-project = "ast_tools._project_tools:cli_main"
 ast-tools = "ast_tools.cli:main"
 
