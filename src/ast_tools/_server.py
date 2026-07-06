@@ -169,26 +169,46 @@ async def _run_daemon_mode(config: dict[str, Any]) -> None:
 
 # ─── Mode: Remote (Streamable HTTP) ──────────────────────────────────────
 
-
 async def _run_remote_mode(config: dict[str, Any]) -> None:
-    """Run server in remote mode — Streamable HTTP with optional bearer auth.
+    """Run server in remote mode — Streamable HTTP.
 
-    Requires the MCP Python SDK v2 for streamable HTTP support.
+    Uses MCP v2 streamable HTTP transport via StreamableHTTPSessionManager.
+    Auth is handled at the reverse proxy layer.
     """
     host = config["remote"]["host"]
     port = config["remote"]["port"]
-    auth_token = config["remote"]["auth_token"]
 
     logger.info("Starting remote mode on %s:%s", host, port)
 
     try:
-        # MCP v2 streamable HTTP — this works with mcp>=1.0
-        # which provides streamable_http_app() on the Server
         import uvicorn
-        starlette_app = server.streamable_http_app(
-            streamable_http_path="/mcp",
+        from contextlib import asynccontextmanager
+        from mcp.server.streamable_http_manager import StreamableHTTPSessionManager
+        from mcp.server.fastmcp.server import StreamableHTTPASGIApp
+        from starlette.applications import Starlette
+        from starlette.routing import Route
+
+        # Create session manager with the low-level Server
+        session_manager = StreamableHTTPSessionManager(
+            app=server,
             json_response=True,
+            stateless=True,
         )
+
+        # Create the ASGI handler
+        asgi_app = StreamableHTTPASGIApp(session_manager)
+
+        # Wrap in Starlette with lifespan to run the session manager
+        @asynccontextmanager
+        async def lifespan(app):
+            async with session_manager.run():
+                yield
+
+        starlette_app = Starlette(
+            routes=[Route("/mcp", asgi_app)],
+            lifespan=lifespan,
+        )
+
         config_uv = uvicorn.Config(
             starlette_app,
             host=host,
@@ -196,14 +216,17 @@ async def _run_remote_mode(config: dict[str, Any]) -> None:
             log_level="warning",
         )
         uv_server = uvicorn.Server(config_uv)
-        await uv_server.serve()
-    except AttributeError:
-        logger.error(
-            "Remote mode requires MCP SDK >= 1.0 with streamable_http support. "
-            "Falling back to basic HTTP server."
-        )
-        # Fallback: minimal HTTP server for MCP
-        await _run_legacy_http(host, port, auth_token)
+        try:
+            await uv_server.serve()
+        except SystemExit as e:
+            if e.code != 0:
+                raise RuntimeError(f"Uvicorn exited with code {e.code}") from e
+    except ImportError as e:
+        logger.error("Remote mode requires mcp SDK with streamable HTTP: %s", e)
+        await _run_legacy_http(host, port, "")
+    except RuntimeError:
+        # Port conflict or other startup failure — propagate, don't fall back
+        raise
 
 
 async def _run_legacy_http(host: str, port: int, auth_token: str) -> None:
