@@ -16,8 +16,7 @@ def _get_graph_engine():
         return GraphEngine
     except ImportError:
         raise ImportError(
-            "GraphEngine is not available. "
-            "Please ensure ast_tools.kg.graph_engine is installed."
+            "GraphEngine is not available. Please ensure ast_tools.kg.graph_engine is installed."
         )
 
 
@@ -92,9 +91,7 @@ def _tool_kg_query(args: dict[str, Any]) -> dict[str, Any]:
     GraphEngine = _get_graph_engine()
     resolved_db_path = _resolve_db_path(db_path)
 
-    starting_symbols = _safe_search(
-        _get_symbol_searcher(), query, k=10
-    )
+    starting_symbols = _safe_search(_get_symbol_searcher(), query, k=10)
 
     if not starting_symbols:
         return {
@@ -185,9 +182,7 @@ def _tool_kg_shortest_path(args: dict[str, Any]) -> dict[str, Any]:
 
     GraphEngine = _get_graph_engine()
     engine = GraphEngine(db_path=resolved_db_path)
-    path_data = engine.shortest_path(
-        from_id=from_id, to_id=to_id, max_depth=max_depth
-    )
+    path_data = engine.shortest_path(from_id=from_id, to_id=to_id, max_depth=max_depth)
 
     if path_data and path_data.get("distance", -1) >= 0:
         return {
@@ -273,9 +268,7 @@ def _tool_kg_neighborhood(args: dict[str, Any]) -> dict[str, Any]:
 
     GraphEngine = _get_graph_engine()
     engine = GraphEngine(db_path=resolved_db_path)
-    neighborhood = engine.get_neighborhood(
-        symbol_id, max_depth=max_depth, max_nodes=max_nodes
-    )
+    neighborhood = engine.get_neighborhood(symbol_id, max_depth=max_depth, max_nodes=max_nodes)
 
     return {
         "symbol": symbol_query,
@@ -290,6 +283,7 @@ def _tool_kg_neighborhood(args: dict[str, Any]) -> dict[str, Any]:
 # ---------------------------------------------------------------------------
 # Public tool entry points (aliases for MCP registration)
 # ---------------------------------------------------------------------------
+
 
 def kg_query(args: dict[str, Any]) -> dict[str, Any]:
     """Natural language knowledge graph query — find related symbols."""

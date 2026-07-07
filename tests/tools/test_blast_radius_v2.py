@@ -27,6 +27,7 @@ if TYPE_CHECKING:
 
 pytestmark = pytest.mark.integration
 
+
 class TestTargetResolution:
     def test_identifies_file_target(self, tmp_path: Path) -> None:
         py_file = tmp_path / "foo.py"
@@ -279,13 +280,15 @@ class TestFindFunction:
 class TestIntegration:
     def test_on_ast_tools_class(self) -> None:
         """Test on the GraphEngine class from ast-tools itself."""
-        result = _tool_blast_radius_v2({
-            "target": "GraphEngine",
-            "cwd": ".",
-            "include_imports": True,
-            "include_hierarchy": True,
-            "include_callers": True,
-        })
+        result = _tool_blast_radius_v2(
+            {
+                "target": "GraphEngine",
+                "cwd": ".",
+                "include_imports": True,
+                "include_hierarchy": True,
+                "include_callers": True,
+            }
+        )
         assert "error" not in result
         assert result["target_kind"] == "class"
         assert "summary" in result
@@ -294,47 +297,55 @@ class TestIntegration:
 
     def test_on_ast_tools_module(self) -> None:
         """Test on a module path."""
-        result = _tool_blast_radius_v2({
-            "target": "ast_tools.tools.impact_analysis",
-            "cwd": ".",
-            "include_imports": True,
-            "include_hierarchy": False,
-            "include_callers": False,
-        })
+        result = _tool_blast_radius_v2(
+            {
+                "target": "ast_tools.tools.impact_analysis",
+                "cwd": ".",
+                "include_imports": True,
+                "include_hierarchy": False,
+                "include_callers": False,
+            }
+        )
         assert "error" not in result
         assert result["target_kind"] in ("module", "file")
         assert "import_graph" in result["axes"]
 
     def test_on_ast_tools_file(self) -> None:
         """Test on a file path."""
-        result = _tool_blast_radius_v2({
-            "target": "src/ast_tools/tools/module_imports.py",
-            "cwd": ".",
-            "include_imports": True,
-            "include_hierarchy": False,
-            "include_callers": False,
-        })
+        result = _tool_blast_radius_v2(
+            {
+                "target": "src/ast_tools/tools/module_imports.py",
+                "cwd": ".",
+                "include_imports": True,
+                "include_hierarchy": False,
+                "include_callers": False,
+            }
+        )
         assert "error" not in result
         # module_imports is heavily imported, should show up
         imp = result["axes"].get("import_graph", {})
         assert imp is not None
 
     def test_invalid_target_returns_error(self) -> None:
-        result = _tool_blast_radius_v2({
-            "target": "",
-            "cwd": ".",
-        })
+        result = _tool_blast_radius_v2(
+            {
+                "target": "",
+                "cwd": ".",
+            }
+        )
         assert "error" in result
 
     def test_all_axes_disabled(self) -> None:
         """Test with all axes disabled — should return empty analysis."""
-        result = _tool_blast_radius_v2({
-            "target": "test_module",
-            "cwd": ".",
-            "include_imports": False,
-            "include_hierarchy": False,
-            "include_callers": False,
-        })
+        result = _tool_blast_radius_v2(
+            {
+                "target": "test_module",
+                "cwd": ".",
+                "include_imports": False,
+                "include_hierarchy": False,
+                "include_callers": False,
+            }
+        )
         assert "error" not in result
         assert result["summary"]["total_affected"] == 0
         assert result["summary"]["risk"] == "none"

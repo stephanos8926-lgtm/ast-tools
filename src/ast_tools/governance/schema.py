@@ -40,9 +40,7 @@ class GovernanceConfig:
             layer_data["name"]: LayerDef(layer_data["name"], layer_data)
             for layer_data in data.get("layers", [])
         }
-        self.mappings = [
-            GovernanceRule(**m) for m in data.get("mappings", [])
-        ]
+        self.mappings = [GovernanceRule(**m) for m in data.get("mappings", [])]
         self.layer_rules: dict[str, dict[str, Any]] = data.get("layer_rules", {})
         self.tag_rules: list[dict[str, Any]] = data.get("tag_rules", [])
         self.exceptions: list[dict[str, Any]] = data.get("exceptions", [])
@@ -61,9 +59,21 @@ class GovernanceConfig:
 DEFAULT_GOVERNANCE = {
     "version": 1,
     "layers": [
-        {"name": "infrastructure", "description": "Database, external APIs, low-level utilities", "tags": ["db", "cache", "config"]},
-        {"name": "domain", "description": "Business logic, domain models", "tags": ["model", "service"]},
-        {"name": "application", "description": "Use cases, application services", "tags": ["usecase", "workflow"]},
+        {
+            "name": "infrastructure",
+            "description": "Database, external APIs, low-level utilities",
+            "tags": ["db", "cache", "config"],
+        },
+        {
+            "name": "domain",
+            "description": "Business logic, domain models",
+            "tags": ["model", "service"],
+        },
+        {
+            "name": "application",
+            "description": "Use cases, application services",
+            "tags": ["usecase", "workflow"],
+        },
         {"name": "presentation", "description": "CLI, API, UI", "tags": ["cli", "api", "web"]},
     ],
     "mappings": [

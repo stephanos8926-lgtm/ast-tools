@@ -151,9 +151,10 @@ def _check_environment() -> tuple[bool, list[str]]:
     # Disk space
     try:
         import shutil
+
         free = shutil.disk_usage(AST_TOOLS_DIR).free
         if free < 500 * 1024 * 1024:  # 500MB
-            issues.append(f"Low disk space: {free // (1024*1024)}MB free (recommended: 500MB+)")
+            issues.append(f"Low disk space: {free // (1024 * 1024)}MB free (recommended: 500MB+)")
     except Exception:
         issues.append("Could not check disk space")
 
@@ -218,6 +219,7 @@ def _download_model() -> bool:
         logger.error(f"Model download failed: {e}")
         # Clean partial download
         import shutil
+
         model_cache = cache_dir / "models--BAAI--bge-small-en-v1.5"
         if model_cache.exists():
             shutil.rmtree(model_cache, ignore_errors=True)
@@ -262,11 +264,18 @@ def _create_initial_index(project_root: Path) -> bool:
                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                         (
                             f"{py_file}:{sym.name}",
-                            sym.name, sym.name, sym.kind, str(py_file),
-                            sym.start_line, sym.end_line, str(getattr(sym, "signature", "") or ""),
-                            str(getattr(sym, "docstring", "") or ""), 1,
+                            sym.name,
+                            sym.name,
+                            sym.kind,
+                            str(py_file),
+                            sym.start_line,
+                            sym.end_line,
+                            str(getattr(sym, "signature", "") or ""),
+                            str(getattr(sym, "docstring", "") or ""),
+                            1,
                             hashlib.sha256(str(py_file).encode()).hexdigest(),
-                            int(time.time()), "python"
+                            int(time.time()),
+                            "python",
                         ),
                     )
                     indexed += 1
@@ -370,10 +379,12 @@ def _log_warn(msg: str) -> None:
 def cli_init(args: dict | list | None = None) -> str:
     """CLI entry point for ast-tools init command."""
     if isinstance(args, list):
-        args = {"non_interactive": "--non-interactive" in args or "-n" in args,
-                 "skip_model": "--skip-model" in args or "-s" in args,
-                 "model_path": None,
-                 "project_root": None}
+        args = {
+            "non_interactive": "--non-interactive" in args or "-n" in args,
+            "skip_model": "--skip-model" in args or "-s" in args,
+            "model_path": None,
+            "project_root": None,
+        }
         for i, a in enumerate(args):
             if a == "--model-path" and i + 1 < len(args):
                 args["model_path"] = args[i + 1]

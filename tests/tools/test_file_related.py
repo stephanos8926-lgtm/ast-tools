@@ -21,6 +21,7 @@ from ast_tools.tools.file_related import (
 
 pytestmark = pytest.mark.integration
 
+
 class TestHelpers:
     """Test helper functions."""
 
@@ -66,9 +67,7 @@ class TestTestFileDetection:
         (tmp_path / "tests/test_utils.py").parent.mkdir(parents=True)
         (tmp_path / "tests/test_utils.py").touch()
 
-        result = _find_test_files(
-            tmp_path / "src/utils.py", tmp_path, "utils", 5
-        )
+        result = _find_test_files(tmp_path / "src/utils.py", tmp_path, "utils", 5)
         assert len(result) > 0
         assert str(tmp_path / "tests/test_utils.py") in [r["path"] for r in result]
 
@@ -78,9 +77,7 @@ class TestTestFileDetection:
         (tmp_path / "tests/test_core.py").parent.mkdir(parents=True)
         (tmp_path / "tests/test_core.py").touch()
 
-        result = _find_source_from_test(
-            tmp_path / "tests/test_core.py", tmp_path, "core", 5
-        )
+        result = _find_source_from_test(tmp_path / "tests/test_core.py", tmp_path, "core", 5)
         assert len(result) > 0
         assert str(tmp_path / "src/core.py") in [r["path"] for r in result]
 
@@ -162,7 +159,8 @@ class TestCallGraph:
         """Direct unit test of _find_call_graph."""
         mock_fc.side_effect = lambda sym, root, max_files=100, max_depth=50: (
             [{"file": "caller.py", "line": 5, "caller": "main", "context": "greet()"}]
-            if sym == "greet" else []
+            if sym == "greet"
+            else []
         )
 
         tmp = Path(__file__).parent / "_cg_test_ws"
@@ -181,7 +179,8 @@ class TestCallGraph:
         """Integration through _tool_file_related_suggest."""
         mock_fc.side_effect = lambda sym, root, max_files=100, max_depth=50: (
             [{"file": "src/caller.py", "line": 5, "caller": "main", "context": "greet()"}]
-            if sym == "greet" else []
+            if sym == "greet"
+            else []
         )
 
         tmp = Path(__file__).parent / "_cg_integ_ws"
@@ -190,13 +189,15 @@ class TestCallGraph:
         (tmp / "lib" / "target.py").write_text("def greet():\n    pass\n")
         (tmp / "src" / "caller.py").write_text("from lib.target import greet\ngreet()\n")
 
-        result = _tool_file_related_suggest({
-            "file_path": str(tmp / "lib" / "target.py"),
-            "workspace": str(tmp),
-            "max_suggestions": 10,
-            "include_imports": False,
-            "include_tests": False,
-        })
+        result = _tool_file_related_suggest(
+            {
+                "file_path": str(tmp / "lib" / "target.py"),
+                "workspace": str(tmp),
+                "max_suggestions": 10,
+                "include_imports": False,
+                "include_tests": False,
+            }
+        )
 
         cg = [s for s in result["suggestions"] if s["reason"] == "call_graph"]
         assert len(cg) > 0, f"Expected call_graph suggestions, got all: {result['suggestions']}"
@@ -223,11 +224,13 @@ class TestIntegration:
         (tmp_path / "tests").mkdir()
         (tmp_path / "tests/test_utils.py").touch()
 
-        result = _tool_file_related_suggest({
-            "file_path": str(tmp_path / "src/utils.py"),
-            "workspace": str(tmp_path),
-            "include_imports": False,
-        })
+        result = _tool_file_related_suggest(
+            {
+                "file_path": str(tmp_path / "src/utils.py"),
+                "workspace": str(tmp_path),
+                "include_imports": False,
+            }
+        )
         assert "suggestions" in result
         reasons = [s["reason"] for s in result["suggestions"]]
         assert "test_file" in reasons
@@ -239,11 +242,13 @@ class TestIntegration:
         (tmp_path / "tests/test_core.py").touch()
         (tmp_path / "src/helper.py").touch()
 
-        result = _tool_file_related_suggest({
-            "file_path": str(tmp_path / "src/core.py"),
-            "workspace": str(tmp_path),
-            "include_imports": False,
-        })
+        result = _tool_file_related_suggest(
+            {
+                "file_path": str(tmp_path / "src/core.py"),
+                "workspace": str(tmp_path),
+                "include_imports": False,
+            }
+        )
         confidences = [s["confidence"] for s in result["suggestions"]]
         assert confidences == sorted(confidences, reverse=True)
 
@@ -253,11 +258,13 @@ class TestIntegration:
         (tmp_path / "tests/test_core.py").parent.mkdir(parents=True)
         (tmp_path / "tests/test_core.py").touch()
 
-        result = _tool_file_related_suggest({
-            "file_path": str(tmp_path / "src/core.py"),
-            "workspace": str(tmp_path),
-            "include_imports": False,
-            "max_suggestions": 5,
-        })
+        result = _tool_file_related_suggest(
+            {
+                "file_path": str(tmp_path / "src/core.py"),
+                "workspace": str(tmp_path),
+                "include_imports": False,
+                "max_suggestions": 5,
+            }
+        )
         paths = [s["path"] for s in result["suggestions"]]
         assert len(paths) == len(set(paths))

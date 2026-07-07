@@ -17,7 +17,6 @@ except ImportError:
         tomllib = None  # type: ignore[assignment]
 
 
-
 INDICATORS: dict[str, list[tuple[str, int]]] = {
     "python": [
         ("pyproject.toml", 3),
@@ -193,7 +192,10 @@ def _parse_rust_deps(root: Path) -> dict[str, list[str]]:
         pass
     return deps
 
-def _build_dep_graph(root: Path, project_type: str, deps: dict[str, list[str]]) -> dict[str, list[str]]:
+
+def _build_dep_graph(
+    root: Path, project_type: str, deps: dict[str, list[str]]
+) -> dict[str, list[str]]:
     """Builds the dependency graph based on project type and identified dependencies."""
     dep_graph: dict[str, list[str]] = {}
 
@@ -238,11 +240,41 @@ def _collect_structure(
     config_files: list[str] = []
 
     config_extensions = {".yaml", ".yml", ".json", ".toml", ".ini", ".cfg", ".conf"}
-    entry_file_names = {"main.py", "app.py", "__main__.py", "cli.py", "index.js", "index.ts", "main.go", "main.rs"}
+    entry_file_names = {
+        "main.py",
+        "app.py",
+        "__main__.py",
+        "cli.py",
+        "index.js",
+        "index.ts",
+        "main.go",
+        "main.rs",
+    }
 
     for root_dir, dirs, files in os.walk(root):
         # Skip hidden dirs and common non-project dirs
-        dirs[:] = [d for d in dirs if not d.startswith(".") and d not in {"node_modules", "__pycache__", ".venv", "venv", "target", "dist", "build", ".eggs", ".git", ".mypy_cache", ".ruff_cache", ".pytest_cache", ".hg", ".svn"}]
+        dirs[:] = [
+            d
+            for d in dirs
+            if not d.startswith(".")
+            and d
+            not in {
+                "node_modules",
+                "__pycache__",
+                ".venv",
+                "venv",
+                "target",
+                "dist",
+                "build",
+                ".eggs",
+                ".git",
+                ".mypy_cache",
+                ".ruff_cache",
+                ".pytest_cache",
+                ".hg",
+                ".svn",
+            }
+        ]
 
         # Limit file count per directory for performance
         max_files_per_dir = 200
@@ -287,12 +319,21 @@ def _collect_structure(
                 role = "test"
                 if include_tests:
                     test_files.append(frel)
-            elif fname in {"pyproject.toml", "setup.py", "setup.cfg", "package.json", "go.mod", "Cargo.toml"}:
+            elif fname in {
+                "pyproject.toml",
+                "setup.py",
+                "setup.cfg",
+                "package.json",
+                "go.mod",
+                "Cargo.toml",
+            }:
                 role = "build_config"
                 config_files.append(frel)
             elif fname in {"README.md", "LICENSE", "CONTRIBUTING.md", "CHANGELOG.md"}:
                 role = "documentation"
-            elif fname in {"Dockerfile", "docker-compose.yml", ".env.example", ".gitignore"} or (Path(fname).suffix in config_extensions and include_configs):
+            elif fname in {"Dockerfile", "docker-compose.yml", ".env.example", ".gitignore"} or (
+                Path(fname).suffix in config_extensions and include_configs
+            ):
                 role = "config"
                 config_files.append(frel)
 
@@ -393,5 +434,5 @@ def _tool_repo_skeleton(params: dict[str, Any]) -> dict[str, Any]:
         "tree_ascii": tree_ascii,
         "files": sorted({f["path"] for f in structure["key_files"]}),
         "summary": summary,
-        "dependencies_graph": dependency_graph, # Add the dependency graph
+        "dependencies_graph": dependency_graph,  # Add the dependency graph
     }

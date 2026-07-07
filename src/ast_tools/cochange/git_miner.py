@@ -98,7 +98,13 @@ class GitMiner:
 
         # Parse records separated by \x1e
         file_changes: dict[str, dict[str, Any]] = defaultdict(
-            lambda: {"commits": 0, "lines_added": 0, "lines_deleted": 0, "authors": set(), "timestamps": []}
+            lambda: {
+                "commits": 0,
+                "lines_added": 0,
+                "lines_deleted": 0,
+                "authors": set(),
+                "timestamps": [],
+            }
         )
         co_change_counts: dict[tuple[str, str], dict[str, Any]] = defaultdict(
             lambda: {"frequency": 0, "timestamps": []}

@@ -415,9 +415,7 @@ def _compute_metrics(
 
     base_names = _get_base_names(class_node)
     has_concrete = (
-        not is_interface
-        and not _has_abstract_methods(class_node)
-        and len(own_methods) > 0
+        not is_interface and not _has_abstract_methods(class_node) and len(own_methods) > 0
     )
 
     return {
@@ -497,9 +495,7 @@ def _tool_class_hierarchy(params: dict[str, Any]) -> dict[str, Any]:
     int(params.get("max_depth", 10))
 
     # ── Resolve target ──────────────────────────────────────────────
-    class_name, resolved_file, all_classes = _resolve_target(
-        target, file_path, workspace
-    )
+    class_name, resolved_file, all_classes = _resolve_target(target, file_path, workspace)
 
     if class_name is None and all_classes is None:
         return {

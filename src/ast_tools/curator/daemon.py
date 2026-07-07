@@ -73,6 +73,7 @@ def pre_backup() -> Path | None:
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     backup_path = BACKUP_DIR / f"pre_curator_{timestamp}.db"
     import shutil
+
     shutil.copy2(db_path, backup_path)
     logger.info(f"Pre-curator backup saved to {backup_path}")
 

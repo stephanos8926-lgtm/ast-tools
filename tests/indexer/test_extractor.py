@@ -12,6 +12,7 @@ from ast_tools.types import EdgeKind, SymbolKind
 
 pytestmark = pytest.mark.integration
 
+
 class TestSymbolExtractor:
     """Test SymbolExtractor class."""
 

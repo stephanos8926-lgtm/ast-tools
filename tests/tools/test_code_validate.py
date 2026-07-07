@@ -35,6 +35,7 @@ from src.ast_tools.tools.code_validate import (
 
 pytestmark = pytest.mark.integration
 
+
 class TestPythonValidation:
     """Test Python syntax validation via ast.parse."""
 

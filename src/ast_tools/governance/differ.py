@@ -44,7 +44,9 @@ def diff_branches(
     try:
         result = subprocess.run(
             ["git", "rev-parse", "--git-dir"],
-            capture_output=True, text=True, cwd=root,
+            capture_output=True,
+            text=True,
+            cwd=root,
         )
         if result.returncode != 0:
             return {
@@ -58,14 +60,16 @@ def diff_branches(
         with tempfile.TemporaryDirectory() as tmpdir:
             subprocess.run(
                 ["git", "worktree", "add", "--detach", tmpdir, base_branch],
-                capture_output=True, cwd=root,
+                capture_output=True,
+                cwd=root,
             )
             try:
                 base_violations = scan_project(Path(tmpdir), cfg)
             finally:
                 subprocess.run(
                     ["git", "worktree", "remove", tmpdir],
-                    capture_output=True, cwd=root,
+                    capture_output=True,
+                    cwd=root,
                 )
 
     except Exception as e:

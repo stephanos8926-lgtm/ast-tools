@@ -79,12 +79,14 @@ def _tool_co_change_predict(params: dict[str, Any]) -> dict[str, Any]:
         suggestions = []
         for r in rows:
             partner = r["symbol2_id"] if r["symbol1_id"] == symbol else r["symbol1_id"]
-            suggestions.append({
-                "partner": partner,
-                "frequency": r["frequency"],
-                "coupling": r["coupling"],
-                "avg_gap_commits": r["avg_gap"],
-            })
+            suggestions.append(
+                {
+                    "partner": partner,
+                    "frequency": r["frequency"],
+                    "coupling": r["coupling"],
+                    "avg_gap_commits": r["avg_gap"],
+                }
+            )
 
         return {
             "symbol": symbol,
@@ -110,6 +112,7 @@ def _tool_co_change_hotspots(params: dict[str, Any]) -> dict[str, Any]:
 
     try:
         from ast_tools.cochange.hotspot import compute_hotspots
+
         hotspots = compute_hotspots(db_path, top_n=top_n)
         return {"hotspots": hotspots, "total_found": len(hotspots)}
     except ImportError:

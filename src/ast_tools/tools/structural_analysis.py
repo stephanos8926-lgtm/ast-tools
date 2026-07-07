@@ -14,7 +14,9 @@ def _find_python_files(project_root: str, max_files: int | None = None) -> list[
     return find_python_files(project_root, max_files)
 
 
-def _ast_find_references(symbol: str, project_root: str, max_files: int | None = None) -> list[dict]:
+def _ast_find_references(
+    symbol: str, project_root: str, max_files: int | None = None
+) -> list[dict]:
     """Find all references to `symbol` across the project using AST."""
     results = []
     for py_file in _find_python_files(project_root, max_files):
@@ -41,7 +43,9 @@ def _ast_find_references(symbol: str, project_root: str, max_files: int | None =
     return results
 
 
-def _ast_find_callers(symbol: str, project_root: str, max_files: int | None = None, max_depth: int = 50) -> list[dict]:
+def _ast_find_callers(
+    symbol: str, project_root: str, max_files: int | None = None, max_depth: int = 50
+) -> list[dict]:
     """Find all functions/methods that call `symbol`."""
     callers = []
     for py_file in _find_python_files(project_root, max_files):

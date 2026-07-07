@@ -1,11 +1,11 @@
 """Tests for vacuum command."""
 
-
 import pytest
 
 from ast_tools.curator.vacuum import _human_size, run
 
 pytestmark = pytest.mark.unit
+
 
 class TestVacuum:
     """Test suite for vacuum/space reclamation."""

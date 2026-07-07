@@ -104,11 +104,13 @@ def _load_config_file(explicit_path: Path | None) -> dict:
         if path and path.exists():
             try:
                 import yaml
+
                 raw = yaml.safe_load(path.read_text())
                 if isinstance(raw, dict):
                     return raw
             except Exception:
                 import logging
+
                 logging.getLogger(__name__).warning("Failed to load config from %s", path)
     return {}
 
@@ -139,26 +141,35 @@ def _apply_env_value(cfg: dict, keys: tuple[str, ...], raw: str) -> None:
 def add_server_args(parser: argparse.ArgumentParser) -> None:
     """Add server-mode arguments to an ArgumentParser."""
     parser.add_argument(
-        "--mode", "-m",
+        "--mode",
+        "-m",
         choices=["timeout", "daemon", "remote"],
         help="Server mode (default: timeout, overrides AST_TOOLS_MODE)",
     )
     parser.add_argument(
-        "--port", "-p", type=int,
+        "--port",
+        "-p",
+        type=int,
         help="HTTP port for remote mode (overrides AST_TOOLS_REMOTE_PORT)",
     )
     parser.add_argument(
-        "--host", help="Bind host (overrides AST_TOOLS_REMOTE_HOST)",
+        "--host",
+        help="Bind host (overrides AST_TOOLS_REMOTE_HOST)",
     )
     parser.add_argument(
-        "--timeout", "-t", type=int,
+        "--timeout",
+        "-t",
+        type=int,
         help="Idle timeout in seconds (overrides AST_TOOLS_TIMEOUT)",
     )
     parser.add_argument(
-        "--auth-token", help="Bearer auth token (overrides AST_TOOLS_AUTH_TOKEN)",
+        "--auth-token",
+        help="Bearer auth token (overrides AST_TOOLS_AUTH_TOKEN)",
     )
     parser.add_argument(
-        "--config", type=Path, help="Path to config file",
+        "--config",
+        type=Path,
+        help="Path to config file",
     )
 
 

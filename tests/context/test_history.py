@@ -8,6 +8,7 @@ from ast_tools.context.history import InjectionHistory
 
 pytestmark = pytest.mark.unit
 
+
 class TestInjectionHistory:
     """Test session-based injection history tracking."""
 

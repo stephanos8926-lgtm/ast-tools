@@ -41,32 +41,67 @@ DEFAULT_WARNING_RATIO = 0.40
 DEFAULT_CHARS_PER_TOKEN = 4.0
 
 # All ast-tools tool names for prefix stripping
-AST_TOOLS_TOOL_NAMES = frozenset({
-    # Core AST
-    "ast_grep", "ast_edit", "ast_read", "ast_generate_stub",
-    "ast_refactor_extract_interface", "ast_capsule", "ast_query", "ts_edit",
-    # Analysis
-    "structural_analysis", "impact_analysis", "module_imports",
-    "find_references", "blast_radius_v2", "class_hierarchy",
-    "transitive_dependents", "circular_dependencies",
-    "dependency_chain", "external_dependencies", "api_surface_diff",
-    # Knowledge Graph
-    "kg_query", "kg_shortest_path", "kg_neighborhood",
-    # Co-change
-    "co_change_diff", "co_change_history", "co_change_hotspots",
-    "co_change_predict",
-    # Dead code / quality
-    "dead_code_detection", "dead_code_enhanced", "code_validate_syntax",
-    "codebase_summary", "project_info", "repo_skeleton", "file_related_suggest",
-    # LSP
-    "lsp_available_languages", "lsp_call_hierarchy_in", "lsp_call_hierarchy_out",
-    "lsp_check_server", "lsp_definition", "lsp_hover", "lsp_references",
-    "lsp_symbols",
-    # Index
-    "semantic_search", "search_symbols", "find_symbol_definition",
-    "list_symbols", "refresh_index", "index_status", "reindex_path",
-    "watch_add", "watch_status",
-})
+AST_TOOLS_TOOL_NAMES = frozenset(
+    {
+        # Core AST
+        "ast_grep",
+        "ast_edit",
+        "ast_read",
+        "ast_generate_stub",
+        "ast_refactor_extract_interface",
+        "ast_capsule",
+        "ast_query",
+        "ts_edit",
+        # Analysis
+        "structural_analysis",
+        "impact_analysis",
+        "module_imports",
+        "find_references",
+        "blast_radius_v2",
+        "class_hierarchy",
+        "transitive_dependents",
+        "circular_dependencies",
+        "dependency_chain",
+        "external_dependencies",
+        "api_surface_diff",
+        # Knowledge Graph
+        "kg_query",
+        "kg_shortest_path",
+        "kg_neighborhood",
+        # Co-change
+        "co_change_diff",
+        "co_change_history",
+        "co_change_hotspots",
+        "co_change_predict",
+        # Dead code / quality
+        "dead_code_detection",
+        "dead_code_enhanced",
+        "code_validate_syntax",
+        "codebase_summary",
+        "project_info",
+        "repo_skeleton",
+        "file_related_suggest",
+        # LSP
+        "lsp_available_languages",
+        "lsp_call_hierarchy_in",
+        "lsp_call_hierarchy_out",
+        "lsp_check_server",
+        "lsp_definition",
+        "lsp_hover",
+        "lsp_references",
+        "lsp_symbols",
+        # Index
+        "semantic_search",
+        "search_symbols",
+        "find_symbol_definition",
+        "list_symbols",
+        "refresh_index",
+        "index_status",
+        "reindex_path",
+        "watch_add",
+        "watch_status",
+    }
+)
 
 
 def _strip_prefix(tool_name: str) -> str:
@@ -74,7 +109,7 @@ def _strip_prefix(tool_name: str) -> str:
     prefixes = ["mcp_ast_tools_tool_", "mcp_ast_tools_"]
     for prefix in prefixes:
         if tool_name.startswith(prefix):
-            return tool_name[len(prefix):]
+            return tool_name[len(prefix) :]
     return tool_name
 
 
@@ -113,7 +148,9 @@ class TokenTracker:
         if estimated > budget:
             logger.warning(
                 "ast-tools result exceeded budget: %s ~%dtok (budget: %d)",
-                tool_name, estimated, budget,
+                tool_name,
+                estimated,
+                budget,
             )
             return {
                 "tool": tool_name,
@@ -134,9 +171,8 @@ class ContextPressureMonitor:
     def __init__(self, config: dict[str, Any] | None = None):
         cfg = config or {}
         self.context_window = cfg.get("context_window", {})
-        self.chars_per_token = (
-            cfg.get("token_estimation", {})
-            .get("chars_per_token", DEFAULT_CHARS_PER_TOKEN)
+        self.chars_per_token = cfg.get("token_estimation", {}).get(
+            "chars_per_token", DEFAULT_CHARS_PER_TOKEN
         )
 
     def check_pressure(
@@ -159,16 +195,15 @@ class ContextPressureMonitor:
             self.context_window.get("default", DEFAULT_CONTEXT_WINDOW),
         )
         threshold_ratio = self.context_window.get(
-            "compression_threshold_ratio", DEFAULT_COMPRESSION_RATIO,
+            "compression_threshold_ratio",
+            DEFAULT_COMPRESSION_RATIO,
         )
         warning_ratio = self.context_window.get(
-            "warning_threshold_ratio", DEFAULT_WARNING_RATIO,
+            "warning_threshold_ratio",
+            DEFAULT_WARNING_RATIO,
         )
 
-        total_chars = sum(
-            len(str(m.get("content", "")))
-            for m in (conversation_history or [])
-        )
+        total_chars = sum(len(str(m.get("content", ""))) for m in (conversation_history or []))
         estimated = int(total_chars / self.chars_per_token)
         threshold = int(context_length * threshold_ratio)
         warning_at = int(threshold * (warning_ratio / threshold_ratio))

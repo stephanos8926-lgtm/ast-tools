@@ -139,10 +139,12 @@ class MetricsStore:
         latest = history[0]
         prev = history[1]
         delta_keys = [
-            "files", "loc", "functions", "classes", "deps",
-            "size_bytes", "commits_since_last",
+            "files",
+            "loc",
+            "functions",
+            "classes",
+            "deps",
+            "size_bytes",
+            "commits_since_last",
         ]
-        return {
-            k: (latest.get(k, 0) - prev.get(k, 0))
-            for k in delta_keys
-        }
+        return {k: (latest.get(k, 0) - prev.get(k, 0)) for k in delta_keys}

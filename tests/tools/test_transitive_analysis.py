@@ -12,6 +12,7 @@ from ast_tools.tools.transitive_analysis import (
 
 pytestmark = pytest.mark.integration
 
+
 class TestRiskClassification:
     def test_none(self) -> None:
         assert _classify_risk(0) == "none"
@@ -57,10 +58,12 @@ class TestTransitiveDependents:
 
     def test_real_ast_tools_project(self) -> None:
         """Integration test: run on the real ast-tools project."""
-        result = _tool_transitive_dependents({
-            "target": "src/ast_tools/tools/module_imports.py",
-            "cwd": ".",
-        })
+        result = _tool_transitive_dependents(
+            {
+                "target": "src/ast_tools/tools/module_imports.py",
+                "cwd": ".",
+            }
+        )
         assert result["target"] == "ast_tools.tools.module_imports"
         assert len(result["direct"]) >= 1  # At least impact_analysis imports it
         assert isinstance(result["transitive"], list)
@@ -68,21 +71,25 @@ class TestTransitiveDependents:
 
     def test_dependencies_direction(self) -> None:
         """Dependencies direction should return what the target imports."""
-        result = _tool_transitive_dependents({
-            "target": "ast_tools.tools.impact_analysis",
-            "direction": "dependencies",
-            "cwd": ".",
-        })
+        result = _tool_transitive_dependents(
+            {
+                "target": "ast_tools.tools.impact_analysis",
+                "direction": "dependencies",
+                "cwd": ".",
+            }
+        )
         assert "ast_tools.tools.module_imports" in result["direct"]
         assert result["direction"] == "dependencies"
         assert result["fan_out"] > 0
 
     def test_dependents_depth_grouping(self) -> None:
         """Transitive layers should be grouped by BFS depth."""
-        result = _tool_transitive_dependents({
-            "target": "src/ast_tools/__init__.py",
-            "cwd": ".",
-        })
+        result = _tool_transitive_dependents(
+            {
+                "target": "src/ast_tools/__init__.py",
+                "cwd": ".",
+            }
+        )
         for layer in result.get("transitive", []):
             assert "depth" in layer
             assert isinstance(layer["depth"], int)

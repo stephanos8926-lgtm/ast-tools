@@ -10,29 +10,29 @@ from typing import Any
 _INTENT_PATTERNS = {
     # Symbol discovery
     "find_symbol": ["find", "locate", "where is", "show me", "what does", "list"],
-    "find_symbol_keywords": ["function", "class", "method", "variable", "constant", "interface", "type"],
-
+    "find_symbol_keywords": [
+        "function",
+        "class",
+        "method",
+        "variable",
+        "constant",
+        "interface",
+        "type",
+    ],
     # Usage tracking
     "find_usage": ["used by", "usage", "callers", "references", "who calls", "where used"],
-
     # Structural search
     "structural_search": ["pattern", "structure", "all imports", "all decorators", "all returns"],
-
     # Refactoring
     "refactor": ["rename", "replace", "change", "modify", "update", "refactor"],
-
     # Impact analysis
     "impact": ["impact", "affect", "break", "depend", "dependency", "blast radius"],
-
     # Semantic search
     "semantic": ["similar", "like", "meaning", "concept", "find by meaning"],
-
     # Definition
     "definition": ["definition", "defined", "implementation", "source"],
-
     # Documentation
     "docs": ["document", "docstring", "signature", "overview", "summary"],
-
     # Validation
     "validate": ["validate", "check", "lint", "syntax", "error"],
 }
@@ -40,16 +40,17 @@ _INTENT_PATTERNS = {
 
 # Ordered by specificity (more specific = higher priority in ties)
 _INTENT_PRIORITY = [
-    "find_usage",      # "callers", "references" - very specific
-    "impact",          # "break", "depend" - specific
-    "refactor",        # "rename", "replace" - specific
-    "semantic",        # "similar", "meaning" - medium
-    "definition",      # "defined", "implementation" - medium
-    "validate",        # "validate", "check" - medium
-    "docs",            # "document", "signature" - medium
+    "find_usage",  # "callers", "references" - very specific
+    "impact",  # "break", "depend" - specific
+    "refactor",  # "rename", "replace" - specific
+    "semantic",  # "similar", "meaning" - medium
+    "definition",  # "defined", "implementation" - medium
+    "validate",  # "validate", "check" - medium
+    "docs",  # "document", "signature" - medium
     "structural_search",  # "pattern", "structure" - general
-    "find_symbol",     # "find", "show" - most general
+    "find_symbol",  # "find", "show" - most general
 ]
+
 
 def _detect_intent(query: str) -> str:
     """Detect user intent from natural language query with tie-breaking."""
@@ -67,7 +68,9 @@ def _detect_intent(query: str) -> str:
             scores[intent] = score
 
     # Boost with keyword patterns
-    if any(kw in query_lower for kw in _INTENT_PATTERNS["find_symbol_keywords"]) and ("find" in query_lower or "where" in query_lower):
+    if any(kw in query_lower for kw in _INTENT_PATTERNS["find_symbol_keywords"]) and (
+        "find" in query_lower or "where" in query_lower
+    ):
         scores["find_symbol"] = scores.get("find_symbol", 0) + 2
 
     # Return highest scoring intent with tie-breaking
@@ -122,7 +125,9 @@ def _tool_ast_query(args: dict[str, Any]) -> dict[str, Any]:
             "params": {
                 "file": file_path,
                 "include_private": False,
-            } if file_path else {
+            }
+            if file_path
+            else {
                 "query": symbol or "",
                 "kind": None,
                 "lang": language,
@@ -152,7 +157,9 @@ def _tool_ast_query(args: dict[str, Any]) -> dict[str, Any]:
             "params": {
                 "file": file_path,
                 "dry_run": True,
-            } if file_path else {
+            }
+            if file_path
+            else {
                 "pattern": "$OLD",
                 "path": ".",
                 "lang": language or "python",

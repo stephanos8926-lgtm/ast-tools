@@ -9,6 +9,7 @@ from ast_tools.curator.daemon import LLmCurator
 
 pytestmark = pytest.mark.unit
 
+
 class TestLLmCurator:
     """Test LLM curator functionality."""
 

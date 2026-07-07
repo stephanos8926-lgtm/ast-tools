@@ -62,8 +62,10 @@ def scan_symbols(
 
             for pattern_name, regex in PII_PATTERNS.items():
                 for field, value in [
-                    ("name", name), ("qualified_name", qname),
-                    ("signature", sig or ""), ("docstring", doc or ""),
+                    ("name", name),
+                    ("qualified_name", qname),
+                    ("signature", sig or ""),
+                    ("docstring", doc or ""),
                 ]:
                     if not value:
                         continue
@@ -83,11 +85,20 @@ def scan_symbols(
                         if action == "redact" and not dry_run:
                             redacted = regex.sub("[REDACTED]", str(value))
                             if field == "name":
-                                conn.execute("UPDATE symbols SET name = ? WHERE id = ?", (redacted, symbol_id))
+                                conn.execute(
+                                    "UPDATE symbols SET name = ? WHERE id = ?",
+                                    (redacted, symbol_id),
+                                )
                             elif field == "qualified_name":
-                                conn.execute("UPDATE symbols SET qualified_name = ? WHERE id = ?", (redacted, symbol_id))
+                                conn.execute(
+                                    "UPDATE symbols SET qualified_name = ? WHERE id = ?",
+                                    (redacted, symbol_id),
+                                )
                             elif field == "signature":
-                                conn.execute("UPDATE symbols SET signature = ? WHERE id = ?", (redacted, symbol_id))
+                                conn.execute(
+                                    "UPDATE symbols SET signature = ? WHERE id = ?",
+                                    (redacted, symbol_id),
+                                )
                         elif action == "remove" and not dry_run:
                             conn.execute("DELETE FROM symbols WHERE id = ?", (symbol_id,))
                             break  # No need to check other fields
@@ -98,10 +109,7 @@ def scan_symbols(
         conn.commit()
 
         # Log summary
-        logger.info(
-            f"PII scan: {findings['total']} findings "
-            f"(action={action}, dry_run={dry_run})"
-        )
+        logger.info(f"PII scan: {findings['total']} findings (action={action}, dry_run={dry_run})")
 
     except Exception as e:
         logger.error(f"PII scan failed: {e}")

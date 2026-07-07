@@ -1,11 +1,11 @@
 """Tests for cleanup command."""
 
-
 import pytest
 
 from ast_tools.curator.cleanup import _human_size, run
 
 pytestmark = pytest.mark.integration
+
 
 class TestCleanup:
     """Test suite for cleanup command."""

@@ -47,32 +47,38 @@ def run(aggressive: bool = False, dry_run: bool = False) -> dict[str, Any]:
         after = db_path.stat().st_size if not dry_run else before
         freed = before - after
         results["freed_bytes"] += freed
-        results["operations"].append({
-            "op": "vacuum",
-            "before": before,
-            "after": after,
-            "freed": freed,
-        })
+        results["operations"].append(
+            {
+                "op": "vacuum",
+                "before": before,
+                "after": after,
+                "freed": freed,
+            }
+        )
 
     # 2. Temp file cleanup
     tmp_dir = AST_TOOLS_DIR / "cache" / "tmp"
     if tmp_dir.exists():
         tmp_freed = _cleanup_tmp(tmp_dir, dry_run)
         results["freed_bytes"] += tmp_freed
-        results["operations"].append({
-            "op": "tmp_cleanup",
-            "freed": tmp_freed,
-        })
+        results["operations"].append(
+            {
+                "op": "tmp_cleanup",
+                "freed": tmp_freed,
+            }
+        )
 
     # 3. Log rotation (>30 day old logs)
     log_dir = AST_TOOLS_DIR / "logs"
     if log_dir.exists():
         log_freed = _rotate_logs(log_dir, dry_run)
         results["freed_bytes"] += log_freed
-        results["operations"].append({
-            "op": "log_rotation",
-            "freed": log_freed,
-        })
+        results["operations"].append(
+            {
+                "op": "log_rotation",
+                "freed": log_freed,
+            }
+        )
 
     # 4. Aggressive: model cache
     if aggressive:
@@ -80,10 +86,12 @@ def run(aggressive: bool = False, dry_run: bool = False) -> dict[str, Any]:
         if model_dir.exists():
             model_freed = _cleanup_models(model_dir, dry_run)
             results["freed_bytes"] += model_freed
-            results["operations"].append({
-                "op": "model_cache",
-                "freed": model_freed,
-            })
+            results["operations"].append(
+                {
+                    "op": "model_cache",
+                    "freed": model_freed,
+                }
+            )
             if model_freed > 0 and not dry_run:
                 results["warnings"].append(
                     "Model cache cleared — run 'ast-tools init' to re-download"
@@ -106,6 +114,7 @@ def _check_disk_space(db_path: Path, db_size: int) -> None:
 def _vacuum_db(db_path: Path) -> None:
     """Run SQLite VACUUM + REINDEX."""
     import sqlite3
+
     conn = sqlite3.connect(str(db_path))
     try:
         conn.execute("VACUUM")

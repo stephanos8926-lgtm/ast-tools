@@ -195,8 +195,7 @@ class ContextInjector:
             pass
 
         # Callgraph centrality (10%)
-        callgraph_score = self._get_centrality_score(symbol.id) \
-            if hasattr(symbol, "id") else 0.5
+        callgraph_score = self._get_centrality_score(symbol.id) if hasattr(symbol, "id") else 0.5
 
         # Combine scores
         total_score = (

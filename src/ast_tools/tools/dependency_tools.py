@@ -48,6 +48,7 @@ def _tool_dead_code_enhanced(args: dict[str, Any]) -> dict[str, Any]:
     project_root = args.get("project_root", ".")
     entry_points = args.get("entry_points")
     from .enhanced_dead_code import find_dead_code_enhanced
+
     return find_dead_code_enhanced(project_root, entry_points)
 
 

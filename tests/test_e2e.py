@@ -20,6 +20,7 @@ from tests.conftest import create_test_project
 
 pytestmark = pytest.mark.e2e
 
+
 @pytest.fixture
 def test_project(tmp_path):
     """Create a test project and return its path."""
@@ -124,7 +125,9 @@ class TestAstRead:
     def test_read_class_details(self, test_project):
         """Verify class structure extraction."""
         core_file = os.path.join(test_project, "src", "mypackage", "core.py")
-        result = _tool_ast_read({"file": core_file, "include_private": True, "project_path": test_project})
+        result = _tool_ast_read(
+            {"file": core_file, "include_private": True, "project_path": test_project}
+        )
         classes = {c["name"]: c for c in result["classes"]}
         assert "DataProcessor" in classes
         assert "AdvancedProcessor" in classes
@@ -146,7 +149,9 @@ class TestAstRead:
     def test_read_exclude_private(self, test_project):
         """Private members excluded by default."""
         core_file = os.path.join(test_project, "src", "mypackage", "core.py")
-        result = _tool_ast_read({"file": core_file, "include_private": False, "project_path": test_project})
+        result = _tool_ast_read(
+            {"file": core_file, "include_private": False, "project_path": test_project}
+        )
         all_methods = []
         for c in result["classes"]:
             all_methods.extend(m["name"] for m in c["methods"])
@@ -155,7 +160,9 @@ class TestAstRead:
     def test_read_include_private(self, test_project):
         """Private members included when requested."""
         core_file = os.path.join(test_project, "src", "mypackage", "core.py")
-        result = _tool_ast_read({"file": core_file, "include_private": True, "project_path": test_project})
+        result = _tool_ast_read(
+            {"file": core_file, "include_private": True, "project_path": test_project}
+        )
         all_methods = []
         for c in result["classes"]:
             all_methods.extend(m["name"] for m in c["methods"])
@@ -169,7 +176,9 @@ class TestAstRead:
     def test_read_no_imports(self, test_project):
         """Read without imports."""
         core_file = os.path.join(test_project, "src", "mypackage", "core.py")
-        result = _tool_ast_read({"file": core_file, "include_imports": False, "project_path": test_project})
+        result = _tool_ast_read(
+            {"file": core_file, "include_imports": False, "project_path": test_project}
+        )
         assert "imports" not in result
 
 

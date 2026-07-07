@@ -62,7 +62,5 @@ class AuditLogger:
     """Static audit logger for convenience."""
 
     @staticmethod
-    def log(
-        action: str, params: dict | None = None, result: str = "", user: str = "agent"
-    ) -> None:
+    def log(action: str, params: dict | None = None, result: str = "", user: str = "agent") -> None:
         write_audit(action, params, result, user)

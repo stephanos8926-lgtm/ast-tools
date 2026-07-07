@@ -1,4 +1,5 @@
 """Tests for the RRF (Reciprocal Rank Fusion) utility."""
+
 import pytest
 
 pytestmark = pytest.mark.unit

@@ -12,6 +12,7 @@ if TYPE_CHECKING:
 
 pytestmark = pytest.mark.integration
 
+
 def _create_test_db(path: Path) -> None:
     """Create a test database with schema v5 and sample graph data."""
     conn = sqlite3.connect(str(path))
@@ -54,6 +55,7 @@ def _create_test_db(path: Path) -> None:
 # Helpers to monkey-patch MCP tool internals so tests don't need a real DB
 # ---------------------------------------------------------------------------
 
+
 def _make_mock_searcher(
     results: list[dict[str, Any]] | None = None,
 ) -> Any:
@@ -61,6 +63,7 @@ def _make_mock_searcher(
 
     def searcher(params: dict[str, Any]) -> dict[str, Any]:
         return {"results": results or []}
+
     return searcher
 
 
@@ -71,12 +74,14 @@ def _make_mock_resolver(tmp_path: Path) -> Any:
 
     def resolver() -> str:
         return str(db_path)
+
     return resolver
 
 
 # ---------------------------------------------------------------------------
 # kg_neighborhood tests
 # ---------------------------------------------------------------------------
+
 
 class TestKGNeighborhood:
     """Test _tool_kg_neighborhood."""
@@ -95,12 +100,14 @@ class TestKGNeighborhood:
 
         monkeypatch.setattr(kg, "_get_symbol_searcher", lambda: _make_mock_searcher([]))
 
-        result = kg._tool_kg_neighborhood({
-            "symbol": "nonexistent",
-            "max_depth": 1,
-            "max_nodes": 50,
-            "db_path": ":memory:",
-        })
+        result = kg._tool_kg_neighborhood(
+            {
+                "symbol": "nonexistent",
+                "max_depth": 1,
+                "max_nodes": 50,
+                "db_path": ":memory:",
+            }
+        )
         assert result.get("total_symbols_found") == 0
         assert "message" in result
         assert "not found" in result["message"].lower()
@@ -109,15 +116,18 @@ class TestKGNeighborhood:
         from ast_tools.tools import knowledge_graph as kg
 
         monkeypatch.setattr(
-            kg, "_get_symbol_searcher",
+            kg,
+            "_get_symbol_searcher",
             lambda: _make_mock_searcher([{"symbol": "foo", "symbol_id": None}]),
         )
 
-        result = kg._tool_kg_neighborhood({
-            "symbol": "foo",
-            "db_path": ":memory:",
-            "max_depth": 1,
-        })
+        result = kg._tool_kg_neighborhood(
+            {
+                "symbol": "foo",
+                "db_path": ":memory:",
+                "max_depth": 1,
+            }
+        )
         assert result.get("total_symbols_found") == 0
         assert "message" in result
 
@@ -125,16 +135,19 @@ class TestKGNeighborhood:
         from ast_tools.tools import knowledge_graph as kg
 
         monkeypatch.setattr(
-            kg, "_get_symbol_searcher",
+            kg,
+            "_get_symbol_searcher",
             lambda: _make_mock_searcher([{"symbol": "handler", "symbol_id": "s1"}]),
         )
         monkeypatch.setattr(kg, "_get_db_path_resolver", lambda: _make_mock_resolver(tmp_path))
 
-        result = kg._tool_kg_neighborhood({
-            "symbol": "handler",
-            "max_depth": 2,
-            "max_nodes": 50,
-        })
+        result = kg._tool_kg_neighborhood(
+            {
+                "symbol": "handler",
+                "max_depth": 2,
+                "max_nodes": 50,
+            }
+        )
         assert result["total_symbols_found"] == 1
         assert "neighborhood" in result
         nh = result["neighborhood"]
@@ -147,15 +160,18 @@ class TestKGNeighborhood:
         from ast_tools.tools import knowledge_graph as kg
 
         monkeypatch.setattr(
-            kg, "_get_symbol_searcher",
+            kg,
+            "_get_symbol_searcher",
             lambda: _make_mock_searcher([{"symbol": "logger", "symbol_id": "s5"}]),
         )
         monkeypatch.setattr(kg, "_get_db_path_resolver", lambda: _make_mock_resolver(tmp_path))
 
-        result = kg._tool_kg_neighborhood({
-            "symbol": "logger",
-            "max_depth": 2,
-        })
+        result = kg._tool_kg_neighborhood(
+            {
+                "symbol": "logger",
+                "max_depth": 2,
+            }
+        )
         assert result["total_symbols_found"] == 1
         nh = result["neighborhood"]
         assert len(nh["symbols"]) == 1  # just s5
@@ -165,6 +181,7 @@ class TestKGNeighborhood:
 # ---------------------------------------------------------------------------
 # kg_shortest_path tests
 # ---------------------------------------------------------------------------
+
 
 class TestKGShortestPath:
     """Test _tool_kg_shortest_path."""
@@ -191,16 +208,19 @@ class TestKGShortestPath:
         from ast_tools.tools import knowledge_graph as kg
 
         monkeypatch.setattr(
-            kg, "_get_symbol_searcher",
+            kg,
+            "_get_symbol_searcher",
             lambda: _make_mock_searcher([]),
         )
 
-        result = kg._tool_kg_shortest_path({
-            "from_symbol": "nope",
-            "to_symbol": "target",
-            "max_depth": 10,
-            "db_path": ":memory:",
-        })
+        result = kg._tool_kg_shortest_path(
+            {
+                "from_symbol": "nope",
+                "to_symbol": "target",
+                "max_depth": 10,
+                "db_path": ":memory:",
+            }
+        )
         assert result.get("found") is False
         assert "not found" in str(result.get("message", "")).lower()
 
@@ -219,12 +239,14 @@ class TestKGShortestPath:
 
         monkeypatch.setattr(kg, "_safe_search", mock_search)
 
-        result = kg._tool_kg_shortest_path({
-            "from_symbol": "handler",
-            "to_symbol": "nope",
-            "max_depth": 10,
-            "db_path": ":memory:",
-        })
+        result = kg._tool_kg_shortest_path(
+            {
+                "from_symbol": "handler",
+                "to_symbol": "nope",
+                "max_depth": 10,
+                "db_path": ":memory:",
+            }
+        )
         assert result.get("found") is False
         assert "not found" in str(result.get("message", "")).lower()
 
@@ -243,11 +265,13 @@ class TestKGShortestPath:
         monkeypatch.setattr(kg, "_safe_search", mock_search)
         monkeypatch.setattr(kg, "_get_db_path_resolver", lambda: _make_mock_resolver(tmp_path))
 
-        result = kg._tool_kg_shortest_path({
-            "from_symbol": "handler",
-            "to_symbol": "router",
-            "max_depth": 10,
-        })
+        result = kg._tool_kg_shortest_path(
+            {
+                "from_symbol": "handler",
+                "to_symbol": "router",
+                "max_depth": 10,
+            }
+        )
         assert result.get("found") is not False  # either True or implicit
         distance = result.get("distance", -1)
         assert distance == 1
@@ -267,11 +291,13 @@ class TestKGShortestPath:
         monkeypatch.setattr(kg, "_safe_search", mock_search)
         monkeypatch.setattr(kg, "_get_db_path_resolver", lambda: _make_mock_resolver(tmp_path))
 
-        result = kg._tool_kg_shortest_path({
-            "from_symbol": "handler",
-            "to_symbol": "validator",
-            "max_depth": 10,
-        })
+        result = kg._tool_kg_shortest_path(
+            {
+                "from_symbol": "handler",
+                "to_symbol": "validator",
+                "max_depth": 10,
+            }
+        )
         assert result.get("distance", -1) == 2
         assert len(result.get("path", [])) >= 3
 
@@ -290,11 +316,13 @@ class TestKGShortestPath:
         monkeypatch.setattr(kg, "_safe_search", mock_search)
         monkeypatch.setattr(kg, "_get_db_path_resolver", lambda: _make_mock_resolver(tmp_path))
 
-        result = kg._tool_kg_shortest_path({
-            "from_symbol": "handler",
-            "to_symbol": "logger",
-            "max_depth": 10,
-        })
+        result = kg._tool_kg_shortest_path(
+            {
+                "from_symbol": "handler",
+                "to_symbol": "logger",
+                "max_depth": 10,
+            }
+        )
         assert result.get("found") is False
         assert "no path" in str(result.get("message", "")).lower()
 
@@ -302,6 +330,7 @@ class TestKGShortestPath:
 # ---------------------------------------------------------------------------
 # kg_query tests
 # ---------------------------------------------------------------------------
+
 
 class TestKGQuery:
     """Test _tool_kg_query."""
@@ -319,14 +348,17 @@ class TestKGQuery:
         from ast_tools.tools import knowledge_graph as kg
 
         monkeypatch.setattr(
-            kg, "_get_symbol_searcher",
+            kg,
+            "_get_symbol_searcher",
             lambda: _make_mock_searcher([]),
         )
 
-        result = kg._tool_kg_query({
-            "query": "nonexistent_thing",
-            "db_path": ":memory:",
-        })
+        result = kg._tool_kg_query(
+            {
+                "query": "nonexistent_thing",
+                "db_path": ":memory:",
+            }
+        )
         assert result["total_symbols_found"] == 0
         assert result["starting_symbols"] == []
 
@@ -334,15 +366,18 @@ class TestKGQuery:
         from ast_tools.tools import knowledge_graph as kg
 
         monkeypatch.setattr(
-            kg, "_get_symbol_searcher",
+            kg,
+            "_get_symbol_searcher",
             lambda: _make_mock_searcher([{"symbol": "handler", "symbol_id": "s1"}]),
         )
         monkeypatch.setattr(kg, "_get_db_path_resolver", lambda: _make_mock_resolver(tmp_path))
 
-        result = kg._tool_kg_query({
-            "query": "handler function",
-            "max_depth": 2,
-        })
+        result = kg._tool_kg_query(
+            {
+                "query": "handler function",
+                "max_depth": 2,
+            }
+        )
         assert result["query"] == "handler function"
         assert result["total_symbols_found"] == 1
         assert "neighborhood" in result
@@ -355,14 +390,17 @@ class TestKGQuery:
         from ast_tools.tools import knowledge_graph as kg
 
         monkeypatch.setattr(
-            kg, "_get_symbol_searcher",
+            kg,
+            "_get_symbol_searcher",
             lambda: _make_mock_searcher([{"symbol": "foo", "symbol_id": None}]),
         )
 
-        result = kg._tool_kg_query({
-            "query": "foo",
-            "db_path": ":memory:",
-        })
+        result = kg._tool_kg_query(
+            {
+                "query": "foo",
+                "db_path": ":memory:",
+            }
+        )
         assert result["total_symbols_found"] == 1
         # No symbol_id means no neighborhood — but total_symbols_found counts starting symbols
         assert "neighborhood" in result
@@ -371,6 +409,7 @@ class TestKGQuery:
 # ---------------------------------------------------------------------------
 # Tool registration tests
 # ---------------------------------------------------------------------------
+
 
 class TestToolRegistration:
     """Test that KG tools are properly registered and importable."""

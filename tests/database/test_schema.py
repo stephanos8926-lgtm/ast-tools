@@ -14,6 +14,7 @@ from ast_tools.database.schema import (
 
 pytestmark = pytest.mark.integration
 
+
 class TestInitSchema:
     """Test schema initialization."""
 

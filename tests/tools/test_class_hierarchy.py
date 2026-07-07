@@ -30,6 +30,7 @@ from ast_tools.tools.class_hierarchy import (
 
 pytestmark = pytest.mark.integration
 
+
 def _make_module(content: str) -> ast.Module:
     """Parse a string as Python source and return the AST module."""
     return ast.parse(content)
@@ -49,7 +50,6 @@ def _make_file(tmp_path: Path, name: str, content: str) -> Path:
 
 
 class TestTargetResolution:
-
     def test_class_name_only_finds_class(self, tmp_path: Path) -> None:
         _make_file(tmp_path, "mymod.py", "class MyClass:\n    pass\n")
         # _resolve_target with workspace = str(tmp_path) — it scans files
@@ -60,7 +60,9 @@ class TestTargetResolution:
 
     def test_file_colon_class_format(self, tmp_path: Path) -> None:
         _make_file(tmp_path, "mod.py", "class Target:\n    pass\n")
-        cls, fpath, _classes = _resolve_target("mod.py:Target", str(tmp_path / "mod.py"), str(tmp_path))
+        cls, fpath, _classes = _resolve_target(
+            "mod.py:Target", str(tmp_path / "mod.py"), str(tmp_path)
+        )
         assert cls == "Target"
         assert fpath is not None
         assert Path(fpath).name == "mod.py"
@@ -71,7 +73,9 @@ class TestTargetResolution:
         assert cls is None  # class not found
 
     def test_nonexistent_file_returns_none(self, tmp_path: Path) -> None:
-        cls, fpath, _classes = _resolve_target("nope.py:MyClass", str(tmp_path / "nope.py"), str(tmp_path))
+        cls, fpath, _classes = _resolve_target(
+            "nope.py:MyClass", str(tmp_path / "nope.py"), str(tmp_path)
+        )
         assert cls is None
         assert fpath is None  # file doesn't exist → returns (None, None, None)
 
@@ -87,7 +91,6 @@ class TestTargetResolution:
 
 
 class TestClassExtraction:
-
     def test_parse_single_class(self, tmp_path: Path) -> None:
         p = _make_file(tmp_path, "single.py", "class Hello:\n    def foo(self): pass\n")
         classes = _extract_class_definitions(str(p))
@@ -112,6 +115,7 @@ class TestClassExtraction:
         # The function doesn't catch SyntaxError internally, but for test purposes
         # we expect it to raise. The caller handles it.
         import pytest
+
         with pytest.raises(SyntaxError):
             _extract_class_definitions(str(p))
 
@@ -122,7 +126,6 @@ class TestClassExtraction:
 
 
 class TestMROComputation:
-
     def _make_classes(self, code: str) -> dict[str, ast.ClassDef]:
         tree = ast.parse(code)
         return {n.name: n for n in ast.walk(tree) if isinstance(n, ast.ClassDef)}
@@ -166,7 +169,9 @@ class E(C, D): pass
         mro = _compute_mro("E", classes)
         # This should have a merge conflict — C has [A,B] and D has [B,A]
         # The error sentinel should be in the result
-        assert "<MRO_ERROR>" in mro or any("MERGE_CONFLICT" in m for m in mro), f"Expected merge conflict, got {mro}"
+        assert "<MRO_ERROR>" in mro or any("MERGE_CONFLICT" in m for m in mro), (
+            f"Expected merge conflict, got {mro}"
+        )
 
     def test_no_bases_returns_self_object(self) -> None:
         classes = self._make_classes("class Standalone: pass")
@@ -190,7 +195,6 @@ class E(C, D): pass
 
 
 class TestFindMethods:
-
     def test_regular_methods(self) -> None:
         tree = ast.parse("class X:\n    def a(self): pass\n    def b(self): pass\n")
         cls = next(n for n in ast.walk(tree) if isinstance(n, ast.ClassDef))
@@ -213,40 +217,51 @@ class TestFindMethods:
 
 
 class TestMethodCategorization:
-
     def test_own_methods(self, tmp_path: Path) -> None:
-        p = _make_file(tmp_path, "own.py", """
+        p = _make_file(
+            tmp_path,
+            "own.py",
+            """
 class Base:
     def base_method(self): pass
 
 class Derived(Base):
     def own_method(self): pass
-""")
+""",
+        )
         classes = _extract_class_definitions(str(p))
         cats = _get_method_categories("Derived", classes)
         assert "own_method" in cats["own"]
         assert "base_method" not in cats["own"]
 
     def test_inherited_methods(self, tmp_path: Path) -> None:
-        p = _make_file(tmp_path, "inherit.py", """
+        p = _make_file(
+            tmp_path,
+            "inherit.py",
+            """
 class Base:
     def base_method(self): pass
 
 class Derived(Base):
     pass
-""")
+""",
+        )
         classes = _extract_class_definitions(str(p))
         cats = _get_method_categories("Derived", classes)
         assert any(m["name"] == "base_method" for m in cats["inherited"])
 
     def test_overridden_methods(self, tmp_path: Path) -> None:
-        p = _make_file(tmp_path, "override.py", """
+        p = _make_file(
+            tmp_path,
+            "override.py",
+            """
 class Base:
     def common(self): pass
 
 class Derived(Base):
     def common(self): pass
-""")
+""",
+        )
         classes = _extract_class_definitions(str(p))
         cats = _get_method_categories("Derived", classes)
         assert any(o["name"] == "common" for o in cats["overrides"])
@@ -261,39 +276,50 @@ class Derived(Base):
 
 
 class TestInterfaceDetection:
-
     def test_abc_class(self, tmp_path: Path) -> None:
-        p = _make_file(tmp_path, "abc_test.py", """
+        p = _make_file(
+            tmp_path,
+            "abc_test.py",
+            """
 from abc import ABC
 
 class MyABC(ABC):
     pass
-""")
+""",
+        )
         classes = _extract_class_definitions(str(p))
         node = classes["MyABC"]
         bases = _get_base_names(node)
         assert _detect_interface(node, bases) is True
 
     def test_protocol_class(self, tmp_path: Path) -> None:
-        p = _make_file(tmp_path, "proto_test.py", """
+        p = _make_file(
+            tmp_path,
+            "proto_test.py",
+            """
 from typing import Protocol
 
 class MyProto(Protocol):
     pass
-""")
+""",
+        )
         classes = _extract_class_definitions(str(p))
         node = classes["MyProto"]
         bases = _get_base_names(node)
         assert _detect_interface(node, bases) is True
 
     def test_abstract_method(self, tmp_path: Path) -> None:
-        p = _make_file(tmp_path, "abstract_test.py", """
+        p = _make_file(
+            tmp_path,
+            "abstract_test.py",
+            """
 from abc import abstractmethod
 
 class WithAbstract:
     @abstractmethod
     def doit(self): pass
-""")
+""",
+        )
         classes = _extract_class_definitions(str(p))
         node = classes["WithAbstract"]
         bases = _get_base_names(node)
@@ -301,10 +327,14 @@ class WithAbstract:
         assert _detect_interface(node, bases) is True
 
     def test_plain_class_not_interface(self, tmp_path: Path) -> None:
-        p = _make_file(tmp_path, "plain.py", """
+        p = _make_file(
+            tmp_path,
+            "plain.py",
+            """
 class Plain:
     def work(self): pass
-""")
+""",
+        )
         classes = _extract_class_definitions(str(p))
         node = classes["Plain"]
         bases = _get_base_names(node)
@@ -317,12 +347,15 @@ class Plain:
 
 
 class TestSubclassDetection:
-
     def test_finds_subclasses_in_same_file(self, tmp_path: Path) -> None:
-        _make_file(tmp_path, "sibling.py", """
+        _make_file(
+            tmp_path,
+            "sibling.py",
+            """
 class Parent: pass
 class Child(Parent): pass
-""")
+""",
+        )
         classes = _extract_class_definitions(str(tmp_path / "sibling.py"))
         subs = _find_subclasses("Parent", str(tmp_path), classes)
         assert "Child" in subs
@@ -349,7 +382,6 @@ class Child(Parent): pass
 
 
 class TestIsFinal:
-
     def test_final_decorator(self) -> None:
         tree = ast.parse("@final\nclass X: pass\n")
         cls = next(n for n in ast.walk(tree) if isinstance(n, ast.ClassDef))
@@ -375,9 +407,11 @@ class TestIsFinal:
 
 
 class TestMetrics:
-
     def test_metrics_basic(self, tmp_path: Path) -> None:
-        p = _make_file(tmp_path, "met.py", """
+        p = _make_file(
+            tmp_path,
+            "met.py",
+            """
 from abc import ABC, abstractmethod
 
 class Base(ABC):
@@ -387,7 +421,8 @@ class Base(ABC):
 class Concrete(Base):
     def doit(self): pass
     def extra(self): pass
-""")
+""",
+        )
         classes = _extract_class_definitions(str(p))
         node = classes["Concrete"]
         bases = _get_base_names(node)
@@ -415,7 +450,6 @@ class Concrete(Base):
 
 
 class TestHasAbstractMethods:
-
     def test_abstract_method_detected(self) -> None:
         tree = ast.parse("class X:\n    @abstractmethod\n    def doit(self): pass\n")
         cls = next(n for n in ast.walk(tree) if isinstance(n, ast.ClassDef))
@@ -433,7 +467,6 @@ class TestHasAbstractMethods:
 
 
 class TestGetBaseNames:
-
     def test_simple_name(self) -> None:
         tree = ast.parse("class Foo(Bar): pass")
         cls = next(n for n in ast.walk(tree) if isinstance(n, ast.ClassDef))
@@ -461,22 +494,27 @@ class TestGetBaseNames:
 
 
 class TestIntegration:
-
     def test_tool_class_hierarchy_simple(self, tmp_path: Path) -> None:
-        _make_file(tmp_path, "s.py", """
+        _make_file(
+            tmp_path,
+            "s.py",
+            """
 class Animal:
     def speak(self): pass
 
 class Dog(Animal):
     def speak(self): pass
     def wag(self): pass
-""")
+""",
+        )
         # We need a workspace marker so _tool_class_hierarchy can find it
         (tmp_path / "pyproject.toml").write_text("[project]\nname='test'\n")
-        result = _tool_class_hierarchy({
-            "target": "Dog",
-            "file": str(tmp_path / "s.py"),
-        })
+        result = _tool_class_hierarchy(
+            {
+                "target": "Dog",
+                "file": str(tmp_path / "s.py"),
+            }
+        )
         assert result["class"] == "Dog"
         assert "Animal" in result["bases"]
         assert "Dog" in result["mro"][0]
@@ -492,40 +530,54 @@ class Dog(Animal):
         assert result["metrics"]["is_abstract"] is False
 
     def test_abstract_class_detection(self, tmp_path: Path) -> None:
-        _make_file(tmp_path, "ab.py", """
+        _make_file(
+            tmp_path,
+            "ab.py",
+            """
 from abc import ABC, abstractmethod
 
 class Shape(ABC):
     @abstractmethod
     def area(self): pass
-""")
+""",
+        )
         (tmp_path / "pyproject.toml").write_text("[project]\nname='test'\n")
-        result = _tool_class_hierarchy({
-            "target": "Shape",
-            "file": str(tmp_path / "ab.py"),
-        })
+        result = _tool_class_hierarchy(
+            {
+                "target": "Shape",
+                "file": str(tmp_path / "ab.py"),
+            }
+        )
         assert result["metrics"]["is_abstract"] is True
         assert result["metrics"]["is_interface"] is True
 
     def test_interface_detected(self, tmp_path: Path) -> None:
-        _make_file(tmp_path, "proto.py", """
+        _make_file(
+            tmp_path,
+            "proto.py",
+            """
 from typing import Protocol
 
 class Drawable(Protocol):
     def draw(self): pass
-""")
+""",
+        )
         (tmp_path / "pyproject.toml").write_text("[project]\nname='test'\n")
-        result = _tool_class_hierarchy({
-            "target": "Drawable",
-            "file": str(tmp_path / "proto.py"),
-        })
+        result = _tool_class_hierarchy(
+            {
+                "target": "Drawable",
+                "file": str(tmp_path / "proto.py"),
+            }
+        )
         assert result["metrics"]["is_interface"] is True
         assert "Protocol" in result["interfaces"]
 
     def test_class_not_found(self, tmp_path: Path) -> None:
-        result = _tool_class_hierarchy({
-            "target": "NonExistent",
-        })
+        result = _tool_class_hierarchy(
+            {
+                "target": "NonExistent",
+            }
+        )
         assert "error" in result
         assert result["error_code"] == "CLASS_NOT_FOUND"
 
@@ -536,14 +588,22 @@ class Drawable(Protocol):
 
     def test_real_ast_tools_class(self) -> None:
         """Test on GraphEngine class from ast-tools."""
-        graph_engine_path = Path(__file__).resolve().parent.parent.parent / "src" / "ast_tools" / "kg" / "graph_engine.py"
+        graph_engine_path = (
+            Path(__file__).resolve().parent.parent.parent
+            / "src"
+            / "ast_tools"
+            / "kg"
+            / "graph_engine.py"
+        )
         if not graph_engine_path.exists():
             pytest.skip("graph_engine.py not found")
 
-        result = _tool_class_hierarchy({
-            "target": "GraphEngine",
-            "file": str(graph_engine_path),
-        })
+        result = _tool_class_hierarchy(
+            {
+                "target": "GraphEngine",
+                "file": str(graph_engine_path),
+            }
+        )
         assert result["class"] == "GraphEngine"
         assert result["bases"] == []  # No explicit bases
         assert result["mro"][0] == "GraphEngine"

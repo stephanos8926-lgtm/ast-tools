@@ -117,9 +117,7 @@ class UnusedClass:
     def test_browse_functions(self, test_project):
         """Test browse command filtering by kind."""
         result = run_cli(
-            "-p", str(test_project), "browse",
-            "--kind", "function",
-            "--format", "json"
+            "-p", str(test_project), "browse", "--kind", "function", "--format", "json"
         )
         assert result.returncode == 0
 
@@ -131,11 +129,7 @@ class UnusedClass:
 
     def test_browse_classes(self, test_project):
         """Test browse command filtering by class."""
-        result = run_cli(
-            "-p", str(test_project), "browse",
-            "--kind", "class",
-            "--format", "json"
-        )
+        result = run_cli("-p", str(test_project), "browse", "--kind", "class", "--format", "json")
         assert result.returncode == 0
 
         data = json.loads(result.stdout)
@@ -145,10 +139,7 @@ class UnusedClass:
 
     def test_find_dead_code(self, test_project):
         """Test find-dead command."""
-        result = run_cli(
-            "-p", str(test_project), "find-dead",
-            "--format", "json"
-        )
+        result = run_cli("-p", str(test_project), "find-dead", "--format", "json")
         assert result.returncode == 0
 
         data = json.loads(result.stdout)
@@ -165,9 +156,7 @@ class UnusedClass:
     def test_find_dead_code_with_entry_points(self, test_project):
         """Test find-dead with explicit entry points."""
         result = run_cli(
-            "-p", str(test_project), "find-dead",
-            "--entry-points", "main.py",
-            "--format", "json"
+            "-p", str(test_project), "find-dead", "--entry-points", "main.py", "--format", "json"
         )
         assert result.returncode == 0
 
@@ -217,8 +206,7 @@ def inner_call():
     def test_callers_basic(self, call_test_project):
         """Test callers command."""
         result = run_cli(
-            "-p", str(call_test_project), "callers", "target_function",
-            "--format", "json"
+            "-p", str(call_test_project), "callers", "target_function", "--format", "json"
         )
         assert result.returncode == 0
 
@@ -232,9 +220,14 @@ def inner_call():
     def test_callees_basic(self, call_test_project):
         """Test callees command."""
         result = run_cli(
-            "-p", str(call_test_project), "callees", "target_function",
-            "--file-path", str(call_test_project / "callee.py"),
-            "--format", "json"
+            "-p",
+            str(call_test_project),
+            "callees",
+            "target_function",
+            "--file-path",
+            str(call_test_project / "callee.py"),
+            "--format",
+            "json",
         )
         assert result.returncode == 0
 
@@ -271,9 +264,12 @@ from flask import Flask
     def test_deps_json(self, deps_test_project):
         """Test deps command with JSON output."""
         result = run_cli(
-            "-p", str(deps_test_project), "deps",
+            "-p",
+            str(deps_test_project),
+            "deps",
             str(deps_test_project / "module.py"),
-            "--format", "json"
+            "--format",
+            "json",
         )
         assert result.returncode == 0
 
@@ -310,10 +306,14 @@ class AuthenticationHandler:
     def test_semantic_search_json(self, search_test_project):
         """Test semantic search with JSON output."""
         result = run_cli(
-            "-p", str(search_test_project), "search",
+            "-p",
+            str(search_test_project),
+            "search",
             "authentication handler",
-            "--format", "json",
-            "--limit", "5"
+            "--format",
+            "json",
+            "--limit",
+            "5",
         )
         # May fail if index doesn't exist - that's OK for now
         # The important thing is the CLI doesn't crash
@@ -342,10 +342,7 @@ class SampleClass:
 
     def test_table_format(self, format_test_project):
         """Test table output format."""
-        result = run_cli(
-            "-p", str(format_test_project), "browse",
-            "--format", "table"
-        )
+        result = run_cli("-p", str(format_test_project), "browse", "--format", "table")
         assert result.returncode == 0
         # Table format should have aligned columns
         assert "Name" in result.stdout
@@ -353,10 +350,7 @@ class SampleClass:
 
     def test_json_format(self, format_test_project):
         """Test JSON output format."""
-        result = run_cli(
-            "-p", str(format_test_project), "browse",
-            "--format", "json"
-        )
+        result = run_cli("-p", str(format_test_project), "browse", "--format", "json")
         assert result.returncode == 0
         # Should be valid JSON
         data = json.loads(result.stdout)
@@ -364,10 +358,7 @@ class SampleClass:
 
     def test_markdown_format(self, format_test_project):
         """Test markdown output format."""
-        result = run_cli(
-            "-p", str(format_test_project), "browse",
-            "--format", "markdown"
-        )
+        result = run_cli("-p", str(format_test_project), "browse", "--format", "markdown")
         assert result.returncode == 0
         # Markdown should have headers
         assert "#" in result.stdout or "**" in result.stdout
@@ -459,11 +450,7 @@ if __name__ == "__main__":
     def test_e2e_discover_then_analyze(self, e2e_project):
         """E2E: Browse symbols, then analyze specific ones."""
         # Step 1: Browse all functions
-        result = run_cli(
-            "-p", str(e2e_project), "browse",
-            "--kind", "function",
-            "--format", "json"
-        )
+        result = run_cli("-p", str(e2e_project), "browse", "--kind", "function", "--format", "json")
         assert result.returncode == 0
         data = json.loads(result.stdout)
         functions = data.get("symbols", [])
@@ -471,19 +458,13 @@ if __name__ == "__main__":
 
         # Step 2: Find callers of a specific function
         func_name = "process_data"
-        result = run_cli(
-            "-p", str(e2e_project), "callers", func_name,
-            "--format", "json"
-        )
+        result = run_cli("-p", str(e2e_project), "callers", func_name, "--format", "json")
         assert result.returncode == 0
 
     def test_e2e_find_dead_code_then_verify(self, e2e_project):
         """E2E: Find dead code, verify it's truly unused."""
         # Step 1: Find dead code
-        result = run_cli(
-            "-p", str(e2e_project), "find-dead",
-            "--format", "json"
-        )
+        result = run_cli("-p", str(e2e_project), "find-dead", "--format", "json")
         assert result.returncode == 0
         data = json.loads(result.stdout)
 
@@ -493,10 +474,7 @@ if __name__ == "__main__":
         assert "unused_helper" in dead_names
 
         # Step 2: Verify no callers for dead code
-        result = run_cli(
-            "-p", str(e2e_project), "callers", "unused_helper",
-            "--format", "json"
-        )
+        result = run_cli("-p", str(e2e_project), "callers", "unused_helper", "--format", "json")
         # Should return no callers (or error)
         assert result.returncode in (0, 1)
 
@@ -504,9 +482,12 @@ if __name__ == "__main__":
         """E2E: Analyze module dependencies."""
         # Step 1: Check dependencies of handlers.py
         result = run_cli(
-            "-p", str(e2e_project), "deps",
+            "-p",
+            str(e2e_project),
+            "deps",
             str(e2e_project / "api" / "handlers.py"),
-            "--format", "json"
+            "--format",
+            "json",
         )
         assert result.returncode == 0
         data = json.loads(result.stdout)

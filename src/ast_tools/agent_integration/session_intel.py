@@ -88,23 +88,34 @@ def call_codebase_summary(
         logger.debug("ast-tools MCP server not found — skipping call")
         return None
 
-    init = json.dumps({
-        "jsonrpc": "2.0", "id": 1, "method": "initialize",
-        "params": {
-            "protocolVersion": "2024-11-05", "capabilities": {},
-            "clientInfo": {"name": "agent-integration", "version": "1.0.0"},
-        },
-    })
-    call = json.dumps({
-        "jsonrpc": "2.0", "id": 2, "method": "tools/call",
-        "params": {"name": "codebase_summary", "arguments": {"cwd": cwd or "."}},
-    })
+    init = json.dumps(
+        {
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "initialize",
+            "params": {
+                "protocolVersion": "2024-11-05",
+                "capabilities": {},
+                "clientInfo": {"name": "agent-integration", "version": "1.0.0"},
+            },
+        }
+    )
+    call = json.dumps(
+        {
+            "jsonrpc": "2.0",
+            "id": 2,
+            "method": "tools/call",
+            "params": {"name": "codebase_summary", "arguments": {"cwd": cwd or "."}},
+        }
+    )
 
     try:
         proc = subprocess.run(
             [str(python_exe), str(script)],
             input=f"{init}\n{call}\n",
-            capture_output=True, text=True, timeout=30,
+            capture_output=True,
+            text=True,
+            timeout=30,
         )
         for line in proc.stdout.strip().split("\n"):
             try:

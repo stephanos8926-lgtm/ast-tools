@@ -119,7 +119,9 @@ def _tool_transitive_dependents(params: dict[str, Any]) -> dict[str, Any]:
             # Only include modules that haven't appeared in a prior depth
             [m for m in current_level if m not in visited or m == current_level[0]]
             # Simpler: just include all non-target, non-duplicate at this depth
-            seen_before = {m for layer in transitive_by_depth for m in layer["modules"]} | set(direct)
+            seen_before = {m for layer in transitive_by_depth for m in layer["modules"]} | set(
+                direct
+            )
             fresh = sorted(m for m in current_level if m not in seen_before and m != module_target)
             if fresh:
                 transitive_by_depth.append({"depth": depth, "modules": fresh})
@@ -133,7 +135,9 @@ def _tool_transitive_dependents(params: dict[str, Any]) -> dict[str, Any]:
         "direction": direction,
         "direct": direct,
         "transitive": transitive_by_depth,
-        "all_affected": sorted(set(direct) | {m for layer in transitive_by_depth for m in layer["modules"]}),
+        "all_affected": sorted(
+            set(direct) | {m for layer in transitive_by_depth for m in layer["modules"]}
+        ),
         "fan_out": fan_out,
         "risk": _classify_risk(fan_out),
     }

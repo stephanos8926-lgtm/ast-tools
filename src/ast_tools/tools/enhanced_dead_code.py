@@ -187,9 +187,7 @@ class EnhancedDeadCodeDetector:
                             and isinstance(node.value, (ast.List, ast.Tuple))
                         ):
                             for elt in node.value.elts:
-                                if isinstance(elt, ast.Constant) and isinstance(
-                                    elt.value, str
-                                ):
+                                if isinstance(elt, ast.Constant) and isinstance(elt.value, str):
                                     self.exported_symbols.add(elt.value)
                                     logger.debug(f"Exported symbol: {elt.value}")
 
@@ -309,9 +307,7 @@ class EnhancedDeadCodeDetector:
                         self.entry_point_symbols.add(symbol_name)
 
                         # Add called symbols to visit next
-                        symbol_key = self._make_symbol_key(
-                            defn["file"], symbol_name, defn["type"]
-                        )
+                        symbol_key = self._make_symbol_key(defn["file"], symbol_name, defn["type"])
                         for called in self.call_graph.get(symbol_key, []):
                             # Extract just the symbol name from the key
                             called_name = called.split(":")[1]
@@ -414,7 +410,11 @@ class EnhancedDeadCodeDetector:
             return "low", "Reachable from entry point", alive_signals
 
         # Check if class implements interface
-        if defn.get("class") and defn["class"] in self.implements_map and symbol in self.implements_map[defn["class"]]:
+        if (
+            defn.get("class")
+            and defn["class"] in self.implements_map
+            and symbol in self.implements_map[defn["class"]]
+        ):
             alive_signals.append("interface_implementation")
             return "low", "Implements interface method", alive_signals
 

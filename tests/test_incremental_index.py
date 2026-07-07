@@ -6,7 +6,6 @@ pytestmark = pytest.mark.integration
 """Integration tests for incremental indexing (Phase 8)."""
 
 
-
 from ast_tools.database import (
     delete_symbol_cascade,
     get_symbols_by_file,
@@ -159,17 +158,23 @@ class TestIncrementalUpdate:
             make_symbol("func_c", signature="def func_c()", symbol_id="src/module.py:func_c"),
         ]
         new_symbols = [
-            make_symbol("func_a", signature="def func_a()", symbol_id="src/module.py:func_a"),  # Unchanged
-            make_symbol("func_b", signature="def func_b(x)", symbol_id="src/module.py:func_b"),  # Modified
-            make_symbol("func_d", signature="def func_d()", symbol_id="src/module.py:func_d"),  # Added
+            make_symbol(
+                "func_a", signature="def func_a()", symbol_id="src/module.py:func_a"
+            ),  # Unchanged
+            make_symbol(
+                "func_b", signature="def func_b(x)", symbol_id="src/module.py:func_b"
+            ),  # Modified
+            make_symbol(
+                "func_d", signature="def func_d()", symbol_id="src/module.py:func_d"
+            ),  # Added
             # func_c removed
         ]
 
         diff = compute_symbol_diff(old_symbols, new_symbols)
         assert diff.unchanged_count == 1  # func_a
-        assert diff.modified_count == 1    # func_b
-        assert diff.added_count == 1       # func_d
-        assert diff.removed_count == 1     # func_c
+        assert diff.modified_count == 1  # func_b
+        assert diff.added_count == 1  # func_d
+        assert diff.removed_count == 1  # func_c
 
     def test_incremental_stats(self, tmp_db):
         """Verify incremental indexing produces correct statistics."""
@@ -177,7 +182,9 @@ class TestIncrementalUpdate:
             make_symbol("func_a", symbol_id="src/module.py:func_a"),
         ]
         new_symbols = [
-            make_symbol("func_a", signature="def func_a() -> str", symbol_id="src/module.py:func_a"),
+            make_symbol(
+                "func_a", signature="def func_a() -> str", symbol_id="src/module.py:func_a"
+            ),
             make_symbol("func_b", symbol_id="src/module.py:func_b"),
         ]
 
@@ -225,7 +232,9 @@ class TestEdgeCases:
         """1000 symbols with 1 change → fast diff."""
         old = [make_symbol(f"func_{i}", symbol_id=f"src/mod.py:func_{i}") for i in range(1000)]
         new = [make_symbol(f"func_{i}", symbol_id=f"src/mod.py:func_{i}") for i in range(1000)]
-        new[500] = make_symbol("func_500", signature="def func_500(new)", symbol_id="src/mod.py:func_500")
+        new[500] = make_symbol(
+            "func_500", signature="def func_500(new)", symbol_id="src/mod.py:func_500"
+        )
 
         diff = compute_symbol_diff(old, new)
         assert diff.modified_count == 1

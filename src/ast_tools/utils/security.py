@@ -33,7 +33,7 @@ def validate_project_path(
         raise ValueError(f"Invalid path: {e}")
 
     # Check for path traversal patterns before resolution
-    if '..' in path_str:
+    if ".." in path_str:
         raise ValueError("Path traversal (..) is not allowed")
 
     # Build allowed roots
@@ -47,6 +47,7 @@ def validate_project_path(
 
     # Add temp directories as allowed (for testing)
     import tempfile
+
     temp_root = Path(tempfile.gettempdir()).resolve()
     roots.append(temp_root)
 
@@ -80,8 +81,7 @@ def validate_project_path(
     if not path_allowed:
         allowed_str = ", ".join(str(r) for r in roots[:5])
         raise ValueError(
-            f"Path '{path}' is outside allowed directories. "
-            f"Allowed roots: {allowed_str}"
+            f"Path '{path}' is outside allowed directories. Allowed roots: {allowed_str}"
         )
 
     # Ensure it's a directory (or will be created as one)
@@ -108,16 +108,16 @@ def sanitize_search_query(query: str, max_length: int = 500) -> str:
     query = query[:max_length]
 
     # Remove boolean operators first
-    query = re.sub(r'\b(OR|AND|NOT|NEAR)\b', ' ', query, flags=re.IGNORECASE)
+    query = re.sub(r"\b(OR|AND|NOT|NEAR)\b", " ", query, flags=re.IGNORECASE)
 
     # Escape quotes (BEFORE special char escaping)
     query = query.replace('"', '""')
 
     # Escape special chars (but preserve quotes and slashes)
-    query = re.sub(r'[()*:<>^@]', ' ', query)
+    query = re.sub(r"[()*:<>^@]", " ", query)
 
     # Clean up whitespace
-    query = re.sub(r'\s+', ' ', query).strip()
+    query = re.sub(r"\s+", " ", query).strip()
 
     return query
 

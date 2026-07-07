@@ -20,31 +20,26 @@ ERROR_PATTERNS: dict[str, dict[str, str]] = {
     "ast_edit": {
         "Invalid operation": (
             "**Correct usage:** ast_edit operations:\n"
-            "- `rename_function`: {\"function\": \"old_name\", \"new_name\": \"new_name\"}\n"
-            "- `replace_node`: {\"pattern\": \"old\", \"replacement\": \"new\"}\n"
-            "- `insert_after`: {\"anchor\": \"func\", \"code\": \"new code\"}\n"
-            "- `add_parameter`: {\"function\": \"foo\", \"param\": \"bar\", \"type\": \"str\"}\n"
+            '- `rename_function`: {"function": "old_name", "new_name": "new_name"}\n'
+            '- `replace_node`: {"pattern": "old", "replacement": "new"}\n'
+            '- `insert_after`: {"anchor": "func", "code": "new code"}\n'
+            '- `add_parameter`: {"function": "foo", "param": "bar", "type": "str"}\n'
             "Always dry_run=true first!"
         ),
         "dry_run": "⚠️ Always run dry_run=true FIRST to preview changes.",
     },
     "semantic_search": {
-        "k exceeds": (
-            "⚠️ k=50 is large. Use k=10 + diversity_limit=5 "
-            "or add lang='python' filter."
-        ),
+        "k exceeds": ("⚠️ k=50 is large. Use k=10 + diversity_limit=5 or add lang='python' filter."),
         "no results": "Try broader query or remove kind/lang filters.",
     },
     "ast_grep": {
         "Invalid pattern": (
-            "Use $VAR for single node, $$$VAR for multiple. "
-            "Example: def $FUNC($$$ARGS)"
+            "Use $VAR for single node, $$$VAR for multiple. Example: def $FUNC($$$ARGS)"
         ),
     },
     "impact_analysis": {
         "symbol not found": (
-            "Use find_references first to locate symbol, "
-            "then impact_analysis on the file."
+            "Use find_references first to locate symbol, then impact_analysis on the file."
         ),
     },
 }
@@ -55,7 +50,7 @@ def _strip_prefix(tool_name: str) -> str:
     prefixes = ["mcp_ast_tools_tool_", "mcp_ast_tools_"]
     for prefix in prefixes:
         if tool_name.startswith(prefix):
-            return tool_name[len(prefix):]
+            return tool_name[len(prefix) :]
     return tool_name
 
 

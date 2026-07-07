@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 # FTS5 special characters and operators that need escaping
 _FTS5_SPECIAL_CHARS = re.compile(r'[\\"()+\-*:<>^@]')
-_FTS5_BOOL_OPERATORS = re.compile(r'\b(OR|AND|NOT|NEAR)\b', re.IGNORECASE)
+_FTS5_BOOL_OPERATORS = re.compile(r"\b(OR|AND|NOT|NEAR)\b", re.IGNORECASE)
 
 
 def sanitize_error_message(error: Exception, user_facing: bool = True) -> tuple[str, str]:
@@ -38,10 +38,10 @@ def sanitize_error_message(error: Exception, user_facing: bool = True) -> tuple[
     # Common patterns that leak sensitive info
     sensitive_patterns = [
         (r'File ".*?", line', "Internal file path"),
-        (r'/home/[^/]+/[^/\s]+', "Internal path"),
-        (r'/tmp/[^/\s]+', "Temporary path"),
-        (r'sqlite3\.[A-Z]+Error: .*', "Database error"),
-        (r'Traceback.*', "Internal error"),
+        (r"/home/[^/]+/[^/\s]+", "Internal path"),
+        (r"/tmp/[^/\s]+", "Temporary path"),
+        (r"sqlite3\.[A-Z]+Error: .*", "Database error"),
+        (r"Traceback.*", "Internal error"),
         (r'column ".*?" does not exist', "Database schema error"),
         (r'table ".*?" does not exist', "Database schema error"),
     ]
@@ -91,13 +91,13 @@ def sanitize_fts5_query(query: str) -> str:
     query = query.replace('"', '""')
 
     # Remove boolean operators (replace with space to maintain word boundaries)
-    query = _FTS5_BOOL_OPERATORS.sub(' ', query)
+    query = _FTS5_BOOL_OPERATORS.sub(" ", query)
 
     # Escape special characters
-    query = _FTS5_SPECIAL_CHARS.sub(' ', query)
+    query = _FTS5_SPECIAL_CHARS.sub(" ", query)
 
     # Clean up multiple spaces
-    query = re.sub(r'\s+', ' ', query).strip()
+    query = re.sub(r"\s+", " ", query).strip()
 
     return query
 

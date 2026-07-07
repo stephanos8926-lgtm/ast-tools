@@ -23,13 +23,11 @@ def format_violations(
     Returns:
         Formatted string.
     """
-    filtered = [
-        v for v in violations
-        if fail_on == "warn" or v.severity == "error"
-    ]
+    filtered = [v for v in violations if fail_on == "warn" or v.severity == "error"]
 
     if format == "json":
         import json
+
         return json.dumps([v.to_dict() for v in filtered], indent=2)
 
     if not filtered:

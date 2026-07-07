@@ -1,11 +1,11 @@
 """Tests for doctor command."""
 
-
 import pytest
 
 from ast_tools.curator.doctor import _track_trend, run
 
 pytestmark = pytest.mark.unit
+
 
 class TestDoctor:
     """Test suite for doctor healthcheck."""
@@ -64,4 +64,5 @@ class TestDoctor:
     def test_doctor_exit_code_mapping(self):
         """Verify score → exit code mapping is logical."""
         from ast_tools.curator.doctor import MIN_HEALTHY, MIN_WARNING
+
         assert 0 <= MIN_WARNING < MIN_HEALTHY <= 100

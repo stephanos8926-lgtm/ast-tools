@@ -53,12 +53,14 @@ def _find_test_files(
     for pattern_path in patterns:
         resolved = pattern_path.resolve()
         if resolved.exists() and resolved.is_file() and str(resolved) not in seen:
-            suggestions.append({
-                "path": str(resolved),
-                "reason": "test_file",
-                "confidence": 0.95,
-                "explanation": f"Test file matches pattern: {pattern_path.relative_to(workspace)}",
-            })
+            suggestions.append(
+                {
+                    "path": str(resolved),
+                    "reason": "test_file",
+                    "confidence": 0.95,
+                    "explanation": f"Test file matches pattern: {pattern_path.relative_to(workspace)}",
+                }
+            )
             seen.add(str(resolved))
             if len(suggestions) >= max_suggestions:
                 break
@@ -86,12 +88,14 @@ def _find_source_from_test(
     for src in source_candidates:
         resolved = src.resolve()
         if resolved.exists() and resolved != target_path.resolve():
-            suggestions.append({
-                "path": str(resolved),
-                "reason": "test_file",
-                "confidence": 0.90,
-                "explanation": "Source file corresponding to test file",
-            })
+            suggestions.append(
+                {
+                    "path": str(resolved),
+                    "reason": "test_file",
+                    "confidence": 0.90,
+                    "explanation": "Source file corresponding to test file",
+                }
+            )
             if len(suggestions) >= max_suggestions:
                 break
 
@@ -111,7 +115,11 @@ def _find_siblings(
 
     try:
         files = sorted(
-            [p for p in parent.iterdir() if p.is_file() and p.suffix == ".py" and p != target_path.resolve()],
+            [
+                p
+                for p in parent.iterdir()
+                if p.is_file() and p.suffix == ".py" and p != target_path.resolve()
+            ],
             key=lambda x: x.name,
         )
     except PermissionError:
@@ -120,12 +128,14 @@ def _find_siblings(
     for f in files:
         resolved = str(f.resolve())
         if resolved not in existing_paths:
-            suggestions.append({
-                "path": resolved,
-                "reason": "sibling",
-                "confidence": 0.55,
-                "explanation": f"Same directory ({parent.name}/)",
-            })
+            suggestions.append(
+                {
+                    "path": resolved,
+                    "reason": "sibling",
+                    "confidence": 0.55,
+                    "explanation": f"Same directory ({parent.name}/)",
+                }
+            )
             existing_paths.add(resolved)
             if len(suggestions) >= max_suggestions:
                 break
@@ -134,16 +144,29 @@ def _find_siblings(
 
 
 # Directories to always skip during file scanning (performance)
-_SKIP_DIRS = frozenset({
-    ".venv", "venv", "env", ".env",
-    "node_modules", "bower_components",
-    "__pycache__", ".pytest_cache",
-    ".git", ".hg", ".svn",
-    "build", "dist", ".eggs", "*.egg-info",
-    ".mypy_cache", ".ruff_cache",
-    "target",  # Rust
-    ".dub",  # D
-})
+_SKIP_DIRS = frozenset(
+    {
+        ".venv",
+        "venv",
+        "env",
+        ".env",
+        "node_modules",
+        "bower_components",
+        "__pycache__",
+        ".pytest_cache",
+        ".git",
+        ".hg",
+        ".svn",
+        "build",
+        "dist",
+        ".eggs",
+        "*.egg-info",
+        ".mypy_cache",
+        ".ruff_cache",
+        "target",  # Rust
+        ".dub",  # D
+    }
+)
 
 
 def _is_skip_dir(path: Path) -> bool:
@@ -173,12 +196,14 @@ def _find_name_matches(
                 rel = match_path.relative_to(workspace)
             except ValueError:
                 rel = match_path
-            suggestions.append({
-                "path": resolved,
-                "reason": "name_match",
-                "confidence": 0.45,
-                "explanation": f"Same stem name: {rel}",
-            })
+            suggestions.append(
+                {
+                    "path": resolved,
+                    "reason": "name_match",
+                    "confidence": 0.45,
+                    "explanation": f"Same stem name: {rel}",
+                }
+            )
             existing_paths.add(resolved)
             if len(suggestions) >= max_suggestions:
                 break
@@ -252,12 +277,14 @@ def _find_call_graph(
         else:
             explanation = "Calls " + " or ".join(quoted[:3]) + f" and {len(quoted) - 3} more"
 
-        suggestions.append({
-            "path": file_path,
-            "reason": "call_graph",
-            "confidence": 0.55,
-            "explanation": explanation,
-        })
+        suggestions.append(
+            {
+                "path": file_path,
+                "reason": "call_graph",
+                "confidence": 0.55,
+                "explanation": explanation,
+            }
+        )
         existing_paths.add(file_path)
 
         if len(suggestions) >= max_suggestions:
@@ -358,11 +385,24 @@ def _find_imported_by(
     try:
         for root_dir, dirs, files in os.walk(workspace):
             # Skip .venv, hidden dirs, and known non-project dirs
-            dirs[:] = [d for d in dirs if not d.startswith(".")
-                       and d not in _SKIP_DIRS
-                       and d not in {"node_modules", "__pycache__",
-                                     ".venv", "venv", "target", "build",
-                                     "dist", ".eggs", ".git"}]
+            dirs[:] = [
+                d
+                for d in dirs
+                if not d.startswith(".")
+                and d not in _SKIP_DIRS
+                and d
+                not in {
+                    "node_modules",
+                    "__pycache__",
+                    ".venv",
+                    "venv",
+                    "target",
+                    "build",
+                    "dist",
+                    ".eggs",
+                    ".git",
+                }
+            ]
             for fname in sorted(files):
                 if not fname.endswith(".py"):
                     continue
@@ -383,14 +423,19 @@ def _find_imported_by(
                         # Check if it's an actual import statement
                         for line in content.splitlines():
                             s = line.strip()
-                            if re.match(rf"^\s*(from\s+{re.escape(pattern)}|import\s+{re.escape(pattern)})", s):
+                            if re.match(
+                                rf"^\s*(from\s+{re.escape(pattern)}|import\s+{re.escape(pattern)})",
+                                s,
+                            ):
                                 pyfile.relative_to(workspace)
-                                suggestions.append({
-                                    "path": resolved_path,
-                                    "reason": "imported_by",
-                                    "confidence": 0.80,
-                                    "explanation": f"Imports from this file: {s[:60]}{'...' if len(s) > 60 else ''}",
-                                })
+                                suggestions.append(
+                                    {
+                                        "path": resolved_path,
+                                        "reason": "imported_by",
+                                        "confidence": 0.80,
+                                        "explanation": f"Imports from this file: {s[:60]}{'...' if len(s) > 60 else ''}",
+                                    }
+                                )
                                 existing_paths.add(resolved_path)
                                 if len(suggestions) >= max_suggestions:
                                     return suggestions
@@ -423,12 +468,14 @@ def _find_imports_this(
         for rp in resolved_paths:
             resolved_str = str(rp)
             if resolved_str not in existing_paths and rp != target_path.resolve():
-                suggestions.append({
-                    "path": resolved_str,
-                    "reason": "imports_this",
-                    "confidence": 0.75,
-                    "explanation": f"Imported by this file: {mod}",
-                })
+                suggestions.append(
+                    {
+                        "path": resolved_str,
+                        "reason": "imports_this",
+                        "confidence": 0.75,
+                        "explanation": f"Imported by this file: {mod}",
+                    }
+                )
                 existing_paths.add(resolved_str)
                 if len(suggestions) >= max_suggestions:
                     return suggestions
@@ -479,7 +526,9 @@ def _tool_file_related_suggest(params: dict[str, Any]) -> dict[str, Any]:
     if include_tests:
         if stem != target_path.stem:
             # File is a test file — find source
-            src_results = _find_source_from_test(target_path, workspace, _file_stem(target_path), max_suggestions)
+            src_results = _find_source_from_test(
+                target_path, workspace, _file_stem(target_path), max_suggestions
+            )
             for s in src_results:
                 if s["path"] not in seen_paths:
                     all_suggestions.append(s)
@@ -543,7 +592,9 @@ def _tool_file_related_suggest(params: dict[str, Any]) -> dict[str, Any]:
         if p not in seen_dedup:
             seen_dedup[p] = s
 
-    final_suggestions = sorted(seen_dedup.values(), key=lambda x: -x["confidence"])[:max_suggestions]
+    final_suggestions = sorted(seen_dedup.values(), key=lambda x: -x["confidence"])[
+        :max_suggestions
+    ]
 
     return {
         "file": str(target_path),

@@ -6,6 +6,7 @@ from ast_tools.context.formatters import MarkdownFormatter, count_tokens
 
 pytestmark = pytest.mark.unit
 
+
 class TestTokenCounting:
     """Test token counting accuracy."""
 

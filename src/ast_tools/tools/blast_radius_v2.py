@@ -24,15 +24,16 @@ from ast_tools.utils.impact import build_reverse_deps
 # ---------------------------------------------------------------------------
 
 AXIS_CONFIDENCE = {
-    "import_graph": 0.95,      # AST-parsed, deterministic
-    "class_hierarchy": 0.90,   # AST-parsed, cross-file edge cases
-    "call_graph": 0.75,        # String-grep based, may be incomplete
+    "import_graph": 0.95,  # AST-parsed, deterministic
+    "class_hierarchy": 0.90,  # AST-parsed, cross-file edge cases
+    "call_graph": 0.75,  # String-grep based, may be incomplete
 }
 
 
 # ---------------------------------------------------------------------------
 # Target resolution
 # ---------------------------------------------------------------------------
+
 
 def _resolve_target_kind(target: str, cwd: str) -> dict[str, str]:
     """Determine whether *target* is a file, class, function, or module.
@@ -99,7 +100,10 @@ def _find_function_in_workspace(func_name: str, root: Path) -> str | None:
         try:
             tree = ast.parse(py_file.read_text(encoding="utf-8", errors="replace"))
             for node in ast.walk(tree):
-                if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name == func_name:
+                if (
+                    isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+                    and node.name == func_name
+                ):
                     return str(py_file)
         except (SyntaxError, OSError):
             continue
@@ -109,6 +113,7 @@ def _find_function_in_workspace(func_name: str, root: Path) -> str | None:
 # ---------------------------------------------------------------------------
 # Axis: import graph analysis
 # ---------------------------------------------------------------------------
+
 
 def _axis_import_graph(
     target: str,
@@ -171,6 +176,7 @@ def _axis_import_graph(
 # Axis: class hierarchy analysis
 # ---------------------------------------------------------------------------
 
+
 def _axis_class_hierarchy(
     target: str,
     file_path: str,
@@ -217,6 +223,7 @@ def _axis_class_hierarchy(
 # ---------------------------------------------------------------------------
 # Axis: call graph analysis
 # ---------------------------------------------------------------------------
+
 
 def _axis_call_graph(
     target: str,
@@ -294,6 +301,7 @@ def _fallback_find_callers(target: str, project_root: str) -> list[dict[str, Any
 # ---------------------------------------------------------------------------
 # Combination logic
 # ---------------------------------------------------------------------------
+
 
 def _combine_axes(
     axis_results: dict[str, dict[str, Any] | None],
@@ -412,18 +420,14 @@ def _generate_recommendations(result: dict[str, Any]) -> list[str]:
     # Class hierarchy recommendations
     hier = axes.get("class_hierarchy")
     if hier and hier["affected"] > 0:
-        recs.append(
-            f"Class has {hier['affected']} subclass(es) — "
-            "test each before making changes"
-        )
+        recs.append(f"Class has {hier['affected']} subclass(es) — test each before making changes")
 
     # Call graph recommendations
     cg = axes.get("call_graph")
     if cg and cg["affected"] > 0:
         if cg["affected"] <= 5:
             recs.append(
-                f"Function has {cg['affected']} caller(s) — "
-                "verify each caller before refactoring"
+                f"Function has {cg['affected']} caller(s) — verify each caller before refactoring"
             )
         else:
             recs.append(
@@ -434,10 +438,7 @@ def _generate_recommendations(result: dict[str, Any]) -> list[str]:
     # Cross-cutting
     files = result.get("combined", {}).get("distinct_files", 0)
     if files > 10:
-        recs.append(
-            f"Affects {files} distinct files — "
-            "consider feature flag or phased rollout"
-        )
+        recs.append(f"Affects {files} distinct files — consider feature flag or phased rollout")
 
     if not recs:
         recs.append("No significant impact detected — changes appear safe")
@@ -448,6 +449,7 @@ def _generate_recommendations(result: dict[str, Any]) -> list[str]:
 # ---------------------------------------------------------------------------
 # Main tool handler
 # ---------------------------------------------------------------------------
+
 
 def _tool_blast_radius_v2(params: dict[str, Any]) -> dict[str, Any]:
     """Analyze blast radius across three axes: import graph, class hierarchy, call graph.
@@ -487,7 +489,9 @@ def _tool_blast_radius_v2(params: dict[str, Any]) -> dict[str, Any]:
 
     if include_hierarchy and kind == "class":
         axes["class_hierarchy"] = _axis_class_hierarchy(
-            target_name, file_path, cwd,
+            target_name,
+            file_path,
+            cwd,
         )
     elif include_hierarchy:
         axes["class_hierarchy"] = {

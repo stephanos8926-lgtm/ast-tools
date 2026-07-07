@@ -42,10 +42,16 @@ class TestContextPressureMonitor:
         assert result is None
 
     def test_high_pressure_returns_warning(self):
-        monitor = ContextPressureMonitor({
-            "context_window": {"default": 1000, "compression_threshold_ratio": 0.5, "warning_threshold_ratio": 0.4},
-            "token_estimation": {"chars_per_token": 4.0},
-        })
+        monitor = ContextPressureMonitor(
+            {
+                "context_window": {
+                    "default": 1000,
+                    "compression_threshold_ratio": 0.5,
+                    "warning_threshold_ratio": 0.4,
+                },
+                "token_estimation": {"chars_per_token": 4.0},
+            }
+        )
         # 1600 chars = 400 tokens
         # threshold = 500 (50% of 1000), warning_at = 400 (500 * 0.4/0.5)
         # 400 tokens >= 400 → warning triggers

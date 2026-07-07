@@ -139,8 +139,10 @@ def _human_size(bytes_val: int) -> str:
 def cli_cleanup(args: dict | list | None = None) -> str:
     """CLI entry point."""
     if isinstance(args, list):
-        args = {"aggressive": "--aggressive" in args or "-a" in args,
-                 "dry_run": "--dry-run" in args or "-n" in args}
+        args = {
+            "aggressive": "--aggressive" in args or "-a" in args,
+            "dry_run": "--dry-run" in args or "-n" in args,
+        }
     aggressive = getattr(args, "get", lambda _k, d=None: d)("aggressive", False)
     dry_run = getattr(args, "get", lambda _k, d=None: d)("dry_run", False)
 

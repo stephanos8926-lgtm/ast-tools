@@ -30,9 +30,7 @@ def setup_logging(level: str = "INFO", log_dir: Path | None = None) -> None:
             maxBytes=104857600,
             backupCount=5,
         )
-        fh.setFormatter(
-            logging.Formatter("%(asctime)s [%(levelname)s] %(name)s: %(message)s")
-        )
+        fh.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(name)s: %(message)s"))
         root.addHandler(fh)
 
         # Stderr handler for CLI

@@ -44,20 +44,26 @@ def compute_hotspots(
                 (fp, fp),
             ).fetchone()
 
-            avg_coupling = coupling_data["avg_coupling"] if coupling_data and coupling_data["avg_coupling"] else 0.0
+            avg_coupling = (
+                coupling_data["avg_coupling"]
+                if coupling_data and coupling_data["avg_coupling"]
+                else 0.0
+            )
             coupled_files = coupling_data["coupled_files"] if coupling_data else 0
             instability = row["instability"]
 
-            results.append({
-                "file_path": fp,
-                "commit_count": row["commit_count"],
-                "lines_added": row["lines_added"],
-                "lines_deleted": row["lines_deleted"],
-                "instability": instability,
-                "coupled_files": coupled_files,
-                "avg_coupling": avg_coupling,
-                "hotspot_score": round(instability * avg_coupling, 4),
-            })
+            results.append(
+                {
+                    "file_path": fp,
+                    "commit_count": row["commit_count"],
+                    "lines_added": row["lines_added"],
+                    "lines_deleted": row["lines_deleted"],
+                    "instability": instability,
+                    "coupled_files": coupled_files,
+                    "avg_coupling": avg_coupling,
+                    "hotspot_score": round(instability * avg_coupling, 4),
+                }
+            )
 
         results.sort(key=lambda x: -x["hotspot_score"])
         return results[:top_n]

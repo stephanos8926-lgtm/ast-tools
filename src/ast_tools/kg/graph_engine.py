@@ -108,9 +108,7 @@ class GraphEngine:
             "levels": dict(levels.items()),
         }
 
-    def shortest_path(
-        self, from_id: str, to_id: str, max_depth: int = 10
-    ) -> dict[str, Any] | None:
+    def shortest_path(self, from_id: str, to_id: str, max_depth: int = 10) -> dict[str, Any] | None:
         """Bidirectional BFS shortest path."""
         if from_id == to_id:
             return {"path": [from_id], "distance": 0}
@@ -140,9 +138,7 @@ class GraphEngine:
                         front_prev[nb] = cur
                         front_queue.append(nb)
                         if nb in visited_back:
-                            return self._reconstruct(
-                                from_id, to_id, nb, front_prev, back_prev
-                            )
+                            return self._reconstruct(from_id, to_id, nb, front_prev, back_prev)
             # Expand back
             for _ in range(len(back_queue)):
                 cur = back_queue.popleft()
@@ -152,9 +148,7 @@ class GraphEngine:
                         back_prev[nb] = cur
                         back_queue.append(nb)
                         if nb in visited_front:
-                            return self._reconstruct(
-                                from_id, to_id, nb, front_prev, back_prev
-                            )
+                            return self._reconstruct(from_id, to_id, nb, front_prev, back_prev)
 
         return None
 
@@ -269,15 +263,16 @@ class GraphEngine:
                     "type": e["edge_type"],
                 }
                 for e in all_edges
-                if e["source_symbol_id"] in members
-                and e["target_symbol_id"] in members
+                if e["source_symbol_id"] in members and e["target_symbol_id"] in members
             ]
-            results.append({
-                "cluster_id": cid,
-                "size": len(members),
-                "symbols": [detail_map[s] for s in members if s in detail_map],
-                "edges": cluster_edges,
-            })
+            results.append(
+                {
+                    "cluster_id": cid,
+                    "size": len(members),
+                    "symbols": [detail_map[s] for s in members if s in detail_map],
+                    "edges": cluster_edges,
+                }
+            )
 
         return results
 

@@ -50,7 +50,9 @@ def sample_symbols() -> list[Symbol]:
     return [
         make_symbol("func_a", signature="def func_a(x)", docstring="Function A"),
         make_symbol("func_b", signature="def func_b(y)", docstring="Function B"),
-        make_symbol("MyClass", kind=SymbolKind.CLASS, signature="class MyClass", docstring="A class"),
+        make_symbol(
+            "MyClass", kind=SymbolKind.CLASS, signature="class MyClass", docstring="A class"
+        ),
     ]
 
 

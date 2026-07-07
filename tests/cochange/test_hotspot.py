@@ -12,6 +12,7 @@ if TYPE_CHECKING:
 
 pytestmark = pytest.mark.integration
 
+
 def _create_test_db(db_path: Path) -> None:
     """Create a test DB with churn and co-change data."""
     conn = sqlite3.connect(str(db_path))

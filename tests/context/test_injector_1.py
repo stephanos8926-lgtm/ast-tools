@@ -1,4 +1,5 @@
 """Tests for ContextInjector - relevance scoring, budget management, diversity."""
+
 import pytest
 
 pytestmark = pytest.mark.unit

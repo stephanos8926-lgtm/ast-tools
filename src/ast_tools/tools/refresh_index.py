@@ -232,7 +232,9 @@ def _tool_refresh_index(args: dict[str, Any]) -> dict[str, Any]:
                                 (
                                     e.source_id,
                                     e.target_name,
-                                    e.edge_type.value if hasattr(e.edge_type, "value") else e.edge_type,
+                                    e.edge_type.value
+                                    if hasattr(e.edge_type, "value")
+                                    else e.edge_type,
                                     e.target_id,
                                     e.resolution_state.value
                                     if hasattr(e.resolution_state, "value")
@@ -266,7 +268,9 @@ def _tool_refresh_index(args: dict[str, Any]) -> dict[str, Any]:
                                 (
                                     e.source_id,
                                     e.target_name,
-                                    e.edge_type.value if hasattr(e.edge_type, "value") else e.edge_type,
+                                    e.edge_type.value
+                                    if hasattr(e.edge_type, "value")
+                                    else e.edge_type,
                                     e.target_id,
                                     e.resolution_state.value
                                     if hasattr(e.resolution_state, "value")

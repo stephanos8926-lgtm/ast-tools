@@ -23,10 +23,11 @@ from src.ast_tools.tools.repo_skeleton import (
 
 pytestmark = pytest.mark.integration
 
+
 class TestProjectTypeDetection:
     def test_python_pyproject(self, tmp_path: Path) -> None:
         """Python project with pyproject.toml."""
-        (tmp_path / "pyproject.toml").write_text("[project]\nname = \"test\"")
+        (tmp_path / "pyproject.toml").write_text('[project]\nname = "test"')
         (tmp_path / "src").mkdir(parents=True)
         (tmp_path / "src" / "__init__.py").write_text("")
         proj_type, confidence, _indicators = _detect_project_type(tmp_path)
@@ -57,7 +58,7 @@ class TestProjectTypeDetection:
 
     def test_rust_cargo(self, tmp_path: Path) -> None:
         """Rust project with Cargo.toml."""
-        (tmp_path / "Cargo.toml").write_text("[package]\nname = \"test\"")
+        (tmp_path / "Cargo.toml").write_text('[package]\nname = "test"')
         proj_type, confidence, _indicators = _detect_project_type(tmp_path)
         assert proj_type == "rust"
         assert confidence >= 0.4
@@ -170,10 +171,14 @@ dev = [
     def test_node_deps(self, tmp_path: Path) -> None:
         """Parse Node.js package.json dependencies."""
         pkg = tmp_path / "package.json"
-        pkg.write_text(json.dumps({
-            "dependencies": {"express": "^4.18", "lodash": "^4.17"},
-            "devDependencies": {"jest": "^29", "typescript": "^5.0"},
-        }))
+        pkg.write_text(
+            json.dumps(
+                {
+                    "dependencies": {"express": "^4.18", "lodash": "^4.17"},
+                    "devDependencies": {"jest": "^29", "typescript": "^5.0"},
+                }
+            )
+        )
         deps = _parse_node_deps(tmp_path)
         assert "express" in deps["direct"]
         assert "lodash" in deps["direct"]
@@ -219,10 +224,12 @@ criterion = "0.5"
     def test_no_deps_for_unknown(self, tmp_path: Path) -> None:
         """Unknown project type yields empty deps."""
         (tmp_path / "readme.txt").write_text("")
-        result = _tool_repo_skeleton({
-            "root_path": str(tmp_path),
-            "generate_deps": True,
-        })
+        result = _tool_repo_skeleton(
+            {
+                "root_path": str(tmp_path),
+                "generate_deps": True,
+            }
+        )
         assert result["project_type"] == "unknown"
         assert result["dependencies"]["direct"] == []
         assert result["dependencies"]["dev"] == []
@@ -294,13 +301,15 @@ dev = ["pytest>=8.0"]
         (testdir / "test_main.py").write_text("def test(): pass")
         (tmp_path / "README.md").write_text("# Test")
 
-        result = _tool_repo_skeleton({
-            "root_path": str(tmp_path),
-            "max_depth": 5,
-            "include_tests": True,
-            "include_configs": True,
-            "generate_deps": True,
-        })
+        result = _tool_repo_skeleton(
+            {
+                "root_path": str(tmp_path),
+                "max_depth": 5,
+                "include_tests": True,
+                "include_configs": True,
+                "generate_deps": True,
+            }
+        )
 
         assert result["project_type"] == "python"
         assert result["confidence"] > 0.8
@@ -316,18 +325,24 @@ dev = ["pytest>=8.0"]
     def test_node_project_full(self, tmp_path: Path) -> None:
         """Full pipeline for a Node.js project."""
         pkg = tmp_path / "package.json"
-        pkg.write_text(json.dumps({
-            "dependencies": {"express": "^4.18"},
-            "devDependencies": {"jest": "^29"},
-        }))
+        pkg.write_text(
+            json.dumps(
+                {
+                    "dependencies": {"express": "^4.18"},
+                    "devDependencies": {"jest": "^29"},
+                }
+            )
+        )
         (tmp_path / "index.js").write_text("console.log('hi')")
         (tmp_path / "README.md").write_text("# Node Project")
 
-        result = _tool_repo_skeleton({
-            "root_path": str(tmp_path),
-            "max_depth": 3,
-            "generate_deps": True,
-        })
+        result = _tool_repo_skeleton(
+            {
+                "root_path": str(tmp_path),
+                "max_depth": 3,
+                "generate_deps": True,
+            }
+        )
 
         assert result["project_type"] == "node"
         assert result["confidence"] > 0.4
@@ -347,11 +362,13 @@ require (
 """)
         (tmp_path / "main.go").write_text("package main\nfunc main() {}")
 
-        result = _tool_repo_skeleton({
-            "root_path": str(tmp_path),
-            "max_depth": 3,
-            "generate_deps": True,
-        })
+        result = _tool_repo_skeleton(
+            {
+                "root_path": str(tmp_path),
+                "max_depth": 3,
+                "generate_deps": True,
+            }
+        )
 
         assert result["project_type"] == "go"
         assert "github.com/gin-gonic/gin" in result["dependencies"]["direct"]
@@ -372,11 +389,13 @@ criterion = "0.5"
         srcdir.mkdir(parents=True)
         (srcdir / "main.rs").write_text("fn main() {}")
 
-        result = _tool_repo_skeleton({
-            "root_path": str(tmp_path),
-            "max_depth": 3,
-            "generate_deps": True,
-        })
+        result = _tool_repo_skeleton(
+            {
+                "root_path": str(tmp_path),
+                "max_depth": 3,
+                "generate_deps": True,
+            }
+        )
 
         assert result["project_type"] == "rust"
         assert "serde" in result["dependencies"]["direct"]
@@ -399,11 +418,13 @@ criterion = "0.5"
     def test_real_ast_tools(self) -> None:
         """Integration test: run on actual ast-tools repo."""
         repo_root = Path(__file__).resolve().parent.parent.parent
-        result = _tool_repo_skeleton({
-            "root_path": str(repo_root),
-            "max_depth": 3,
-            "generate_deps": True,
-        })
+        result = _tool_repo_skeleton(
+            {
+                "root_path": str(repo_root),
+                "max_depth": 3,
+                "generate_deps": True,
+            }
+        )
         assert result["project_type"] == "python"
         assert result["confidence"] >= 0.5
         assert result["structure"]["directories"]

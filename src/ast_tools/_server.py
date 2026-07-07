@@ -77,11 +77,13 @@ async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
             return [
                 TextContent(
                     type="text",
-                    text=json.dumps({
-                        "error": f"Unknown tool: {name}",
-                        "error_code": "NOT_FOUND",
-                        "available_tools": list_tool_names(),
-                    }),
+                    text=json.dumps(
+                        {
+                            "error": f"Unknown tool: {name}",
+                            "error_code": "NOT_FOUND",
+                            "available_tools": list_tool_names(),
+                        }
+                    ),
                 )
             ]
 
@@ -152,6 +154,7 @@ async def _run_daemon_mode(config: dict[str, Any]) -> None:
 
     # Start watchdog in background
     from ast_tools.watchdog.monitor import CodebaseWatcher
+
     watcher = CodebaseWatcher(config)
     if watcher.enabled:
         try:
@@ -171,6 +174,7 @@ async def _run_daemon_mode(config: dict[str, Any]) -> None:
 
 
 # ─── Mode: Remote (Streamable HTTP) ──────────────────────────────────────
+
 
 async def _run_remote_mode(config: dict[str, Any]) -> None:
     """Run server in remote mode — Streamable HTTP.
@@ -249,41 +253,55 @@ async def _run_legacy_http(host: str, port: int, auth_token: str) -> None:
         method = body.get("method", "")
 
         if method == "initialize":
-            return web.json_response({
-                "jsonrpc": "2.0",
-                "id": body.get("id"),
-                "result": {
-                    "protocolVersion": "2024-11-05",
-                    "capabilities": {"tools": {}},
-                    "serverInfo": {"name": "rw-ast-tools", "version": "0.1.0"},
-                },
-            })
+            return web.json_response(
+                {
+                    "jsonrpc": "2.0",
+                    "id": body.get("id"),
+                    "result": {
+                        "protocolVersion": "2024-11-05",
+                        "capabilities": {"tools": {}},
+                        "serverInfo": {"name": "rw-ast-tools", "version": "0.1.0"},
+                    },
+                }
+            )
         elif method == "tools/list":
             tools = await list_tools()
-            return web.json_response({
-                "jsonrpc": "2.0",
-                "id": body.get("id"),
-                "result": {"tools": [{
-                    "name": t.name,
-                    "description": t.description,
-                    "inputSchema": t.inputSchema,
-                } for t in tools]},
-            })
+            return web.json_response(
+                {
+                    "jsonrpc": "2.0",
+                    "id": body.get("id"),
+                    "result": {
+                        "tools": [
+                            {
+                                "name": t.name,
+                                "description": t.description,
+                                "inputSchema": t.inputSchema,
+                            }
+                            for t in tools
+                        ]
+                    },
+                }
+            )
         elif method == "tools/call":
             params = body.get("params", {})
             result = await call_tool(
                 params.get("name", ""),
                 params.get("arguments", {}),
             )
-            return web.json_response({
-                "jsonrpc": "2.0",
-                "id": body.get("id"),
-                "result": {"content": [r.model_dump() for r in result]},
-            })
+            return web.json_response(
+                {
+                    "jsonrpc": "2.0",
+                    "id": body.get("id"),
+                    "result": {"content": [r.model_dump() for r in result]},
+                }
+            )
         else:
             return web.json_response(
-                {"jsonrpc": "2.0", "id": body.get("id", 0),
-                 "error": {"code": -32601, "message": "Method not found"}},
+                {
+                    "jsonrpc": "2.0",
+                    "id": body.get("id", 0),
+                    "error": {"code": -32601, "message": "Method not found"},
+                },
                 status=404,
             )
 
@@ -310,8 +328,9 @@ async def main():
 
     parser = argparse.ArgumentParser(description="rw-ast-tools MCP Server")
     add_server_args(parser)
-    parser.add_argument("--foreground", action="store_true",
-                        help="Keep process in foreground (for systemd)")
+    parser.add_argument(
+        "--foreground", action="store_true", help="Keep process in foreground (for systemd)"
+    )
     args = parser.parse_args()
     config = config_from_args(args)
 
@@ -332,6 +351,7 @@ async def main():
 def main_sync():
     """Synchronous entry point for console_scripts."""
     import anyio
+
     with contextlib.suppress(KeyboardInterrupt):
         anyio.run(main)
 

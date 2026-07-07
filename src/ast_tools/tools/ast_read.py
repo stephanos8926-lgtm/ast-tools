@@ -41,7 +41,7 @@ def _tool_ast_read(args: dict[str, Any]) -> dict[str, Any]:
         }
 
     try:
-        source = file_path.read_text(encoding='utf-8')
+        source = file_path.read_text(encoding="utf-8")
     except UnicodeDecodeError as e:
         return {
             "error": f"File encoding error: {e}. Try saving as UTF-8.",

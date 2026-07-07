@@ -41,12 +41,11 @@ def _tool_ast_grep(args: dict[str, Any]) -> dict[str, Any]:
     # Compile pattern and cache it
     _compiled_pattern, _compiled_lang = _compile_pattern(pattern, lang)
 
-    cmd = ["ast-grep", "--pattern", pattern, path] # Use original pattern for CLI
+    cmd = ["ast-grep", "--pattern", pattern, path]  # Use original pattern for CLI
     if lang:
         cmd.extend(["--lang", lang])
     if json_output:
         cmd.append("--json")
-
 
     try:
         proc = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
@@ -69,15 +68,23 @@ def _tool_ast_grep(args: dict[str, Any]) -> dict[str, Any]:
         # Provide helpful pattern syntax hints
         hints = []
         if "$" not in pattern:
-            hints.append("Patterns use $ for meta-variables. Example: $FUNC for a name, $$$ARGS for multiple args.")
+            hints.append(
+                "Patterns use $ for meta-variables. Example: $FUNC for a name, $$$ARGS for multiple args."
+            )
         if "def " in pattern and "$" in pattern:
             hints.append("Python pattern syntax: def $FUNC($$$ARGS) or class $CLASS")
         if "function" in pattern.lower() and "$" in pattern:
-            hints.append("TypeScript/JS pattern: function $NAME($$$ARGS) or const $NAME = ($$$ARGS)")
+            hints.append(
+                "TypeScript/JS pattern: function $NAME($$$ARGS) or const $NAME = ($$$ARGS)"
+            )
         if "returncode" in stderr.lower() or "parse" in stderr.lower():
-            hints.append("Common fixes: wrap strings in quotes, use $$$ for multiple nodes, ensure valid AST structure")
+            hints.append(
+                "Common fixes: wrap strings in quotes, use $$$ for multiple nodes, ensure valid AST structure"
+            )
         if "no matches" in stderr.lower():
-            hints.append("Try a simpler pattern first, or check that the language (--lang) matches your code")
+            hints.append(
+                "Try a simpler pattern first, or check that the language (--lang) matches your code"
+            )
 
         error_response = {
             "error": stderr,
@@ -88,7 +95,9 @@ def _tool_ast_grep(args: dict[str, Any]) -> dict[str, Any]:
 
         if hints:
             error_response["hints"] = hints
-            error_response["suggestion"] = "See https://ast-grep.github.io/guide/pattern-syntax.html for full syntax"
+            error_response["suggestion"] = (
+                "See https://ast-grep.github.io/guide/pattern-syntax.html for full syntax"
+            )
 
         return error_response
 
@@ -138,4 +147,3 @@ def _tool_ast_grep(args: dict[str, Any]) -> dict[str, Any]:
             "current_size": _compile_pattern.cache_info().currsize,
         }
     return result
-

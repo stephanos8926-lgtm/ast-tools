@@ -31,30 +31,40 @@ from ast_tools.tools.blast_radius_v2 import _tool_blast_radius_v2
 def _cli_init_cmd(args) -> str:
     """Wrapper for ast-tools init."""
     from ast_tools.curator.setup_wizard import cli_init
+
     return cli_init(vars(args))
+
 
 def _cli_doctor_cmd(args) -> str:
     """Wrapper for ast-tools doctor."""
     from ast_tools.curator.doctor import cli_doctor
+
     return cli_doctor(vars(args))
+
 
 def _cli_vacuum_cmd(args) -> str:
     """Wrapper for ast-tools vacuum."""
     from ast_tools.curator.vacuum import cli_vacuum
+
     return cli_vacuum(vars(args))
+
 
 def _cli_curator_cmd(args) -> str:
     """Wrapper for ast-tools curator."""
     from ast_tools.curator.daemon import run_daily_audit
+
     if vars(args).get("dry_run"):
         return "[DRY RUN] Curator operations previewed"
     result = run_daily_audit()
     return json.dumps(result, indent=2)
 
+
 def _cli_cleanup_cmd(args) -> str:
     """Wrapper for ast-tools cleanup."""
     from ast_tools.curator.cleanup import cli_cleanup
+
     return cli_cleanup(vars(args))
+
 
 # Import tool functions (lazy imports — noqa: E402)
 from ast_tools.tools.dependency_tools import dead_code_detection  # noqa: E402
@@ -74,14 +84,17 @@ def cmd_search(args: argparse.Namespace) -> int:
     limit = args.limit or 10
 
     # Run async function
-    result = asyncio.run(_tool_semantic_search(
-        query=query,
-        k=limit,
-        inject_context=False,  # CLI wants raw results
-    ))
+    result = asyncio.run(
+        _tool_semantic_search(
+            query=query,
+            k=limit,
+            inject_context=False,  # CLI wants raw results
+        )
+    )
 
     if not isinstance(result, dict):
         import json
+
         try:
             result = json.loads(result)
         except json.JSONDecodeError as e:
@@ -111,10 +124,12 @@ def cmd_navigate(args: argparse.Namespace) -> int:
     project_root = args.project_root or "."
     symbol = args.symbol
 
-    result = _tool_find_symbol_definition({
-        "symbol": symbol,
-        "project_root": project_root,
-    })
+    result = _tool_find_symbol_definition(
+        {
+            "symbol": symbol,
+            "project_root": project_root,
+        }
+    )
 
     if "error" in result:
         print(f"Error: {result['error']}", file=sys.stderr)
@@ -154,14 +169,16 @@ def cmd_blast_radius(args: argparse.Namespace) -> int:
         if len(parts) == 2:
             target = parts[0]
 
-    result = _tool_blast_radius_v2({
-        "target": target,
-        "cwd": project_root,
-        "max_depth": args.max_depth or 5,
-        "include_imports": True,
-        "include_hierarchy": True,
-        "include_callers": not (args.no_callers or False),
-    })
+    result = _tool_blast_radius_v2(
+        {
+            "target": target,
+            "cwd": project_root,
+            "max_depth": args.max_depth or 5,
+            "include_imports": True,
+            "include_hierarchy": True,
+            "include_callers": not (args.no_callers or False),
+        }
+    )
 
     if "error" in result:
         print(f"Error: {result['error']}", file=sys.stderr)
@@ -202,10 +219,12 @@ def cmd_summary(args: argparse.Namespace) -> int:
     """Codebase summary command."""
     project_root = args.project_root or "."
 
-    result = _tool_project_info({
-        "cwd": project_root,
-        "full": False,  # Summary mode
-    })
+    result = _tool_project_info(
+        {
+            "cwd": project_root,
+            "full": False,  # Summary mode
+        }
+    )
 
     if args.format == "json":
         print(json.dumps(result, indent=2, default=str))
@@ -223,11 +242,13 @@ def cmd_symbols(args: argparse.Namespace) -> int:
     file_path = args.file_path
     kind = args.kind
 
-    result = _tool_list_symbols({
-        "file_path": file_path,
-        "project_root": project_root,
-        "kind": kind,
-    })
+    result = _tool_list_symbols(
+        {
+            "file_path": file_path,
+            "project_root": project_root,
+            "kind": kind,
+        }
+    )
 
     if "error" in result:
         print(f"Error: {result['error']}", file=sys.stderr)
@@ -251,11 +272,13 @@ def cmd_refs(args: argparse.Namespace) -> int:
     symbol = args.symbol
     file_path = args.file_path or None
 
-    result = _tool_find_references({
-        "symbol": symbol,
-        "file_path": file_path,
-        "project_root": project_root,
-    })
+    result = _tool_find_references(
+        {
+            "symbol": symbol,
+            "file_path": file_path,
+            "project_root": project_root,
+        }
+    )
 
     if "error" in result:
         print(f"Error: {result['error']}", file=sys.stderr)
@@ -329,7 +352,11 @@ def cmd_callees(args: argparse.Namespace) -> int:
         return 1
 
     if args.format == "json":
-        print(json.dumps({"symbol": symbol, "file": file_path, "callees": callees}, indent=2, default=str))
+        print(
+            json.dumps(
+                {"symbol": symbol, "file": file_path, "callees": callees}, indent=2, default=str
+            )
+        )
     elif args.format == "markdown":
         print(f"## Callees of `{symbol}` ({file_path})\n")
         for callee in callees:
@@ -355,10 +382,12 @@ def cmd_deps(args: argparse.Namespace) -> int:
     project_root = args.project_root or "."
     file_path = args.file_path
 
-    result = _tool_module_imports({
-        "module": file_path,
-        "cwd": project_root,
-    })
+    result = _tool_module_imports(
+        {
+            "module": file_path,
+            "cwd": project_root,
+        }
+    )
 
     if "error" in result:
         print(f"Error: {result['error']}", file=sys.stderr)
@@ -424,7 +453,9 @@ def _browse_fallback(project_root: str, kind: str, limit: int) -> list[dict]:
     py_files = list(Path(project_root).rglob("*.py"))[:200]  # Cap at 200 files
 
     for py_file in py_files:
-        if any(p in py_file.parts for p in (".venv", "__pycache__", ".git", ".eggs", "node_modules")):
+        if any(
+            p in py_file.parts for p in (".venv", "__pycache__", ".git", ".eggs", "node_modules")
+        ):
             continue
         try:
             source = py_file.read_text(encoding="utf-8", errors="replace")
@@ -439,14 +470,16 @@ def _browse_fallback(project_root: str, kind: str, limit: int) -> list[dict]:
                 if kind != "all" and sym_kind != kind:
                     continue
                 rel_path = str(py_file.relative_to(project_root))
-                symbols.append({
-                    "name": node.name,
-                    "kind": sym_kind,
-                    "file": rel_path,
-                    "line": node.lineno,
-                    "start_line": node.lineno,
-                    "end_line": getattr(node, "end_lineno", node.lineno),
-                })
+                symbols.append(
+                    {
+                        "name": node.name,
+                        "kind": sym_kind,
+                        "file": rel_path,
+                        "line": node.lineno,
+                        "start_line": node.lineno,
+                        "end_line": getattr(node, "end_lineno", node.lineno),
+                    }
+                )
                 if len(symbols) >= limit:
                     return symbols
         except (SyntaxError, OSError, UnicodeDecodeError):
@@ -467,13 +500,15 @@ def cmd_browse(args: argparse.Namespace) -> int:
 
     if not use_fallback:
         # Try DB-backed list first
-        result = _tool_list_symbols({
-            "file_path": None,  # All files
-            "project_root": project_root,
-            "kind": kind if kind != "all" else None,
-            "lang": lang if lang != "all" else None,
-            "limit": limit,
-        })
+        result = _tool_list_symbols(
+            {
+                "file_path": None,  # All files
+                "project_root": project_root,
+                "kind": kind if kind != "all" else None,
+                "lang": lang if lang != "all" else None,
+                "limit": limit,
+            }
+        )
 
         # Fall back to filesystem scanning if no DB/index
         if result.get("error_code") == "INDEX_NOT_FOUND":
@@ -530,6 +565,7 @@ def cmd_browse(args: argparse.Namespace) -> int:
 # ——————————————————————————————
 # Formatters
 # ——————————————————————————————
+
 
 def _print_search_table(result: dict) -> None:
     """Print search results in table format."""
@@ -703,9 +739,11 @@ def _print_dead_code_table(result: dict) -> None:
 
     # Summary stats
     summary = result.get("summary", {})
-    print(f"Total: {summary.get('total_dead_functions', 0)} functions, "
-          f"{summary.get('total_dead_classes', 0)} classes, "
-          f"{summary.get('total_dead_methods', 0)} methods")
+    print(
+        f"Total: {summary.get('total_dead_functions', 0)} functions, "
+        f"{summary.get('total_dead_classes', 0)} classes, "
+        f"{summary.get('total_dead_methods', 0)} methods"
+    )
 
 
 def _print_dead_code_markdown(result: dict) -> None:
@@ -776,7 +814,9 @@ def _print_summary_concise(result: dict) -> None:
 
     modules = result.get("modules", [])
 
-    print(f"{name} v{version} — {total_files:,} files, {total_lines:,} lines, {len(modules):,} modules")
+    print(
+        f"{name} v{version} — {total_files:,} files, {total_lines:,} lines, {len(modules):,} modules"
+    )
 
 
 def _print_symbols_table(symbols: list) -> None:
@@ -1013,7 +1053,8 @@ def main() -> int:
     )
 
     parser.add_argument(
-        "--project-root", "-p",
+        "--project-root",
+        "-p",
         default=".",
         help="Project root directory (default: current directory)",
     )
@@ -1031,7 +1072,8 @@ def main() -> int:
     search_p.add_argument("query", help="Search query (natural language)")
     search_p.add_argument("--limit", "-n", type=int, default=10, help="Max results")
     search_p.add_argument(
-        "--format", "-f",
+        "--format",
+        "-f",
         choices=["table", "json", "markdown"],
         default="table",
         help="Output format",
@@ -1048,7 +1090,8 @@ def main() -> int:
     )
     nav_p.add_argument("symbol", help="Symbol name to find")
     nav_p.add_argument(
-        "--format", "-f",
+        "--format",
+        "-f",
         choices=["concise", "json", "markdown"],
         default="concise",
         help="Output format",
@@ -1068,18 +1111,21 @@ def main() -> int:
         help="File path (or file:line format)",
     )
     blast_p.add_argument(
-        "--line", "-l",
+        "--line",
+        "-l",
         type=int,
         help="Specific line number (if not in file_path)",
     )
     blast_p.add_argument(
-        "--format", "-f",
+        "--format",
+        "-f",
         choices=["table", "json", "markdown"],
         default="table",
         help="Output format",
     )
     blast_p.add_argument(
-        "--max-depth", "-d",
+        "--max-depth",
+        "-d",
         type=int,
         default=5,
         help="BFS traversal depth (default: 5)",
@@ -1109,7 +1155,8 @@ def main() -> int:
         help="Comma-separated entry point files (auto-detected if omitted)",
     )
     dead_p.add_argument(
-        "--format", "-f",
+        "--format",
+        "-f",
         choices=["table", "json", "markdown"],
         default="table",
         help="Output format",
@@ -1125,7 +1172,8 @@ def main() -> int:
         description="Print project summary",
     )
     sum_p.add_argument(
-        "--format", "-f",
+        "--format",
+        "-f",
         choices=["concise", "json", "markdown"],
         default="concise",
         help="Output format",
@@ -1148,7 +1196,8 @@ def main() -> int:
         help="Filter by symbol kind",
     )
     sym_p.add_argument(
-        "--format", "-f",
+        "--format",
+        "-f",
         choices=["table", "json", "markdown"],
         default="table",
         help="Output format",
@@ -1169,7 +1218,8 @@ def main() -> int:
         help="Limit to specific file",
     )
     refs_p.add_argument(
-        "--format", "-f",
+        "--format",
+        "-f",
         choices=["table", "json", "markdown"],
         default="table",
         help="Output format",
@@ -1187,7 +1237,8 @@ def main() -> int:
     callers_p.add_argument("symbol", help="Symbol name to find callers for")
     callers_p.add_argument("--max-files", "-n", type=int, default=100, help="Max files to search")
     callers_p.add_argument(
-        "--format", "-f",
+        "--format",
+        "-f",
         choices=["table", "json", "markdown"],
         default="table",
         help="Output format",
@@ -1205,7 +1256,8 @@ def main() -> int:
     callees_p.add_argument("symbol", help="Symbol name")
     callees_p.add_argument("--file-path", required=True, help="File containing the symbol")
     callees_p.add_argument(
-        "--format", "-f",
+        "--format",
+        "-f",
         choices=["table", "json", "markdown"],
         default="table",
         help="Output format",
@@ -1222,7 +1274,8 @@ def main() -> int:
     )
     deps_p.add_argument("file_path", help="File path to analyze")
     deps_p.add_argument(
-        "--format", "-f",
+        "--format",
+        "-f",
         choices=["table", "json", "markdown"],
         default="table",
         help="Output format",
@@ -1251,7 +1304,8 @@ def main() -> int:
     )
     browse_p.add_argument("-n", "--limit", type=int, default=50, help="Max results")
     browse_p.add_argument(
-        "--format", "-f",
+        "--format",
+        "-f",
         choices=["table", "json", "markdown"],
         default="table",
         help="Output format",
@@ -1266,8 +1320,12 @@ def main() -> int:
         help="Initialize AST-Tools (setup wizard)",
         description="First-time setup: create config dir, init DB, download model",
     )
-    init_p.add_argument("--non-interactive", "-n", action="store_true", help="Skip prompts, use defaults")
-    init_p.add_argument("--skip-model", "-s", action="store_true", help="Skip model download (FTS5 only)")
+    init_p.add_argument(
+        "--non-interactive", "-n", action="store_true", help="Skip prompts, use defaults"
+    )
+    init_p.add_argument(
+        "--skip-model", "-s", action="store_true", help="Skip model download (FTS5 only)"
+    )
     init_p.add_argument("--model-path", help="Path to pre-downloaded model")
     init_p.set_defaults(func=lambda a: print(_cli_init_cmd(a)))
 
@@ -1281,7 +1339,9 @@ def main() -> int:
     )
     doctor_p.add_argument("--verbose", "-v", action="store_true", help="Detailed per-check output")
     doctor_p.add_argument("--fix", "-f", action="store_true", help="Auto-fix discovered issues")
-    doctor_p.add_argument("--format", choices=["text", "json"], default="text", help="Output format")
+    doctor_p.add_argument(
+        "--format", choices=["text", "json"], default="text", help="Output format"
+    )
     doctor_p.set_defaults(func=lambda a: print(_cli_doctor_cmd(a)))
 
     # ——————————————————
@@ -1305,8 +1365,12 @@ def main() -> int:
         description="Prune stale symbols, deduplicate, scan PII",
     )
     curator_p.add_argument("--dry-run", "-n", action="store_true", help="Preview only")
-    curator_p.add_argument("--pii-action", choices=["flag", "redact", "remove"], default="flag",
-                          help="PII action (default: flag)")
+    curator_p.add_argument(
+        "--pii-action",
+        choices=["flag", "redact", "remove"],
+        default="flag",
+        help="PII action (default: flag)",
+    )
     curator_p.set_defaults(func=lambda a: print(_cli_curator_cmd(a)))
 
     # ——————————————————

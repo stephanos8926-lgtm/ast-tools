@@ -16,7 +16,6 @@ from ast_tools.governance.schema import (
 pytestmark = pytest.mark.unit
 
 
-
 class TestGovernanceConfig:
     def test_default_layers(self):
         cfg = GovernanceConfig(DEFAULT_GOVERNANCE)
@@ -69,6 +68,7 @@ class TestLoadGovernance:
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "governance.yaml"
             import yaml
+
             path.write_text(yaml.dump(DEFAULT_GOVERNANCE))
             cfg = load_governance(path)
             assert cfg is not None

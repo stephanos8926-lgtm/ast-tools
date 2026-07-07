@@ -64,9 +64,7 @@ def _is_exception(
     return None
 
 
-def _detect_file_layer(
-    filepath: str, config: GovernanceConfig
-) -> str | None:
+def _detect_file_layer(filepath: str, config: GovernanceConfig) -> str | None:
     """Determine layer for a file, checking all mapping patterns."""
     rel = str(Path(filepath).as_posix())
     for rule in config.mappings:
@@ -109,15 +107,17 @@ def scan_project(
         try:
             import_graph = build_dep_graph(str(root))
         except Exception:
-            return [Violation(
-                file="",
-                layer="",
-                import_target="",
-                target_layer=None,
-                rule_type="error",
-                severity="error",
-                message="Failed to build import graph",
-            )]
+            return [
+                Violation(
+                    file="",
+                    layer="",
+                    import_target="",
+                    target_layer=None,
+                    rule_type="error",
+                    severity="error",
+                    message="Failed to build import graph",
+                )
+            ]
 
     layer_rules = config.layer_rules
     exceptions = config.exceptions
@@ -150,31 +150,35 @@ def scan_project(
             # Layer rule check
             if allowed_deps is not None:
                 if dep_layer and dep_layer not in allowed_deps:
-                    violations.append(Violation(
-                        file=file_path,
-                        layer=file_layer,
-                        import_target=dep,
-                        target_layer=dep_layer,
-                        rule_type="layer",
-                        severity=exc_severity or "error",
-                    ))
+                    violations.append(
+                        Violation(
+                            file=file_path,
+                            layer=file_layer,
+                            import_target=dep,
+                            target_layer=dep_layer,
+                            rule_type="layer",
+                            severity=exc_severity or "error",
+                        )
+                    )
                 elif dep_layer is None:
                     # Unclassified dependency — warn if strict
                     pass
 
             # Forbidden deps check
             if dep_layer and dep_layer in forbidden_deps:
-                violations.append(Violation(
-                    file=file_path,
-                    layer=file_layer,
-                    import_target=dep,
-                    target_layer=dep_layer,
-                    rule_type="layer",
-                    severity=exc_severity or "error",
-                    message=(
-                        f"{file_path} (layer: {file_layer}) imports "
-                        f"forbidden layer {dep_layer} via {dep}"
-                    ),
-                ))
+                violations.append(
+                    Violation(
+                        file=file_path,
+                        layer=file_layer,
+                        import_target=dep,
+                        target_layer=dep_layer,
+                        rule_type="layer",
+                        severity=exc_severity or "error",
+                        message=(
+                            f"{file_path} (layer: {file_layer}) imports "
+                            f"forbidden layer {dep_layer} via {dep}"
+                        ),
+                    )
+                )
 
     return violations

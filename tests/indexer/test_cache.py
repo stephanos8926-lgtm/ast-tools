@@ -13,6 +13,7 @@ from ast_tools.indexer.cache import (
 
 pytestmark = pytest.mark.integration
 
+
 class TestASTNodeEncoder:
     """Test JSON encoder for AST nodes."""
 

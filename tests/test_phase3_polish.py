@@ -28,6 +28,7 @@ from ast_tools.tools.structural_analysis import _tool_structural_analysis
 
 pytestmark = pytest.mark.integration
 
+
 def _make_file(directory: str, name: str, content: str) -> str:
     """Create a file and return its full path."""
     path = os.path.join(directory, name)
@@ -187,7 +188,9 @@ PUBLIC_VALUE = 42
     def test_all_with_include_private(self, tmp_proj):
         """__all__ filtering works alongside include_private."""
         core = os.path.join(tmp_proj, "core.py")
-        result = _tool_ast_read({"file": core, "project_path": str(tmp_proj), "include_private": True})
+        result = _tool_ast_read(
+            {"file": core, "project_path": str(tmp_proj), "include_private": True}
+        )
         assert result["filtered_by__all__"] is True
         class_names = [c["name"] for c in result["classes"]]
         assert "DataProcessor" in class_names  # in __all__ + public
@@ -220,7 +223,9 @@ MY_VAR = 1
     def test_all_without_imports(self, tmp_proj):
         """__all__ filtering works even without imports."""
         core = os.path.join(tmp_proj, "core.py")
-        result = _tool_ast_read({"file": core, "project_path": str(tmp_proj), "include_imports": False})
+        result = _tool_ast_read(
+            {"file": core, "project_path": str(tmp_proj), "include_imports": False}
+        )
         assert result["filtered_by__all__"] is True
         assert "imports" not in result
         assert len(result["classes"]) == 1  # only DataProcessor

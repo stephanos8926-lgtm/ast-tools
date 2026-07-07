@@ -8,6 +8,7 @@ from ast_tools.curator.setup_wizard import _check_environment, run
 
 pytestmark = pytest.mark.unit
 
+
 class TestSetupWizard:
     """Test suite for the setup wizard."""
 
@@ -18,6 +19,7 @@ class TestSetupWizard:
             # For now, test the function logic directly
             # by checking it resolves and creates dirs
             from ast_tools.curator.setup_wizard import SUBDIRS
+
             # Test that SUBDIRS has the expected structure
             assert "config" in SUBDIRS
             assert "cache/models" in SUBDIRS
@@ -56,8 +58,13 @@ class TestSetupWizard:
             skip_model=True,
         )
         expected_keys = {
-            "config_dir", "db_initialized", "model_installed",
-            "index_created", "health_score", "errors", "warnings",
+            "config_dir",
+            "db_initialized",
+            "model_installed",
+            "index_created",
+            "health_score",
+            "errors",
+            "warnings",
         }
         for key in expected_keys:
             assert key in result, f"Missing key: {key}"

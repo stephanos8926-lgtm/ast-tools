@@ -56,11 +56,13 @@ def _tool_ast_capsule(args: dict[str, Any]) -> dict[str, Any]:
     try:
         from .ast_read import _tool_ast_read
 
-        read_result = _tool_ast_read({
-            "file": file_path,
-            "include_private": False,
-            "include_imports": True,
-        })
+        read_result = _tool_ast_read(
+            {
+                "file": file_path,
+                "include_private": False,
+                "include_imports": True,
+            }
+        )
 
         if "error" in read_result:
             capsule["sections"]["read_error"] = read_result["error"]
@@ -89,10 +91,12 @@ def _tool_ast_capsule(args: dict[str, Any]) -> dict[str, Any]:
         try:
             from .find_references import _tool_find_references
 
-            refs_result = _tool_find_references({
-                "symbol": symbol_name,
-                "file_path": file_path,
-            })
+            refs_result = _tool_find_references(
+                {
+                    "symbol": symbol_name,
+                    "file_path": file_path,
+                }
+            )
 
             # Fix B: Check actual return shape - "references" not "matches"
             if refs_result.get("references"):
@@ -100,7 +104,9 @@ def _tool_ast_capsule(args: dict[str, Any]) -> dict[str, Any]:
                     "count": refs_result.get("count", len(refs_result["references"])),
                     "locations": refs_result["references"][:10],
                 }
-                capsule["summary"].append(f"🔗 Found {refs_result.get('count', len(refs_result['references']))} references")
+                capsule["summary"].append(
+                    f"🔗 Found {refs_result.get('count', len(refs_result['references']))} references"
+                )
             elif "error" not in refs_result:
                 capsule["sections"]["references"] = {"count": 0, "note": "No references found"}
             else:
@@ -113,11 +119,13 @@ def _tool_ast_capsule(args: dict[str, Any]) -> dict[str, Any]:
     try:
         from .structural_analysis import _tool_structural_analysis
 
-        analysis_result = _tool_structural_analysis({
-            "file_path": file_path,
-            "symbol_name": symbol_name,
-            "analysis_type": "callers",
-        })
+        analysis_result = _tool_structural_analysis(
+            {
+                "file_path": file_path,
+                "symbol_name": symbol_name,
+                "analysis_type": "callers",
+            }
+        )
 
         if "callers" in analysis_result:
             capsule["sections"]["callers"] = {
@@ -136,11 +144,13 @@ def _tool_ast_capsule(args: dict[str, Any]) -> dict[str, Any]:
             # Try structural analysis for callees
             from .structural_analysis import _tool_structural_analysis
 
-            analysis_result = _tool_structural_analysis({
-                "file_path": file_path,
-                "symbol_name": symbol_name,
-                "analysis_type": "callees",
-            })
+            analysis_result = _tool_structural_analysis(
+                {
+                    "file_path": file_path,
+                    "symbol_name": symbol_name,
+                    "analysis_type": "callees",
+                }
+            )
 
             if "callees" in analysis_result:
                 capsule["sections"]["callees"] = {
@@ -156,10 +166,12 @@ def _tool_ast_capsule(args: dict[str, Any]) -> dict[str, Any]:
     try:
         from .impact_analysis import _tool_impact_analysis
 
-        impact_result = _tool_impact_analysis({
-            "target": symbol_name,  # Fixed: use 'target'
-            "cwd": file_path,
-        })
+        impact_result = _tool_impact_analysis(
+            {
+                "target": symbol_name,  # Fixed: use 'target'
+                "cwd": file_path,
+            }
+        )
 
         if "affected_files" in impact_result:
             capsule["sections"]["impact"] = {

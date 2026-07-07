@@ -85,7 +85,10 @@ class TestRemoteModeIntegration:
                 resp = await client.post(
                     f"http://127.0.0.1:{config['remote']['port']}/mcp",
                     json={"jsonrpc": "2.0", "id": 1, "method": "tools/list", "params": {}},
-                    headers={"Content-Type": "application/json", "Accept": "application/json, text/event-stream"},
+                    headers={
+                        "Content-Type": "application/json",
+                        "Accept": "application/json, text/event-stream",
+                    },
                     timeout=5.0,
                 )
                 assert resp.status_code == 200
@@ -121,10 +124,15 @@ class TestRemoteModeIntegration:
                 resp = await client.post(
                     f"http://127.0.0.1:{config['remote']['port']}/mcp",
                     json={
-                        "jsonrpc": "2.0", "id": 2, "method": "tools/call",
+                        "jsonrpc": "2.0",
+                        "id": 2,
+                        "method": "tools/call",
                         "params": {"name": "codebase_summary", "arguments": {}},
                     },
-                    headers={"Content-Type": "application/json", "Accept": "application/json, text/event-stream"},
+                    headers={
+                        "Content-Type": "application/json",
+                        "Accept": "application/json, text/event-stream",
+                    },
                     timeout=10.0,
                 )
                 assert resp.status_code == 200
@@ -145,10 +153,12 @@ class TestLegacyHTTPFallback:
     def test_mode_switcher_remote(self):
         """Test main() routes to remote mode correctly."""
         from ast_tools._server import main
+
         assert main is not None
 
     @pytest.mark.asyncio
     async def test_legacy_http_auth_blocked(self):
         """Test legacy HTTP rejects requests without correct auth."""
         from ast_tools._server import _run_legacy_http
+
         assert _run_legacy_http is not None

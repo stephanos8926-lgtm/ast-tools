@@ -1,4 +1,5 @@
 """Tests for governance scanner module."""
+
 import pytest
 
 pytestmark = pytest.mark.unit
@@ -39,11 +40,14 @@ class TestScanProject:
         cfg = GovernanceConfig(DEFAULT_GOVERNANCE)
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            _create_test_project(root, {
-                "database/conn.py": "import database.schema",
-                "domain/model.py": "import database.conn",
-                "api/routes.py": "import domain.model; import database.conn",
-            })
+            _create_test_project(
+                root,
+                {
+                    "database/conn.py": "import database.schema",
+                    "domain/model.py": "import database.conn",
+                    "api/routes.py": "import domain.model; import database.conn",
+                },
+            )
             violations = scan_project(root, cfg)
             # A clean default config on a simple project should have no violations
             # (depends on mapping patterns matching)
@@ -60,11 +64,14 @@ class TestScanProject:
         cfg = GovernanceConfig(DEFAULT_GOVERNANCE)
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            _create_test_project(root, {
-                "database/conn.py": "import database.schema",
-                "domain/model.py": "import database.conn",
-                "api/routes.py": "import domain.model; import database.conn",
-            })
+            _create_test_project(
+                root,
+                {
+                    "database/conn.py": "import database.schema",
+                    "domain/model.py": "import database.conn",
+                    "api/routes.py": "import domain.model; import database.conn",
+                },
+            )
             violations = scan_project(root, cfg)
             for v in violations:
                 d = v.to_dict()
@@ -86,12 +93,20 @@ class TestScanProject:
         cfg = GovernanceConfig(config_data)
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            _create_test_project(root, {
-                "cache/cache.py": "import api.routes",  # infrastructure → presentation: forbidden!
-                "domain/model.py": "import database.conn",
-            })
+            _create_test_project(
+                root,
+                {
+                    "cache/cache.py": "import api.routes",  # infrastructure → presentation: forbidden!
+                    "domain/model.py": "import database.conn",
+                },
+            )
             violations = scan_project(root, cfg)
-            [v for v in violations if v.rule_type == "layer" and "forbidden" in v.message.lower() if hasattr(v, 'message')]
+            [
+                v
+                for v in violations
+                if v.rule_type == "layer" and "forbidden" in v.message.lower()
+                if hasattr(v, "message")
+            ]
             assert isinstance(violations, list)
 
 

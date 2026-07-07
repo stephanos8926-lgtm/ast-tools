@@ -34,6 +34,7 @@ class DiffResult:
         modified: Symbols with same identity but changed content
         unchanged: Symbols that are identical
     """
+
     added: list[Symbol] = field(default_factory=list)
     removed: list[Symbol] = field(default_factory=list)
     modified: list[Symbol] = field(default_factory=list)
@@ -70,6 +71,7 @@ class DiffResult:
 
 class SymbolStatus(Enum):
     """Status of a symbol after diff computation."""
+
     ADDED = "added"
     REMOVED = "removed"
     MODIFIED = "modified"
@@ -108,9 +110,7 @@ def is_symbol_modified(old: Symbol, new: Symbol) -> bool:
     return make_symbol_key(old) == make_symbol_key(new) and not is_symbol_unchanged(old, new)
 
 
-def find_symbol_by_key(
-    symbols: list[Symbol], file_path: str, qualified_name: str
-) -> Symbol | None:
+def find_symbol_by_key(symbols: list[Symbol], file_path: str, qualified_name: str) -> Symbol | None:
     """Find a symbol by its match key (file_path, qualified_name).
 
     Args:
