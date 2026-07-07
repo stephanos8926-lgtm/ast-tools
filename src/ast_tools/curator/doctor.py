@@ -48,9 +48,9 @@ MIN_WARNING = 50
 
 
 def run(
-    verbose: bool = False,
+    verbose: bool = False,  # noqa: ARG001
     fix: bool = False,
-    format: str = "text",
+    format: str = "text",  # noqa: ARG001
     save_baseline: bool = True,
 ) -> dict[str, Any]:
     """Run all health checks and return report.
@@ -364,9 +364,9 @@ def cli_doctor(args: dict | list | None = None) -> str:
             "format": "json" if "--format" in args and args[args.index("--format") + 1] == "json" else "text",
         }
 
-    verbose = getattr(args, "get", lambda k, d=None: d)("verbose", False)
-    fix = getattr(args, "get", lambda k, d=None: d)("fix", False)
-    format = getattr(args, "get", lambda k, d=None: d)("format", "text")
+    verbose = getattr(args, "get", lambda _k, d=None: d)("verbose", False)
+    fix = getattr(args, "get", lambda _k, d=None: d)("fix", False)
+    format = getattr(args, "get", lambda _k, d=None: d)("format", "text")
 
     result = run(verbose=verbose, fix=fix, format=format)
 

@@ -118,15 +118,17 @@ async def _run_timeout_mode(config: dict[str, Any]) -> None:
         _update_activity()
         return await original_handler(name, arguments)
 
-    async with stdio_server() as (read_stream, write_stream):
+    async with (
+        stdio_server() as (read_stream, write_stream),
+        anyio.create_task_group() as tg,
+    ):
         # Start idle timeout monitor
-        async with anyio.create_task_group() as tg:
-            tg.start_soon(_idle_monitor, timeout_seconds, _update_activity)
-            await server.run(
-                read_stream,
-                write_stream,
-                server.create_initialization_options(),
-            )
+        tg.start_soon(_idle_monitor, timeout_seconds, _update_activity)
+        await server.run(
+            read_stream,
+            write_stream,
+            server.create_initialization_options(),
+        )
 
 
 async def _idle_monitor(timeout_seconds: int, get_last_activity) -> None:
@@ -202,7 +204,7 @@ async def _run_remote_mode(config: dict[str, Any]) -> None:
 
         # Wrap in Starlette with lifespan to run the session manager
         @asynccontextmanager
-        async def lifespan(app):
+        async def lifespan(_app):
             async with session_manager.run():
                 yield
 
@@ -287,7 +289,7 @@ async def _run_legacy_http(host: str, port: int, auth_token: str) -> None:
 
     app = web.Application()
     app.router.add_post("/mcp", handle_mcp)
-    app.router.add_get("/health", lambda r: web.json_response({"status": "ok"}))
+    app.router.add_get("/health", lambda _: web.json_response({"status": "ok"}))
 
     runner = web.AppRunner(app)
     await runner.setup()

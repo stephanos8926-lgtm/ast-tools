@@ -51,7 +51,7 @@ def _detect_project_type(root: Path) -> tuple[str, float, list[str]]:
                 matches = list(root.rglob("*" + ext))
                 if matches:
                     score += weight
-                    found.append(f"{len(matches)}× {pattern}")
+                    found.append(f"{len(matches)}x {pattern}")
             elif pattern.startswith("src/"):
                 if (root / pattern).exists():
                     score += weight

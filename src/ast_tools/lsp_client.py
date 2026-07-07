@@ -307,7 +307,7 @@ class LSPClient:
         result = self._send_request("callHierarchy/outgoingCalls", {"item": items[0]})
         return result or []
 
-    def diagnostics(self, file: str) -> list[dict]:
+    def diagnostics(self, _file: str) -> list[dict]:
         """Get compiler errors and warnings for a file."""
         # Diagnostics are pushed by server, return last known
         # This would need state tracking - simplified for now

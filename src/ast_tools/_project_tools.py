@@ -741,7 +741,7 @@ def _detect_source_roots(root: Path) -> list[Path]:
     return roots
 
 
-def _build_import_map(root: Path, source_roots: list[Path]) -> dict[str, Path]:
+def _build_import_map(_root: Path, source_roots: list[Path]) -> dict[str, Path]:
     """Build a mapping from import module name to actual file path.
 
     For example, with src/ layout:

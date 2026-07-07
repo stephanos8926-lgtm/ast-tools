@@ -56,16 +56,16 @@ def _cli_cleanup_cmd(args) -> str:
     from ast_tools.curator.cleanup import cli_cleanup
     return cli_cleanup(vars(args))
 
-# Import tool functions
-from ast_tools.tools.dependency_tools import dead_code_detection
-from ast_tools.tools.enhanced_dead_code import find_dead_code_enhanced
-from ast_tools.tools.find_references import _tool_find_references
-from ast_tools.tools.find_symbol_definition import _tool_find_symbol_definition
-from ast_tools.tools.list_symbols import _tool_list_symbols
-from ast_tools.tools.module_imports import _tool_module_imports
-from ast_tools.tools.project_info import _tool_project_info
-from ast_tools.tools.semantic_search import _tool_semantic_search
-from ast_tools.tools.structural_analysis import _ast_find_callees, _ast_find_callers
+# Import tool functions (lazy imports — noqa: E402)
+from ast_tools.tools.dependency_tools import dead_code_detection  # noqa: E402
+from ast_tools.tools.enhanced_dead_code import find_dead_code_enhanced  # noqa: E402
+from ast_tools.tools.find_references import _tool_find_references  # noqa: E402
+from ast_tools.tools.find_symbol_definition import _tool_find_symbol_definition  # noqa: E402
+from ast_tools.tools.list_symbols import _tool_list_symbols  # noqa: E402
+from ast_tools.tools.module_imports import _tool_module_imports  # noqa: E402
+from ast_tools.tools.project_info import _tool_project_info  # noqa: E402
+from ast_tools.tools.semantic_search import _tool_semantic_search  # noqa: E402
+from ast_tools.tools.structural_analysis import _ast_find_callees, _ast_find_callers  # noqa: E402
 
 
 def cmd_search(args: argparse.Namespace) -> int:
@@ -858,7 +858,7 @@ def _print_refs_markdown(refs: list) -> None:
 # ─── Config Commands ─────────────────────────────────────────────────
 
 
-def cmd_config_path(args: argparse.Namespace) -> int:
+def cmd_config_path(_args: argparse.Namespace) -> int:
     """Print config directory path."""
     from ast_tools.config.loader import ensure_config_dir, get_config_dir
 
@@ -868,7 +868,7 @@ def cmd_config_path(args: argparse.Namespace) -> int:
     return 0
 
 
-def cmd_config_init(args: argparse.Namespace) -> int:
+def cmd_config_init(_args: argparse.Namespace) -> int:
     """Create default config files."""
     import yaml
 
@@ -882,12 +882,12 @@ def cmd_config_init(args: argparse.Namespace) -> int:
         tokens_path.chmod(0o600)
         print(f"✅ Created {tokens_path}")
     else:
-        print(f"ℹ️  Already exists: {tokens_path}")
+        print(f"i  Already exists: {tokens_path}")
     print(f"📁 Config directory: {cfg}")
     return 0
 
 
-def cmd_config_show(args: argparse.Namespace) -> int:
+def cmd_config_show(_args: argparse.Namespace) -> int:
     """Show current configuration."""
     from ast_tools.config.loader import get_config_dir, load_tokens_config
 
@@ -904,7 +904,7 @@ def cmd_config_show(args: argparse.Namespace) -> int:
     return 0
 
 
-def cmd_config_validate(args: argparse.Namespace) -> int:
+def cmd_config_validate(_args: argparse.Namespace) -> int:
     """Validate all config files."""
     from ast_tools.config.validate import validate_config
 
@@ -926,7 +926,7 @@ def cmd_config_validate(args: argparse.Namespace) -> int:
 # ─── Governance Commands ──────────────────────────────────────────────
 
 
-def cmd_governance_init(args: argparse.Namespace) -> int:
+def cmd_governance_init(_args: argparse.Namespace) -> int:
     """Create default governance.yaml."""
     from ast_tools.governance.schema import init_governance_file
 
@@ -973,7 +973,7 @@ def cmd_governance_diff(args: argparse.Namespace) -> int:
         print(f"✅ {delta['total_fixed']} violation(s) fixed in current branch")
 
     if delta.get("total_new", 0) == 0 and delta.get("total_fixed", 0) == 0:
-        print("ℹ️  No governance changes between branches")
+        print("i  No governance changes between branches")
     return 0
 
 

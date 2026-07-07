@@ -38,12 +38,14 @@ def detect_ast_query(message: str) -> bool:
     return any(kw in lower for kw in KEYWORDS)
 
 
-def build_ast_tools_context(query: str = "") -> str:
+def build_ast_tools_context(query: str = "") -> str:  # noqa: ARG001
     """Build a concise context block describing AST-tools capabilities.
 
     Args:
         query: Optional query to tailor context (currently unused,
                preserved for future semantic matching).
+
+     # noqa: ARG001
 
     Returns:
         A formatted markdown string describing available tools.

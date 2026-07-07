@@ -162,9 +162,9 @@ def register_tools(registry: dict) -> None:
     """
     from ..tools import register_tool
 
-    register_tool("watch_add", lambda args: watch_add(args.get("paths", [])))
-    register_tool("watch_remove", lambda args: watch_remove(args.get("paths", [])))
-    register_tool("watch_status", lambda args: watch_status())
-    register_tool("watch_start", lambda args: watch_start(args.get("paths")))
-    register_tool("watch_stop", lambda args: watch_stop())
-    register_tool("reindex_path", lambda args: reindex_path(args.get("file_path", "")))
+    register_tool("watch_add", lambda _args: watch_add(_args.get("paths", [])))
+    register_tool("watch_remove", lambda _args: watch_remove(_args.get("paths", [])))
+    register_tool("watch_status", lambda _args: watch_status())
+    register_tool("watch_start", lambda _args: watch_start(_args.get("paths")))
+    register_tool("watch_stop", lambda _args: watch_stop())
+    register_tool("reindex_path", lambda _args: reindex_path(_args.get("file_path", "")))

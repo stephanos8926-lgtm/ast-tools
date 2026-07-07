@@ -1,10 +1,9 @@
-from ast_tools.tools.module_imports import _build_import_graph
-
 """impact_analysis tool — analyze the impact of changing a file or symbol."""
 
 from pathlib import Path
 from typing import Any
 
+from ast_tools.tools.module_imports import _build_import_graph
 from ast_tools.tools.structural_analysis import _ast_find_callers
 from ast_tools.utils.file_utils import file_to_module, is_test_file
 from ast_tools.utils.impact import build_reverse_deps, classify_risk, get_transitive_deps

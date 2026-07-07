@@ -1,5 +1,7 @@
 """ast_grep tool — structural code search using ast-grep CLI."""
 
+import json
+import subprocess
 from functools import lru_cache
 from typing import Any
 
@@ -12,10 +14,6 @@ def _compile_pattern(pattern: str, lang: str | None) -> tuple[str, str | None]:
     Here, it returns a tuple representing the pattern and language.
     """
     return pattern, lang
-
-
-import json
-import subprocess
 
 
 def _filter_top_level(matches: list, pattern: str) -> list:

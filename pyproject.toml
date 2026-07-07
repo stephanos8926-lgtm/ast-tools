@@ -99,9 +99,10 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401", "F403"]  # star imports in compat shims
-"tests/**/*.py" = ["ARG001", "S101"]  # unused args in tests, assert allowed
+"tests/**/*.py" = ["ARG001", "ARG002", "ARG005", "E402", "I001", "S101", "W292"]  # unused args, imports, asserts in tests
 "**/fixtures/*.py" = ["ALL"]
 "src/ast_tools/tools/*.py" = ["ARG001", "ARG002"]  # MCP tool handlers require args dict
+"hermes-plugins/**/*.py" = ["ARG001", "E402", "ARG001", "RUF001"]  # CLI handlers, emoji chars
 
 [tool.ruff.lint.isort]
 known-first-party = ["ast_tools"]

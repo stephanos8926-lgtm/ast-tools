@@ -245,7 +245,7 @@ def log_audit_event(
     action: str,
     resource: str,
     details: dict[str, Any],
-    result: str = "success",
+    _result: str = "success",
 ) -> int:
     """Log an audit event with automatic sanitization.
 

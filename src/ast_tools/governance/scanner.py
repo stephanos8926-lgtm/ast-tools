@@ -51,7 +51,7 @@ class Violation:
 
 
 def _is_exception(
-    filepath: str, import_target: str, exceptions: list[dict[str, Any]]
+    filepath: str, _import_target: str, exceptions: list[dict[str, Any]]
 ) -> str | None:
     """Check if a file+import pair matches an exception.
 
@@ -75,7 +75,7 @@ def _detect_file_layer(
     return None
 
 
-def _normalize_import(import_path: str, project_root: Path) -> str:
+def _normalize_import(import_path: str, _project_root: Path) -> str:
     """Convert an import to a normalized module path."""
     imp = import_path.replace("/", ".").replace(".py", "")
     # Remove leading project name if present

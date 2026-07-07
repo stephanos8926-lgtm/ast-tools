@@ -534,7 +534,7 @@ def _extract_function_ts(node, functions: list, lang: str = "python"):
     )
 
 
-def _extract_params_ts(node, lang: str = "python") -> list[str]:
+def _extract_params_ts(node, _lang: str = "python") -> list[str]:
     """Extract parameter names from a tree-sitter parameters node."""
     params = []
     for child in node.children:
@@ -601,7 +601,7 @@ def _extract_methods_ts(node, methods: list, lang: str = "python"):
             )
 
 
-def _extract_import_ts(node, imports: list, lang: str = "python"):
+def _extract_import_ts(node, imports: list, _lang: str = "python"):
     """Extract import information from a tree-sitter import node."""
     module = ""
     names = []

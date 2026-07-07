@@ -106,7 +106,7 @@ def file_to_module(file_path: str, root: Path) -> str:
     return ".".join(parts)
 
 
-def filter_top_level(matches: list, pattern: str) -> list:
+def filter_top_level(matches: list, _pattern: str) -> list:
     """Filter matches to only top-level function/class definitions.
 
     Uses the column offset from ast-grep's range data: top-level definitions

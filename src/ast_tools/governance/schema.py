@@ -37,8 +37,8 @@ class GovernanceConfig:
     def __init__(self, data: dict[str, Any]) -> None:
         self.version = data.get("version", 1)
         self.layers = {
-            l["name"]: LayerDef(l["name"], l)
-            for l in data.get("layers", [])
+            layer_data["name"]: LayerDef(layer_data["name"], layer_data)
+            for layer_data in data.get("layers", [])
         }
         self.mappings = [
             GovernanceRule(**m) for m in data.get("mappings", [])

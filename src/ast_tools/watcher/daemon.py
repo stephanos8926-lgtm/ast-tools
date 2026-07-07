@@ -379,7 +379,7 @@ if __name__ == "__main__":
     daemon = WatcherDaemon(watch_paths)
 
     # Graceful shutdown
-    def signal_handler(sig, frame):
+    def signal_handler(sig, frame):  # noqa: ARG001
         logger.info("Shutdown signal received")
         daemon.stop()
         sys.exit(0)

@@ -172,8 +172,8 @@ def cli_vacuum(args: dict | list | None = None) -> str:
             "aggressive": "--aggressive" in args or "-a" in args,
             "dry_run": "--dry-run" in args or "-n" in args,
         }
-    aggressive = getattr(args, "get", lambda k, d=None: d)("aggressive", False)
-    dry_run = getattr(args, "get", lambda k, d=None: d)("dry_run", False)
+    aggressive = getattr(args, "get", lambda _k, d=None: d)("aggressive", False)
+    dry_run = getattr(args, "get", lambda _k, d=None: d)("dry_run", False)
 
     result = run(aggressive=aggressive, dry_run=dry_run)
 
@@ -189,7 +189,7 @@ def cli_vacuum(args: dict | list | None = None) -> str:
             if op["freed"] > 0:
                 lines.append(f"  ✅ {op['op']}: {_human_size(op['freed'])} recovered")
             else:
-                lines.append(f"  ➖ {op['op']}: nothing to free")
+                lines.append(f"  - {op['op']}: nothing to free")
 
     if dry_run:
         lines.append("\n  Run without --dry-run to apply.")

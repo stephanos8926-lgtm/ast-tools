@@ -378,10 +378,10 @@ def cli_init(args: dict | list | None = None) -> str:
             if a == "--model-path" and i + 1 < len(args):
                 args["model_path"] = args[i + 1]
 
-    non_interactive = getattr(args, "get", lambda k, d=None: d)("non_interactive", False)
-    skip_model = getattr(args, "get", lambda k, d=None: d)("skip_model", False)
-    model_path = getattr(args, "get", lambda k, d=None: d)("model_path", None)
-    project_root = getattr(args, "get", lambda k, d=None: d)("project_root", None)
+    non_interactive = getattr(args, "get", lambda _k, d=None: d)("non_interactive", False)
+    skip_model = getattr(args, "get", lambda _k, d=None: d)("skip_model", False)
+    model_path = getattr(args, "get", lambda _k, d=None: d)("model_path", None)
+    project_root = getattr(args, "get", lambda _k, d=None: d)("project_root", None)
 
     result = run(
         non_interactive=bool(non_interactive),

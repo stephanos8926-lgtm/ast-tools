@@ -160,8 +160,8 @@ class GraphEngine:
 
     def _reconstruct(
         self,
-        from_id: str,
-        to_id: str,
+        _from_id: str,
+        _to_id: str,
         meeting: str,
         front_prev: dict[str, str | None],
         back_prev: dict[str, str | None],

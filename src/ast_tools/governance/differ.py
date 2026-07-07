@@ -16,7 +16,7 @@ def diff_branches(
     base_branch: str = "main",
     cwd: str | Path | None = None,
     config: GovernanceConfig | None = None,
-    fail_on: str = "error",
+    _fail_on: str = "error",
 ) -> dict[str, Any]:
     """Compare governance state between current and base branch.
 

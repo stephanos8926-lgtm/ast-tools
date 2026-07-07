@@ -101,8 +101,8 @@ class TestAsciiTree:
         deep.mkdir(parents=True)
         tree = _build_ascii_tree(tmp_path, max_depth=2)
         lines = tree.splitlines()
-        depth_lines = [l for l in lines if "└──" in l or "├──" in l]
-        max_nesting = max((len(l) for l in depth_lines), default=0)
+        depth_lines = [line for line in lines if "└──" in line or "├──" in line]
+        max_nesting = max((len(line) for line in depth_lines), default=0)
         assert max_nesting < 30  # shallow nesting
 
     def test_hidden_dirs_excluded(self, tmp_path: Path) -> None:

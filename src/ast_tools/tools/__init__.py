@@ -786,7 +786,7 @@ register_tool("co_change_predict", co_change_predict, {
     },
 })
 register_tool("co_change_hotspots", co_change_hotspots, {
-    "description": "Find top-N riskiest files by churn × coupling score",
+    "description": "Find top-N riskiest files by churn x coupling score",
     "inputSchema": {
         "type": "object",
         "properties": {

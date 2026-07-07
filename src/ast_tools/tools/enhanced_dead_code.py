@@ -181,14 +181,17 @@ class EnhancedDeadCodeDetector:
             for node in ast.walk(tree):
                 if isinstance(node, ast.Assign):
                     for target in node.targets:
-                        if isinstance(target, ast.Name) and target.id == "__all__":
-                            if isinstance(node.value, (ast.List, ast.Tuple)):
-                                for elt in node.value.elts:
-                                    if isinstance(elt, ast.Constant) and isinstance(
-                                        elt.value, str
-                                    ):
-                                        self.exported_symbols.add(elt.value)
-                                        logger.debug(f"Exported symbol: {elt.value}")
+                        if (
+                            isinstance(target, ast.Name)
+                            and target.id == "__all__"
+                            and isinstance(node.value, (ast.List, ast.Tuple))
+                        ):
+                            for elt in node.value.elts:
+                                if isinstance(elt, ast.Constant) and isinstance(
+                                    elt.value, str
+                                ):
+                                    self.exported_symbols.add(elt.value)
+                                    logger.debug(f"Exported symbol: {elt.value}")
 
             # Walk tree for definitions and references
             current_class: str | None = None
@@ -242,12 +245,11 @@ class EnhancedDeadCodeDetector:
 
                     # Track call graph edges (calls within function body)
                     for child in ast.walk(node):
-                        if isinstance(child, ast.Call):
-                            if isinstance(child.func, ast.Name):
-                                callee = child.func.id
-                                self.call_graph[symbol_key].add(
-                                    self._make_symbol_key(rel_path, callee, "function")
-                                )
+                        if isinstance(child, ast.Call) and isinstance(child.func, ast.Name):
+                            callee = child.func.id
+                            self.call_graph[symbol_key].add(
+                                self._make_symbol_key(rel_path, callee, "function")
+                            )
 
                 # Collect class definitions
                 if isinstance(node, ast.ClassDef) and not node.name.startswith("_"):
@@ -412,10 +414,9 @@ class EnhancedDeadCodeDetector:
             return "low", "Reachable from entry point", alive_signals
 
         # Check if class implements interface
-        if defn.get("class") and defn["class"] in self.implements_map:
-            if symbol in self.implements_map[defn["class"]]:
-                alive_signals.append("interface_implementation")
-                return "low", "Implements interface method", alive_signals
+        if defn.get("class") and defn["class"] in self.implements_map and symbol in self.implements_map[defn["class"]]:
+            alive_signals.append("interface_implementation")
+            return "low", "Implements interface method", alive_signals
 
         # Default: high confidence dead code
         return "high", "No references or alive signals detected", []

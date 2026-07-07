@@ -96,7 +96,7 @@ def _tool_co_change_predict(params: dict[str, Any]) -> dict[str, Any]:
 
 
 def _tool_co_change_hotspots(params: dict[str, Any]) -> dict[str, Any]:
-    """Find top-N riskiest files (highest churn × coupling).
+    """Find top-N riskiest files (highest churn x coupling).
 
     Args:
         top_n: Number of hotspots (default: 10)
