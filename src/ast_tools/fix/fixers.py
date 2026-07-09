@@ -7,7 +7,71 @@ import subprocess
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import Any, Type
+
+
+@dataclass
+class FixerPlugin:
+    """Represents a loaded, registered fixer plugin."""
+
+    name: str
+    entry_point: str  # e.g. 'my_module:MyFixerClass'
+    fixer_class: type["FixerBase"]
+
+    def __init__(self, name: str, entry_point: str):
+        self.name = name
+        self.entry_point = entry_point
+        self.fixer_class = self._load()
+
+    def _load(self) -> type["FixerBase"]:
+        module_name, class_name = self.entry_point.split(":", 1)
+        module = __import__(module_name, fromlist=[class_name])
+        return getattr(module, class_name)
+
+
+class PluginManager:
+    """Singleton manager for external fixer plugins."""
+
+    _instance: "PluginManager | None" = None
+    _plugins: dict[str, FixerPlugin] = {}
+
+    def __new__(cls) -> "PluginManager":
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+        return cls._instance
+
+    def register(self, name: str, entry_point: str) -> None:
+        """Register a plugin by name and module:Class entry point."""
+        plugin = FixerPlugin(name=name, entry_point=entry_point)
+        if not issubclass(plugin.fixer_class, FixerBase):
+            raise TypeError(
+                f"Plugin '{name}' class '{plugin.entry_point}' must subclass FixerBase"
+            )
+        self._plugins[name] = plugin
+
+    def load_from_config(self, config: dict[str, str] | None) -> None:
+        """Load all plugins from a config dict (name -> module:Class)."""
+        if not config:
+            return
+        for name, entry_point in config.items():
+            try:
+                self.register(name, entry_point)
+            except Exception as e:
+                import sys
+                print(f"⚠ Failed to load fixer plugin '{name}' ({entry_point}): {e}", file=sys.stderr)
+
+    def get_class(self, name: str) -> type["FixerBase"] | None:
+        """Get a plugin's fixer class by name."""
+        plugin = self._plugins.get(name)
+        return plugin.fixer_class if plugin else None
+
+    def get_all(self) -> dict[str, type["FixerBase"]]:
+        """Get all registered plugin classes."""
+        return {n: p.fixer_class for n, p in self._plugins.items()}
+
+
+# Global plugin manager instance
+plugin_manager = PluginManager()
 
 
 @dataclass
@@ -866,10 +930,27 @@ _FIXER_REGISTRY: dict[str, type[FixerBase]] = {
 
 
 def get_fixer_for_language(language: str) -> type[FixerBase] | None:
-    """Get fixer class for a language."""
-    return _FIXER_REGISTRY.get(language.lower())
+    """Get fixer class for a language (built-in or plugin)."""
+    # Check built-in registry first
+    fixer = _FIXER_REGISTRY.get(language.lower())
+    if fixer:
+        return fixer
+    # Fall back to plugin manager
+    return plugin_manager.get_class(language.lower())
 
 
 def get_all_fixers() -> dict[str, type[FixerBase]]:
-    """Get all registered fixers."""
-    return _FIXER_REGISTRY.copy()
+    """Get all registered fixers (built-in + plugins)."""
+    result = _FIXER_REGISTRY.copy()
+    result.update(plugin_manager.get_all())
+    return result
+
+
+def register_plugin_fixers(config: dict[str, str] | None) -> None:
+    """Register fixer plugins from a config dict.
+
+    Args:
+        config: Dict mapping language names to 'module:ClassName' strings.
+                Example: {"sql": "my_fixers:SQLFixer"}
+    """
+    plugin_manager.load_from_config(config)

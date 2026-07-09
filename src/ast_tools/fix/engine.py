@@ -14,6 +14,7 @@ from rich.progress import BarColumn, Progress, SpinnerColumn, TaskProgressColumn
 from .config import FixConfig
 from .fixers import FixAction, FixerBase, get_fixer_for_language
 from .fixers import FixerConfig as FixersFixerConfig
+from .fixers import register_plugin_fixers, plugin_manager
 
 console = Console()
 
@@ -70,9 +71,12 @@ class FixContext:
 class FixEngine:
     """Main orchestration engine for the auto-fix pipeline."""
 
-    def __init__(self, context: FixContext):
+    def __init__(self, context: FixContext, plugin_fixers: dict[str, str] | None = None):
         self.context = context
         self.fixers: list[FixerBase] = []
+        # Load custom fixer plugins if provided
+        if plugin_fixers:
+            register_plugin_fixers(plugin_fixers)
         self._init_fixers()
         # Track file content hashes per iteration for oscillation detection
         self._file_hashes: dict[Path, list[str]] = {}
@@ -295,9 +299,13 @@ class FixEngine:
                     continue
 
                 # Check .gitignore patterns
-                if gitignore_spec and gitignore_spec.match_file(str(file_path.relative_to(self.context.project_root))):
+                if gitignore_spec and gitignore_spec.match_file(
+                    str(file_path.relative_to(self.context.project_root))
+                ):
                     if self.context.verbose:
-                        console.print(f"  [yellow]⊘[/yellow] Skipping {file_path}: matched .gitignore pattern")
+                        console.print(
+                            f"  [yellow]⊘[/yellow] Skipping {file_path}: matched .gitignore pattern"
+                        )
                     continue
 
                 safe_files.append(file_path)
@@ -320,16 +328,21 @@ class FixEngine:
         """Load .gitignore patterns as a pathspec spec."""
         try:
             import pathspec
+
             gitignore_path = self.context.project_root / ".gitignore"
             if gitignore_path.exists():
                 with open(gitignore_path) as f:
                     lines = f.read().splitlines()
                 # Filter out comments and empty lines
-                patterns = [line for line in lines if line.strip() and not line.strip().startswith("#")]
+                patterns = [
+                    line for line in lines if line.strip() and not line.strip().startswith("#")
+                ]
                 return pathspec.PathSpec.from_lines("gitwildmatch", patterns)
         except ImportError:
             if self.context.verbose:
-                console.print("  [yellow]⚠[/yellow] pathspec not available, .gitignore patterns not respected")
+                console.print(
+                    "  [yellow]⚠[/yellow] pathspec not available, .gitignore patterns not respected"
+                )
         except Exception:
             pass
         return None

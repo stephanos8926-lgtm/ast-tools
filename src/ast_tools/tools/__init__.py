@@ -85,6 +85,7 @@ from .structural_analysis import _ast_find_callees, _ast_find_callers, _tool_str
 from .transitive_analysis import _tool_transitive_dependents
 from .ts_edit import _tool_ts_edit
 from .watcher import _tool_reindex_path, _tool_watch_add, _tool_watch_status
+from .fix_mcp import _tool_fix_code, _tool_fix_check, _tool_rerank_results
 
 # Core AST tools with schemas
 register_tool(
@@ -1215,6 +1216,103 @@ register_tool(
                 "db_path": {"type": "string"},
             },
             "required": ["symbol"],
+        },
+    },
+)
+
+# Fix & Reranker MCP tools
+register_tool(
+    "fix_code",
+    _tool_fix_code,
+    {
+        "description": "Apply auto-fix pipeline to files — linting, formatting, and convergence",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "path": {
+                    "type": "string",
+                    "description": "File or directory to fix (default: current directory)",
+                },
+                "check_only": {
+                    "type": "boolean",
+                    "description": "If true, only report issues without modifying files",
+                    "default": False,
+                },
+                "lang": {
+                    "type": "string",
+                    "description": "Language to fix (auto-detected by default)",
+                    "enum": ["python", "typescript", "javascript", "go", "rust", "cpp", "markdown"],
+                },
+                "safety": {
+                    "type": "string",
+                    "description": "Safety level: safe (formatting/imports) or unsafe (semantic fixes)",
+                    "enum": ["safe", "unsafe"],
+                    "default": "safe",
+                },
+                "max_iterations": {
+                    "type": "integer",
+                    "description": "Max convergence iterations",
+                    "default": 10,
+                },
+            },
+            "required": [],
+        },
+    },
+)
+
+register_tool(
+    "fix_check",
+    _tool_fix_check,
+    {
+        "description": "Check what auto-fixes would be applied without modifying files",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "path": {
+                    "type": "string",
+                    "description": "File or directory to check (default: current directory)",
+                },
+                "lang": {
+                    "type": "string",
+                    "description": "Language to check (auto-detected by default)",
+                    "enum": ["python", "typescript", "javascript", "go", "rust", "cpp", "markdown"],
+                },
+            },
+            "required": [],
+        },
+    },
+)
+
+register_tool(
+    "rerank_results",
+    _tool_rerank_results,
+    {
+        "description": "Rerank search results using cross-encoder for precision improvement",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "query": {"type": "string", "description": "The search query"},
+                "candidates": {
+                    "type": "array",
+                    "items": {"type": "object"},
+                    "description": "List of candidate dicts with 'content' or 'text' key",
+                },
+                "model": {
+                    "type": "string",
+                    "description": "Model name (default: cross-encoder/ms-marco-MiniLM-L-6-v2)",
+                },
+                "top_k": {
+                    "type": "integer",
+                    "description": "Number of results to return",
+                    "default": 15,
+                },
+                "score_key": {
+                    "type": "string",
+                    "description": "Key to extract text for scoring",
+                    "default": "content",
+                },
+            },
+            "required": ["query", "candidates"],
         },
     },
 )

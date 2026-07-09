@@ -25,6 +25,7 @@ import json
 import sys
 from pathlib import Path
 
+from ast_tools.config.unified import load_unified_config, UnifiedConfig
 from ast_tools.tools.blast_radius_v2 import _tool_blast_radius_v2
 
 
@@ -76,12 +77,25 @@ from ast_tools.tools.module_imports import _tool_module_imports  # noqa: E402
 from ast_tools.tools.project_info import _tool_project_info  # noqa: E402
 from ast_tools.tools.semantic_search import _tool_semantic_search  # noqa: E402
 from ast_tools.tools.structural_analysis import _ast_find_callees, _ast_find_callers  # noqa: E402
+from ast_tools.fix.engine import FixEngine, FixContext  # noqa: E402
+
+
+def _load_cli_config(args: argparse.Namespace) -> UnifiedConfig:
+    """Load unified config from pyproject.toml, ast-tools.yaml, and CLI overrides."""
+    cli_overrides = {}
+    if args.project_root:
+        cli_overrides["project_root"] = args.project_root
+
+    config = load_unified_config(cli_overrides=cli_overrides)
+    return config
 
 
 def cmd_search(args: argparse.Namespace) -> int:
     """Semantic search command."""
+    config = _load_cli_config(args)
+
     query = args.query
-    limit = args.limit or 10
+    limit = args.limit or config.mcp.max_tokens  # Use config max_tokens as default limit
 
     # Run async function
     result = asyncio.run(
@@ -89,6 +103,7 @@ def cmd_search(args: argparse.Namespace) -> int:
             query=query,
             k=limit,
             inject_context=False,  # CLI wants raw results
+            reranker_config=config.reranker,  # Pass reranker config
         )
     )
 
@@ -121,7 +136,9 @@ def cmd_search(args: argparse.Namespace) -> int:
 
 def cmd_navigate(args: argparse.Namespace) -> int:
     """Navigate to symbol definition command."""
-    project_root = args.project_root or "."
+    config = _load_cli_config(args)
+
+    project_root = args.project_root or config.index.project_root
     symbol = args.symbol
 
     result = _tool_find_symbol_definition(
