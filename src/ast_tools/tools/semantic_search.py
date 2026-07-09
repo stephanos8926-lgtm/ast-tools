@@ -11,6 +11,7 @@ from typing import Any
 from ..context import ContextInjector, MarkdownFormatter
 from ..database.connection import get_connection
 from ..embeddings import generate_embedding, search_similar
+from ..reranker import RerankerConfig, apply_reranking  # New Import
 from ..utils.rrf import rrf_fuse
 
 logger = logging.getLogger(__name__)
@@ -198,8 +199,9 @@ def hybrid_search_with_context(
     max_context_symbols: int = 10,
     model_context_window: int = 32000,
     context_token_budget: int | None = None,
+    use_reranker: bool = False,
 ) -> tuple[list[dict], dict[str, Any]]:
-    """Hybrid search with optional context injection.
+    """Hybrid search with optional context injection and reranking.
 
     Args:
         conn: SQLite connection
@@ -211,6 +213,7 @@ def hybrid_search_with_context(
         max_context_symbols: Max symbols for context
         model_context_window: Model's context window size
         context_token_budget: Token budget for context (default: 20% of window)
+        use_reranker: Whether to apply cross-encoder reranking
 
     Returns:
         Tuple of (search_results, context_injection_info)
@@ -218,14 +221,37 @@ def hybrid_search_with_context(
         - context_markdown: Formatted context
         - tokens_used: Tokens consumed
         - budget_remaining: Remaining budget
+        - reranker_confidence: Confidence from reranker (if used)
     """
     results = hybrid_search(conn, query, k, kind, lang)
+
+    # Apply cross-encoder reranking if enabled
+    reranker_confidence = 0.0
+    if use_reranker and results:
+        reranker_config = RerankerConfig(
+            use_reranker=True,
+            max_candidates=min(len(results), 60),
+            top_k=min(k, 15),
+        )
+        # Convert to candidate format for reranker
+        candidates = [
+            {
+                "content": f"{r.get('name', '')} {r.get('signature', '')} {r.get('docstring', '')}",
+                **r,
+            }
+            for r in results
+        ]
+        reranked_candidates, reranker_confidence = apply_reranking(
+            query, candidates, reranker_config
+        )
+        results = reranked_candidates[:k]
 
     if not context_enabled or not results:
         return results, {
             "context_markdown": "",
             "tokens_used": 0,
             "budget_remaining": context_token_budget or (model_context_window // 5),
+            "reranker_confidence": reranker_confidence,
         }
 
     budget = context_token_budget or (model_context_window // 5)
@@ -254,6 +280,7 @@ def hybrid_search_with_context(
         "budget_remaining": budget - tokens_used,
         "truncated": truncated,
         "total_tokens": sum(estimate_context_tokens(s) for s in selected_symbols),
+        "reranker_confidence": reranker_confidence,
     }
 
 
@@ -349,6 +376,7 @@ async def _tool_semantic_search(
     inject_context: bool = True,
     token_budget: int = 4096,
     diversity_limit: int = 3,
+    use_reranker: bool = False,
     session_id: str | None = None,
 ) -> str:
     """
@@ -364,6 +392,7 @@ async def _tool_semantic_search(
         inject_context: If True, inject relevant context symbols for LLM prompts (default: True)
         token_budget: Token budget for context injection (default: 4096)
         diversity_limit: Max symbols per file for diversity (default: 3)
+        use_reranker: If True, apply cross-encoder reranking for improved precision (default: False)
         session_id: Optional session ID for tracking
 
     Returns:
@@ -378,7 +407,8 @@ async def _tool_semantic_search(
                 "context_markdown": "...formatted context...",
                 "tokens_used": 1234,
                 "budget_remaining": 5678,
-                "diversity_applied": true
+                "diversity_applied": true,
+                "reranker_confidence": 0.85
             }
         }
     """
@@ -435,6 +465,7 @@ async def _tool_semantic_search(
                 max_context_symbols=k,
                 model_context_window=token_budget,
                 context_token_budget=token_budget,
+                use_reranker=use_reranker,
             )
             conn.close()
             # Add diversity_applied to context_info
@@ -526,6 +557,11 @@ semantic_search_tool = {
                 "default": 3,
                 "minimum": 1,
                 "maximum": 10,
+            },
+            "use_reranker": {
+                "type": "boolean",
+                "description": "If True, apply cross-encoder reranking for improved precision (requires sentence-transformers)",
+                "default": False,
             },
             "session_id": {"type": "string", "description": "Optional session ID for tracking"},
         },

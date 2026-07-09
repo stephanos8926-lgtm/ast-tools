@@ -1,0 +1,271 @@
+{
+  "forward": [
+    {
+      "id": "FWD-01",
+      "path": "cli.py:cmd_fix() \u2192 engine.py:FixEngine.run() \u2192 fixers.py:RuffFixer.analyze()",
+      "finding": "CLI resolves paths relative to CWD, not project_root. If user runs from a subdirectory, target paths may be outside project_root.",
+      "severity": "MEDIUM",
+      "type": "logic_gap"
+    },
+    {
+      "id": "FWD-02",
+      "path": "engine.py:_init_fixers() \u2192 fixers.py:get_fixer_for_language()",
+      "finding": "No validation that language strings from CLI match registered fixers. If --lang is 'all', no language is detected via CLI args, so fallthrough to auto-detect works \u2014 but if someone passes --lang='unknown', it silently skips.",
+      "severity": "LOW",
+      "type": "missing_validation"
+    },
+    {
+      "id": "FWD-03",
+      "path": "engine.py:run() \u2192 _collect_fix_actions() \u2192 fixer.analyze()",
+      "finding": "Error handling in _collect_fix_actions uses getattr/setattr pattern to capture errors into _collect_errors, but this is reset each call \u2014 errors from previous iterations are lost.",
+      "severity": "MEDIUM",
+      "type": "data_loss"
+    },
+    {
+      "id": "FWD-04",
+      "path": "engine.py:run() \u2192 while iteration loop",
+      "finding": "The convergence loop calls _collect_fix_actions() each iteration. But after applying fixes in iteration N, the files on disk have changed. _verify_all() checks if issues remain, but _collect_fix_actions() re-reads from disk. This is correct, BUT the verify() method on most fixers returns an empty list (stub), so convergence detection is incomplete.",
+      "severity": "HIGH",
+      "type": "stub_implementation"
+    },
+    {
+      "id": "FWD-05",
+      "path": "fixers.py:FixerBase.verify() (base class)",
+      "finding": "Base verify() returns empty list. Only the orchestration engine calls verify(). Most concrete fixers do NOT override verify(), so the convergence loop relies entirely on whether analyze() returns actions on subsequent iterations. If analyze() is idempotent (returns same actions each time), the loop will infinite-iterate. There's no fixpoint detection.",
+      "severity": "HIGH",
+      "type": "missing_functionality"
+    },
+    {
+      "id": "FWD-06",
+      "path": "fixers.py:RuffFixer.analyze()",
+      "finding": "The Ruff fixer runs `ruff check --fix` on ALL files at once (batch mode), then iterates diagnostics. But it also runs `ruff format` per-file. If ruff check --fix modifies a file, the subsequent ruff format reads the original (pre-fix) content because original was captured before the batch command. This means the format might be stale.",
+      "severity": "MEDIUM",
+      "type": "race_condition"
+    },
+    {
+      "id": "FWD-07",
+      "path": "fixers.py:RuffFixer.analyze() \u2192 ruff check --output-format=json",
+      "finding": "Runs `ruff check --fix` which MODIFIES files on disk as a side effect, then also captures stdout JSON. But the fix result comparison `fix_result.stdout != original` via stdin is a SEPARATE command. So we're running ruff check --fix twice: once with file args (modifies disk), once with stdin (piped). First run already modified files.",
+      "severity": "CRITICAL",
+      "type": "double_mutation"
+    },
+    {
+      "id": "FWD-08",
+      "path": "fixers.py:TypeScriptFixer.analyze()",
+      "finding": "ESLint --fix also modifies files in-place (side effect), then runs Prettier via stdin. But the ESLint command writes changes to disk before we capture the diff.",
+      "severity": "CRITICAL",
+      "type": "double_mutation"
+    },
+    {
+      "id": "FWD-09",
+      "path": "fixers.py:GoFixerConcrete.analyze() \u2192 golangci-lint --fix",
+      "finding": "golangci-lint --fix modifies files on disk. Then re-reads file content for comparison. But the 'original' was captured BEFORE the tool ran, so if the disk file changed by the batch command, original is correct but we've already applied the fix. The FixAction then gets written back via apply_fix() which writes fixed_content over the already-fixed file.",
+      "severity": "HIGH",
+      "type": "double_write"
+    }
+  ],
+  "reverse": [
+    {
+      "id": "REV-06",
+      "req": "--check mode: exit code 1 if fixes needed",
+      "status": "Partially \u2014 works but verify() stubbed",
+      "finding": "--check mode: exit code 1 if fixes needed: Partially \u2014 works but verify() stubbed",
+      "severity": "LOW"
+    },
+    {
+      "id": "REV-07",
+      "req": "Backup original files before applying",
+      "status": "NOT IMPLEMENTED",
+      "finding": "Backup original files before applying: NOT IMPLEMENTED",
+      "severity": "HIGH"
+    },
+    {
+      "id": "REV-08",
+      "req": "Parallel execution across files",
+      "status": "NOT IMPLEMENTED \u2014 sequential per-file",
+      "finding": "Parallel execution across files: NOT IMPLEMENTED \u2014 sequential per-file",
+      "severity": "LOW"
+    },
+    {
+      "id": "REV-09",
+      "req": "Incremental mode (only changed files)",
+      "status": "NOT IMPLEMENTED",
+      "finding": "Incremental mode (only changed files): NOT IMPLEMENTED",
+      "severity": "HIGH"
+    },
+    {
+      "id": "REV-10",
+      "req": "Plugin system for custom fixers",
+      "status": "NOT IMPLEMENTED",
+      "finding": "Plugin system for custom fixers: NOT IMPLEMENTED",
+      "severity": "HIGH"
+    },
+    {
+      "id": "REV-11",
+      "req": "LSP integration (codeAction)",
+      "status": "NOT IMPLEMENTED",
+      "finding": "LSP integration (codeAction): NOT IMPLEMENTED",
+      "severity": "HIGH"
+    },
+    {
+      "id": "REV-12",
+      "req": "MCP tool exposure",
+      "status": "NOT IMPLEMENTED",
+      "finding": "MCP tool exposure: NOT IMPLEMENTED",
+      "severity": "HIGH"
+    },
+    {
+      "id": "REV-13",
+      "req": "Dry run with detailed report",
+      "status": "Partially \u2014 --diff shows per-action",
+      "finding": "Dry run with detailed report: Partially \u2014 --diff shows per-action",
+      "severity": "LOW"
+    },
+    {
+      "id": "REV-14",
+      "req": "Per-language skip/ignore patterns",
+      "status": "NOT IMPLEMENTED",
+      "finding": "Per-language skip/ignore patterns: NOT IMPLEMENTED",
+      "severity": "HIGH"
+    },
+    {
+      "id": "REV-15",
+      "req": "Respect .gitignore patterns",
+      "status": "NOT IMPLEMENTED",
+      "finding": "Respect .gitignore patterns: NOT IMPLEMENTED",
+      "severity": "HIGH"
+    }
+  ],
+  "adversarial": [
+    {
+      "id": "ADV-01",
+      "vector": "Command injection via file path",
+      "finding": "file_paths are converted to strings for CLI commands via str(file_path). If a file is named like ';rm -rf /;.py' or has spaces, the subprocess may interpret it unexpectedly. Python's subprocess.run with list args is safe against shell injection, but paths with special chars may still cause tool failures.",
+      "severity": "MEDIUM",
+      "type": "command_injection"
+    },
+    {
+      "id": "ADV-02",
+      "vector": "File content injection",
+      "finding": "No content validation before writing fixed content to disk. If a tool returns corrupted content (e.g., null bytes, encoding issues), write_text will write it as-is. Could corrupt source files.",
+      "severity": "HIGH",
+      "type": "data_corruption"
+    },
+    {
+      "id": "ADV-03",
+      "vector": "Symlink traversal",
+      "finding": "detect() methods use rglob() which follows symlinks by default. A symlink pointing to /etc/passwd or similar could be read and written to.",
+      "severity": "HIGH",
+      "type": "path_traversal"
+    },
+    {
+      "id": "ADV-04",
+      "vector": "Race condition: concurrent fix runs",
+      "finding": "No file locking. If two FixEngine instances run on the same files concurrently, they'll corrupt each other's changes.",
+      "severity": "HIGH",
+      "type": "race_condition"
+    },
+    {
+      "id": "ADV-05",
+      "vector": "Temp file leak",
+      "finding": "No cleanup of temporary files if subprocess fails mid-way.",
+      "severity": "LOW",
+      "type": "resource_leak"
+    },
+    {
+      "id": "ADV-06",
+      "vector": "Large file DoS",
+      "finding": "No size limits on file reads. A multi-GB file will OOM the process.",
+      "severity": "MEDIUM",
+      "type": "denial_of_service"
+    },
+    {
+      "id": "ADV-07",
+      "vector": "Unicode normalization attacks",
+      "finding": "No normalization of file paths or content. Homograph attacks could bypass file detection.",
+      "severity": "LOW",
+      "type": "unicode_attack"
+    },
+    {
+      "id": "ADV-08",
+      "vector": "Tool absence \u2192 silent skip",
+      "finding": "If a tool (ruff, eslint, goimports) is not installed, the fixer silently skips (only prints if verbose). User may think fixes were applied when they weren't.",
+      "severity": "MEDIUM",
+      "type": "silent_failure"
+    }
+  ],
+  "edge_cases": [
+    {
+      "id": "EDG-01",
+      "case": "Empty directory",
+      "finding": "If target_paths is an empty directory, all fixers return empty file lists. Pipeline reports 'No fixes needed' \u2014 correct behavior.",
+      "severity": "LOW",
+      "type": "handled"
+    },
+    {
+      "id": "EDG-02",
+      "case": "No matching files",
+      "finding": "If directory exists but no supported file types, _collect_fix_actions returns empty. Loop exits iteration 0. FixResult has 0 actions. Correct.",
+      "severity": "LOW",
+      "type": "handled"
+    },
+    {
+      "id": "EDG-03",
+      "case": "Binary files",
+      "finding": "detect() methods only check file extension, not content. Binary files with .py extension (pyc, pyo, so) would be passed to ruff which will fail.",
+      "severity": "MEDIUM",
+      "type": "unhandled"
+    },
+    {
+      "id": "EDG-04",
+      "case": "Very large file (>100MB)",
+      "finding": "No file size check. read_text() on a 100MB+ file will consume significant memory. On 4GB workstation, this could trigger OOM.",
+      "severity": "HIGH",
+      "type": "oom_risk"
+    },
+    {
+      "id": "EDG-05",
+      "case": "Read-only files",
+      "finding": "apply_fix() catches Exception and returns False silently. Read-only files will be skipped without warning (unless verbose).",
+      "severity": "MEDIUM",
+      "type": "silent_failure"
+    },
+    {
+      "id": "EDG-06",
+      "case": "Encoding: non-UTF8 files",
+      "finding": "All read_text/write_text use encoding='utf-8' explicitly. Non-UTF8 files (e.g., Latin-1, shift-JIS) will throw UnicodeDecodeError.",
+      "severity": "MEDIUM",
+      "type": "encoding_error"
+    },
+    {
+      "id": "EDG-07",
+      "case": "Tool timeout",
+      "finding": "_run_command has no timeout. If a tool hangs (e.g., clang-tidy on a large file), the fixer blocks indefinitely.",
+      "severity": "HIGH",
+      "type": "infinite_block"
+    },
+    {
+      "id": "EDG-08",
+      "case": "Files with no content (empty files)",
+      "finding": "Empty file \u2192 read_text returns ''. Comparison with ruff/stdin output 'original != fixed' \u2014 if both empty, no action. Correct.",
+      "severity": "LOW",
+      "type": "handled"
+    },
+    {
+      "id": "EDG-09",
+      "case": "Iteration 0 break on check_only/diff_only",
+      "finding": "In check/diff mode, the pipeline breaks after the FIRST iteration regardless of whether more fixes would be needed. This gives incomplete diffs.",
+      "severity": "MEDIUM",
+      "type": "incomplete_output"
+    },
+    {
+      "id": "EDG-10",
+      "case": "Convergence never achieved (oscillation)",
+      "finding": "If two fixers fight each other (e.g., eslint changes \u2192 prettier changes back \u2192 eslint changes \u2192 ...), the loop runs all max_iterations. No oscillation detection.",
+      "severity": "HIGH",
+      "type": "infinite_loop"
+    }
+  ],
+  "bugs": [],
+  "risks": []
+}

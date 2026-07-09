@@ -1038,6 +1038,162 @@ def cmd_governance_report(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_fix(args: argparse.Namespace) -> int:
+    """Auto-fix code issues command."""
+    from pathlib import Path
+
+    from ast_tools.fix.config import FixConfig, load_fix_config
+    from ast_tools.fix.engine import FixContext, FixEngine, SafetyLevel
+
+    project_root = Path(args.project_root or ".").resolve()
+    target_paths = [Path(p) for p in args.paths]
+
+    # Detect languages
+    languages = set()
+    if args.lang and args.lang != "all":
+        languages.add(args.lang)
+    else:
+        # Auto-detect from files
+        for path in target_paths:
+            p = Path(path)
+            if p.is_file() and p.suffix in {".py"}:
+                languages.add("python")
+            elif p.is_file() and p.suffix in {".js", ".jsx", ".ts", ".tsx"}:
+                languages.add("typescript")
+            elif p.is_file() and p.suffix == ".go":
+                languages.add("go")
+            elif p.is_file() and p.suffix == ".rs":
+                languages.add("rust")
+            elif p.is_file() and p.suffix in {".cpp", ".cc", ".c", ".h", ".hpp"}:
+                languages.add("cpp")
+            elif p.is_file() and p.suffix in {".md", ".markdown"}:
+                languages.add("markdown")
+
+        if not languages:
+            # Check if directories contain specific file types
+            for path in target_paths:
+                p = Path(path)
+                if p.is_dir():
+                    if list(p.rglob("*.py")):
+                        languages.add("python")
+                    if list(p.rglob("*.ts")) or list(p.rglob("*.tsx")):
+                        languages.add("typescript")
+                    if list(p.rglob("*.js")) or list(p.rglob("*.jsx")):
+                        languages.add("javascript")
+                    if list(p.rglob("*.go")):
+                        languages.add("go")
+                    if list(p.rglob("*.rs")):
+                        languages.add("rust")
+                    if list(p.rglob("*.cpp")) or list(p.rglob("*.h")):
+                        languages.add("cpp")
+                    if list(p.rglob("*.md")):
+                        languages.add("markdown")
+
+    if not languages:
+        print("i  No supported files found in the specified paths")
+        return 0
+
+    # Load config
+    config = load_fix_config(project_root)
+    config.check_only = args.check
+    config.diff_only = args.diff
+    config.verbose = args.verbose
+    config.max_iterations = args.max_iterations
+
+    # Create context
+    context = FixContext(
+        project_root=project_root,
+        target_paths=[Path(p).resolve() for p in args.paths],
+        languages=languages,
+        config=config,
+        safety_level=SafetyLevel.UNSAFE if args.unsafe else SafetyLevel.SAFE,
+        check_only=args.check,
+        diff_only=args.diff,
+        verbose=args.verbose,
+        max_iterations=args.max_iterations,
+    )
+
+    # Run engine
+    engine = FixEngine(context)
+    result = engine.run()
+
+    # Format output
+    if args.format == "json":
+        output = {
+            "success": result.success,
+            "total_fixes": result.total_fixes,
+            "files_changed": result.files_changed,
+            "iterations": result.iterations,
+            "converged": result.converged,
+            "execution_time": round(result.execution_time, 2),
+            "actions": [
+                {
+                    "tool": a.tool,
+                    "file": str(a.file_path),
+                    "description": a.description,
+                    "safety": a.safety,
+                }
+                for a in result.actions_applied
+            ],
+            "errors": result.errors,
+        }
+        print(json.dumps(output, indent=2))
+    elif args.format == "markdown":
+        _print_fix_markdown(result)
+    else:
+        _print_fix_table(result)
+
+    # Exit code: non-zero if check mode and fixes needed or errors
+    if args.check and result.total_fixes > 0:
+        return 1
+    if not result.success:
+        return 1
+    return 0
+
+
+def _print_fix_table(result):
+    """Print fix results as a table."""
+    if result.total_fixes == 0:
+        print("✅ No fixes needed")
+        return
+
+    print(f"\n{'Tool':<15} {'File':<40} {'Description':<50} {'Safety':<10}")
+    print("-" * 115)
+    for action in result.actions_applied:
+        file_str = str(action.file_path)[:38]
+        desc = action.description[:48]
+        print(f"{action.tool:<15} {file_str:<40} {desc:<50} {action.safety:<10}")
+
+    print()
+    print(f"Total fixes: {result.total_fixes}")
+    print(f"Files changed: {result.files_changed}")
+    print(f"Iterations: {result.iterations}")
+    print(f"Converged: {'Yes' if result.converged else 'No - may need manual review'}")
+    print(f"Time: {result.execution_time:.2f}s")
+
+    if result.errors:
+        print(f"\nErrors: {len(result.errors)}")
+        for err in result.errors[:5]:
+            print(f"  ❌ {err}")
+
+    if result.actions_skipped:
+        print(f"\nSkipped: {len(result.actions_skipped)}")
+
+
+def _print_fix_markdown(result):
+    """Print fix results as markdown."""
+    lines = ["## Auto-Fix Results", "", "| Tool | File | Description | Safety |", "|------|------|-------------|--------|"]
+    for action in result.actions_applied:
+        lines.append(f"| {action.tool} | `{action.file_path}` | {action.description} | {action.safety} |")
+    lines.append("")
+    lines.append(f"**Total fixes:** {result.total_fixes}")
+    lines.append(f"**Files changed:** {result.files_changed}")
+    lines.append(f"**Iterations:** {result.iterations}")
+    lines.append(f"**Converged:** {'Yes' if result.converged else 'No'}")
+    lines.append(f"**Time:** {result.execution_time:.2f}s")
+    print("\n".join(lines))
+
+
 def main() -> int:
     """Main CLI entry point."""
     parser = argparse.ArgumentParser(
@@ -1405,6 +1561,60 @@ def main() -> int:
 
     config_path_p = config_sub.add_parser("path", help="Print config directory path")
     config_path_p.set_defaults(func=cmd_config_path)
+
+    # ——————————————————
+    # Command: fix
+    # ——————————————————
+    fix_p = subparsers.add_parser(
+        "fix",
+        help="Auto-fix code issues (lint, format, imports)",
+        description="Run auto-fix pipeline with convergence loop across languages",
+    )
+    fix_p.add_argument(
+        "paths",
+        nargs="*",
+        default=["."],
+        help="Paths to fix (files or directories)",
+    )
+    fix_p.add_argument(
+        "--check",
+        action="store_true",
+        help="Check only mode - exit with error if fixes needed",
+    )
+    fix_p.add_argument(
+        "--diff",
+        action="store_true",
+        help="Show diff of proposed changes without applying",
+    )
+    fix_p.add_argument(
+        "--unsafe",
+        action="store_true",
+        help="Apply unsafe fixes (may change semantics)",
+    )
+    fix_p.add_argument(
+        "--lang",
+        choices=["python", "typescript", "javascript", "go", "rust", "cpp", "markdown", "all"],
+        default="all",
+        help="Filter by language",
+    )
+    fix_p.add_argument(
+        "--max-iterations",
+        type=int,
+        default=10,
+        help="Maximum convergence iterations",
+    )
+    fix_p.add_argument(
+        "-v", "--verbose",
+        action="store_true",
+        help="Verbose output",
+    )
+    fix_p.add_argument(
+        "-f", "--format",
+        choices=["table", "json", "markdown"],
+        default="table",
+        help="Output format",
+    )
+    fix_p.set_defaults(func=cmd_fix)
 
     # ——————————————————
     # Command: governance
