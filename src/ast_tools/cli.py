@@ -1634,6 +1634,22 @@ def main() -> int:
     fix_p.set_defaults(func=cmd_fix)
 
     # ——————————————————
+    # Command: lsp
+    # ——————————————————
+    lsp_p = subparsers.add_parser(
+        "lsp",
+        help="Start LSP server",
+        description="Start the Language Server Protocol server for editor integration",
+    )
+    lsp_p.add_argument(
+        "--stdio",
+        action="store_true",
+        default=True,
+        help="Use stdio transport (default)",
+    )
+    lsp_p.set_defaults(func=cmd_lsp)
+
+    # ——————————————————
     # Command: governance
     # ——————————————————
     gov_p = subparsers.add_parser(
@@ -1668,6 +1684,22 @@ def main() -> int:
         return 1
 
     return args.func(args)
+
+
+def cmd_lsp(args: argparse.Namespace) -> int:
+    """Start LSP server."""
+    import sys
+    import logging
+    
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        stream=sys.stderr,
+    )
+    
+    from ast_tools.lsp.server import main as lsp_main
+    lsp_main()
+    return 0
 
 
 if __name__ == "__main__":

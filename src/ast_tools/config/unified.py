@@ -80,6 +80,10 @@ class FixConfig:
         ]
     )
 
+    def get_fixer_config(self, name: str) -> FixerConfig:
+        """Get config for a specific fixer."""
+        return self.fixers.get(name, FixerConfig())
+
 
 @dataclass
 class IndexConfig:
@@ -141,15 +145,81 @@ class MCPConfig:
 
 
 @dataclass
+class LLMConfig:
+    """Configuration for LLM-assisted fix refinement."""
+    
+    enabled: bool = True
+    prefer_local: bool = True
+    timeout_seconds: int = 30
+    max_tokens: int = 2048
+    temperature: float = 0.1
+    
+    # Local LLM backends
+    local_backend: str = "llama.cpp"  # "llama.cpp", "ollama", "vllm"
+    local_model_path: str = "~/.cache/ast-tools/models/qwen2.5-coder-7b-instruct-q4_k_m.gguf"
+    local_n_gpu_layers: int = -1  # -1 = all, 0 = CPU only
+    local_n_ctx: int = 8192
+    local_host: str = "127.0.0.1"
+    local_port: int = 11434  # Ollama default
+    
+    # Remote LLM providers
+    remote_provider: str = "openrouter"  # "openrouter", "anthropic", "gemini"
+    remote_model: str = "qwen/qwen-2.5-coder-32b-instruct"
+    remote_fallback_chain: list[str] = field(default_factory=lambda: ["openrouter", "anthropic", "gemini"])
+    remote_api_key_env: str = "OPENROUTER_API_KEY"
+    
+    # Prompt template
+    prompt_template: str = (
+        "You are an expert code fixer. Given a diagnostic and code context, "
+        "suggest a minimal, correct fix. Return only the unified diff.\n\n"
+        "Diagnostic: {diagnostic_message}\n"
+        "Rule: {diagnostic_code}\n"
+        "File: {file_path}\n"
+        "Language: {language}\n"
+        "Code context:\n{code_context}\n\n"
+        "Fix:"
+    )
+
+
+@dataclass
+class DiagnosticConfig:
+    """Configuration for diagnostic publishing."""
+    
+    enabled: bool = True
+    debounce_ms: int = 300
+    max_diagnostics_per_file: int = 100
+    push_diagnostics: bool = True  # textDocument/publishDiagnostics
+    pull_diagnostics: bool = False  # textDocument/diagnostic (client-initiated)
+    include_related_information: bool = True
+
+
+@dataclass
+class FormattingConfig:
+    """Configuration for document formatting."""
+    
+    enabled: bool = True
+    range_formatting: bool = True
+    format_on_save: bool = True
+    fix_on_save: bool = True
+
+
+@dataclass
 class LSPConfig:
     """Configuration for LSP server."""
-
+    
     enabled: bool = True
     host: str = "127.0.0.1"
     port: int = 8767
     code_action_kind: list[str] = field(
         default_factory=lambda: ["quickfix", "refactor", "source"]
     )
+    
+    # New fields
+    diagnostics: DiagnosticConfig = field(default_factory=DiagnosticConfig)
+    formatting: FormattingConfig = field(default_factory=FormattingConfig)
+    llm: LLMConfig = field(default_factory=LLMConfig)
+    config_watch: bool = True  # Watch config files for hot-reload
+    initialization_timeout_ms: int = 5000
 
 
 @dataclass
@@ -351,6 +421,10 @@ class UnifiedConfig:
 
     @staticmethod
     def _load_lsp_config(data: dict[str, Any]) -> LSPConfig:
+        diagnostics_data = data.get("diagnostics", {})
+        formatting_data = data.get("formatting", {})
+        llm_data = data.get("llm", {})
+
         return LSPConfig(
             enabled=data.get("enabled", True),
             host=data.get("host", "127.0.0.1"),
@@ -358,6 +432,81 @@ class UnifiedConfig:
             code_action_kind=data.get(
                 "code_action_kind", ["quickfix", "refactor", "source"]
             ),
+            diagnostics=DiagnosticConfig(
+                enabled=diagnostics_data.get("enabled", True),
+                debounce_ms=diagnostics_data.get("debounce_ms", 300),
+                max_diagnostics_per_file=diagnostics_data.get("max_diagnostics_per_file", 100),
+                push_diagnostics=diagnostics_data.get("push_diagnostics", True),
+                pull_diagnostics=diagnostics_data.get("pull_diagnostics", False),
+                include_related_information=diagnostics_data.get("include_related_information", True),
+            ),
+            formatting=FormattingConfig(
+                enabled=formatting_data.get("enabled", True),
+                range_formatting=formatting_data.get("range_formatting", True),
+                format_on_save=formatting_data.get("format_on_save", True),
+                fix_on_save=formatting_data.get("fix_on_save", True),
+            ),
+            llm=LLMConfig(
+                enabled=llm_data.get("enabled", True),
+                prefer_local=llm_data.get("prefer_local", True),
+                timeout_seconds=llm_data.get("timeout_seconds", 30),
+                max_tokens=llm_data.get("max_tokens", 2048),
+                temperature=llm_data.get("temperature", 0.1),
+                local_backend=llm_data.get("local_backend", "llama.cpp"),
+                local_model_path=llm_data.get("local_model_path", "~/.cache/ast-tools/models/qwen2.5-coder-7b-instruct-q4_k_m.gguf"),
+                local_n_gpu_layers=llm_data.get("local_n_gpu_layers", -1),
+                local_n_ctx=llm_data.get("local_n_ctx", 8192),
+                local_host=llm_data.get("local_host", "127.0.0.1"),
+                local_port=llm_data.get("local_port", 11434),
+                remote_provider=llm_data.get("remote_provider", "openrouter"),
+                remote_model=llm_data.get("remote_model", "qwen/qwen-2.5-coder-32b-instruct"),
+                remote_fallback_chain=llm_data.get("remote_fallback_chain", ["openrouter", "anthropic", "gemini"]),
+                remote_api_key_env=llm_data.get("remote_api_key_env", "OPENROUTER_API_KEY"),
+                prompt_template=llm_data.get("prompt_template", LLMConfig().prompt_template),
+            ),
+            config_watch=data.get("config_watch", True),
+            initialization_timeout_ms=data.get("initialization_timeout_ms", 5000),
+        )
+
+    @staticmethod
+    def _load_diagnostic_config(data: dict[str, Any]) -> DiagnosticConfig:
+        return DiagnosticConfig(
+            enabled=data.get("enabled", True),
+            debounce_ms=data.get("debounce_ms", 300),
+            max_diagnostics_per_file=data.get("max_diagnostics_per_file", 100),
+            push_diagnostics=data.get("push_diagnostics", True),
+            pull_diagnostics=data.get("pull_diagnostics", False),
+            include_related_information=data.get("include_related_information", True),
+        )
+
+    @staticmethod
+    def _load_formatting_config(data: dict[str, Any]) -> FormattingConfig:
+        return FormattingConfig(
+            enabled=data.get("enabled", True),
+            range_formatting=data.get("range_formatting", True),
+            format_on_save=data.get("format_on_save", True),
+            fix_on_save=data.get("fix_on_save", True),
+        )
+
+    @staticmethod
+    def _load_llm_config(data: dict[str, Any]) -> LLMConfig:
+        return LLMConfig(
+            enabled=data.get("enabled", True),
+            prefer_local=data.get("prefer_local", True),
+            timeout_seconds=data.get("timeout_seconds", 30),
+            max_tokens=data.get("max_tokens", 2048),
+            temperature=data.get("temperature", 0.1),
+            local_backend=data.get("local_backend", "llama.cpp"),
+            local_model_path=data.get("local_model_path", "~/.cache/ast-tools/models/qwen2.5-coder-7b-instruct-q4_k_m.gguf"),
+            local_n_gpu_layers=data.get("local_n_gpu_layers", -1),
+            local_n_ctx=data.get("local_n_ctx", 8192),
+            local_host=data.get("local_host", "127.0.0.1"),
+            local_port=data.get("local_port", 11434),
+            remote_provider=data.get("remote_provider", "openrouter"),
+            remote_model=data.get("remote_model", "qwen/qwen-2.5-coder-32b-instruct"),
+            remote_fallback_chain=data.get("remote_fallback_chain", ["openrouter", "anthropic", "gemini"]),
+            remote_api_key_env=data.get("remote_api_key_env", "OPENROUTER_API_KEY"),
+            prompt_template=data.get("prompt_template", LLMConfig().prompt_template),
         )
 
     @staticmethod
@@ -461,6 +610,40 @@ class UnifiedConfig:
                 "host": self.lsp.host,
                 "port": self.lsp.port,
                 "code_action_kind": self.lsp.code_action_kind,
+                "diagnostics": {
+                    "enabled": self.lsp.diagnostics.enabled,
+                    "debounce_ms": self.lsp.diagnostics.debounce_ms,
+                    "max_diagnostics_per_file": self.lsp.diagnostics.max_diagnostics_per_file,
+                    "push_diagnostics": self.lsp.diagnostics.push_diagnostics,
+                    "pull_diagnostics": self.lsp.diagnostics.pull_diagnostics,
+                    "include_related_information": self.lsp.diagnostics.include_related_information,
+                },
+                "formatting": {
+                    "enabled": self.lsp.formatting.enabled,
+                    "range_formatting": self.lsp.formatting.range_formatting,
+                    "format_on_save": self.lsp.formatting.format_on_save,
+                    "fix_on_save": self.lsp.formatting.fix_on_save,
+                },
+                "llm": {
+                    "enabled": self.lsp.llm.enabled,
+                    "prefer_local": self.lsp.llm.prefer_local,
+                    "timeout_seconds": self.lsp.llm.timeout_seconds,
+                    "max_tokens": self.lsp.llm.max_tokens,
+                    "temperature": self.lsp.llm.temperature,
+                    "local_backend": self.lsp.llm.local_backend,
+                    "local_model_path": self.lsp.llm.local_model_path,
+                    "local_n_gpu_layers": self.lsp.llm.local_n_gpu_layers,
+                    "local_n_ctx": self.lsp.llm.local_n_ctx,
+                    "local_host": self.lsp.llm.local_host,
+                    "local_port": self.lsp.llm.local_port,
+                    "remote_provider": self.lsp.llm.remote_provider,
+                    "remote_model": self.lsp.llm.remote_model,
+                    "remote_fallback_chain": self.lsp.llm.remote_fallback_chain,
+                    "remote_api_key_env": self.lsp.llm.remote_api_key_env,
+                    "prompt_template": self.lsp.llm.prompt_template,
+                },
+                "config_watch": self.lsp.config_watch,
+                "initialization_timeout_ms": self.lsp.initialization_timeout_ms,
             },
             "plugins": {
                 "fixer_plugins": self.plugins.fixer_plugins,
