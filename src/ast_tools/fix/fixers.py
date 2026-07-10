@@ -930,13 +930,16 @@ _FIXER_REGISTRY: dict[str, type[FixerBase]] = {
 
 
 def get_fixer_for_language(language: str) -> type[FixerBase] | None:
-    """Get fixer class for a language (built-in or plugin)."""
-    # Check built-in registry first
-    fixer = _FIXER_REGISTRY.get(language.lower())
-    if fixer:
-        return fixer
-    # Fall back to plugin manager
-    return plugin_manager.get_class(language.lower())
+    """Get fixer class for a language (built-in or plugin).
+
+    Custom plugins take precedence over built-in fixers.
+    """
+    # Check plugin manager first (custom plugins override built-in)
+    plugin_fixer = plugin_manager.get_class(language.lower())
+    if plugin_fixer:
+        return plugin_fixer
+    # Fall back to built-in registry
+    return _FIXER_REGISTRY.get(language.lower())
 
 
 def get_all_fixers() -> dict[str, type[FixerBase]]:

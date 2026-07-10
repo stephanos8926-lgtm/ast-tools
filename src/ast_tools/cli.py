@@ -1055,6 +1055,59 @@ def cmd_governance_report(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_cleanup(args: argparse.Namespace) -> int:
+    """Clean up old backup directories and temporary files."""
+    from pathlib import Path
+    from datetime import datetime, timedelta
+    import shutil
+
+    from ast_tools.config.loader import get_config_dir
+
+    retention_days = args.backups_retention_days
+    dry_run = args.dry_run
+    total_removed = 0
+    total_bytes = 0
+
+    backup_base = get_config_dir() / "backups"
+    cutoff = datetime.now() - timedelta(days=retention_days)
+
+    print(f"🧹 Cleaning up backups older than {retention_days} days...")
+    print(f"   Base: {backup_base}")
+
+    if not backup_base.exists():
+        print("   No backup directory found")
+        return 0
+
+    for project_dir in backup_base.iterdir():
+        if not project_dir.is_dir():
+            continue
+        for backup_dir in sorted(project_dir.iterdir()):
+            if not backup_dir.is_dir():
+                continue
+            try:
+                ts = datetime.strptime(backup_dir.name, "%Y%m%d_%H%M%S")
+                if ts < cutoff:
+                    # Calculate size
+                    size = sum(f.stat().st_size for f in backup_dir.rglob("*") if f.is_file())
+                    total_bytes += size
+                    if dry_run:
+                        print(f"   [DRY RUN] Would remove: {backup_dir} ({size / 1024:.1f} KB)")
+                    else:
+                        shutil.rmtree(backup_dir, ignore_errors=True)
+                        print(f"   ✓ Removed: {backup_dir} ({size / 1024:.1f} KB)")
+                    total_removed += 1
+            except ValueError:
+                continue
+
+    if total_removed == 0:
+        print("   Nothing to clean up")
+    else:
+        action = "Would remove" if dry_run else "Removed"
+        print(f"   {action}: {total_removed} backup dir(s), {total_bytes / 1024:.1f} KB")
+
+    return 0
+
+
 def cmd_fix(args: argparse.Namespace) -> int:
     """Auto-fix code issues command."""
     from pathlib import Path
@@ -1547,18 +1600,6 @@ def main() -> int:
     curator_p.set_defaults(func=lambda a: print(_cli_curator_cmd(a)))
 
     # ——————————————————
-    # Command: cleanup
-    # ——————————————————
-    cleanup_p = subparsers.add_parser(
-        "cleanup",
-        help="Remove temp and stale files",
-        description="Delete cache/tmp, expired caches, stale logs",
-    )
-    cleanup_p.add_argument("--aggressive", "-a", action="store_true", help="Also clear model cache")
-    cleanup_p.add_argument("--dry-run", "-n", action="store_true", help="Preview only")
-    cleanup_p.set_defaults(func=lambda a: print(_cli_cleanup_cmd(a)))
-
-    # ——————————————————
     # Command: config
     # ——————————————————
     config_p = subparsers.add_parser(
@@ -1632,6 +1673,40 @@ def main() -> int:
         help="Output format",
     )
     fix_p.set_defaults(func=cmd_fix)
+
+    # ——————————————————
+    # Command: cleanup
+    # ——————————————————
+    cleanup_p = subparsers.add_parser(
+        "cleanup",
+        help="Clean up old backup directories and temporary files",
+        description="Remove old backup directories and temporary files to reclaim disk space",
+    )
+    cleanup_p.add_argument(
+        "--backups",
+        action="store_true",
+        default=True,
+        help="Clean up old backup directories (default: True)",
+    )
+    cleanup_p.add_argument(
+        "--backups-retention-days",
+        type=int,
+        default=7,
+        help="Retention period for backups in days (default: 7)",
+    )
+    cleanup_p.add_argument(
+        "--tmp",
+        action="store_true",
+        default=False,
+        help="Clean up temporary files (default: False)",
+    )
+    cleanup_p.add_argument(
+        "--dry-run",
+        action="store_true",
+        default=False,
+        help="Show what would be cleaned without actually removing",
+    )
+    cleanup_p.set_defaults(func=cmd_cleanup)
 
     # ——————————————————
     # Command: lsp

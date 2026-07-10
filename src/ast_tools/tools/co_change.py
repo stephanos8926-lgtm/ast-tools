@@ -11,11 +11,12 @@ from pathlib import Path
 from typing import Any
 
 
-def _get_db_path(db_path: str | None = None) -> str:
+def _resolve_db_path(db_path: str | None = None) -> str:
     """Resolve database path."""
     if db_path:
         return db_path
-    return str(Path.home() / ".cache" / "ast-tools" / "codebase.db")
+    from ast_tools.config.loader import get_cache_dir
+    return str(get_cache_dir() / "codebase.db")
 
 
 def _ensure_tables(conn) -> None:
@@ -57,7 +58,7 @@ def _tool_co_change_predict(params: dict[str, Any]) -> dict[str, Any]:
     """
     symbol = params.get("symbol", "")
     top_n = params.get("top_n", 10)
-    db_path = _get_db_path(params.get("db_path"))
+    db_path = _resolve_db_path(params.get("db_path"))
 
     if not symbol:
         raise ValueError("symbol is required")
@@ -108,7 +109,7 @@ def _tool_co_change_hotspots(params: dict[str, Any]) -> dict[str, Any]:
         dict with hotspots sorted by score descending
     """
     top_n = params.get("top_n", 10)
-    db_path = _get_db_path(params.get("db_path"))
+    db_path = _resolve_db_path(params.get("db_path"))
 
     try:
         from ast_tools.cochange.hotspot import compute_hotspots
@@ -130,7 +131,7 @@ def _tool_co_change_history(params: dict[str, Any]) -> dict[str, Any]:
         dict with file churn metrics
     """
     file_path = params.get("file_path", "")
-    db_path = _get_db_path(params.get("db_path"))
+    db_path = _resolve_db_path(params.get("db_path"))
 
     if not file_path:
         raise ValueError("file_path is required")

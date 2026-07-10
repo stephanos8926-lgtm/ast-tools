@@ -14,7 +14,9 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, TypeVar
 
-DEFAULT_DB_PATH = Path.home() / ".cache" / "ast-tools" / "codebase.db"
+from ast_tools.config.loader import get_cache_dir
+
+DEFAULT_DB_PATH = get_cache_dir() / "codebase.db"
 
 # Per-thread connection cache
 _thread_local = threading.local()

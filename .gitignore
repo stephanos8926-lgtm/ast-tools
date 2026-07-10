@@ -54,3 +54,6 @@ wheels/
 
 # Logs
 *.log
+
+# Auto-fix backups
+.ast-tools-backups-*/

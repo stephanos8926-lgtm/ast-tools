@@ -65,7 +65,7 @@ def ensure_config_dir(config_dir: Path | None = None) -> Path:
 
 
 def migrate_legacy() -> bool:
-    """Migrate data from ~/.cache/ast-tools/ to new config dir."""
+    """Migrate data from ~/.cache/ast-tools/ to new data dir."""
     legacy = Path.home() / ".cache" / "ast-tools"
     if not legacy.exists():
         return False

@@ -1,10 +1,11 @@
-"""
-Core fix engine with convergence loop and safety classification.
-"""
+"""Core fix engine with convergence loop and safety classification."""
 
 import hashlib
+import logging
+import shutil
 import time
 from dataclasses import dataclass, field
+from datetime import datetime, timedelta
 from enum import Enum
 from pathlib import Path
 
@@ -17,6 +18,10 @@ from .fixers import FixerConfig as FixersFixerConfig
 from .fixers import register_plugin_fixers, plugin_manager
 
 console = Console()
+logger = logging.getLogger(__name__)
+
+# Max backup retention days
+BACKUP_RETENTION_DAYS = 7
 
 
 class SafetyLevel(Enum):
@@ -99,16 +104,46 @@ class FixEngine:
                 )
                 self.fixers.append(fixer_class(fixers_config))
 
-    def _create_backup_dir(self):
-        """Create a timestamped backup directory."""
-        from datetime import datetime
+    def _get_backup_base(self) -> Path:
+        """Return the base backup directory under user config dir."""
+        from ast_tools.config.loader import get_config_dir
+        return get_config_dir() / "backups"
 
+    def _create_backup_dir(self):
+        """Create a timestamped backup directory under ~/.ast-tools/backups/."""
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        self._backup_dir = self.context.project_root / f".ast-tools-backups-{timestamp}"
-        self._backup_dir.mkdir(exist_ok=True)
+        project_name = self.context.project_root.name
+        # Base: ~/.ast-tools/backups/<project>/<timestamp>/
+        base = self._get_backup_base()
+        self._backup_dir = base / project_name / timestamp
+        self._backup_dir.mkdir(parents=True, exist_ok=True)
+        self._prune_old_backups()
+
+    def _prune_old_backups(self):
+        """Remove backups older than BACKUP_RETENTION_DAYS for this project."""
+        cutoff = datetime.now() - timedelta(days=BACKUP_RETENTION_DAYS)
+        base = self._get_backup_base()
+        project_name = self.context.project_root.name
+        project_dir = base / project_name
+        if not project_dir.exists():
+            return
+        count = 0
+        for backup_dir in sorted(project_dir.iterdir()):
+            if not backup_dir.is_dir():
+                continue
+            try:
+                ts = datetime.strptime(backup_dir.name, "%Y%m%d_%H%M%S")
+                if ts < cutoff:
+                    shutil.rmtree(backup_dir, ignore_errors=True)
+                    count += 1
+            except ValueError:
+                # Not a timestamp-named dir, skip
+                continue
+        if count:
+            logger.debug(f"Pruned {count} old backup dir(s) from {project_dir}")
 
     def _backup_file(self, file_path: Path) -> bool:
-        """Create a backup of the file."""
+        """Create a backup of the file under ~/.ast-tools/backups/."""
         if not self.context.create_backups or not self._backup_dir:
             return False
         try:
@@ -116,8 +151,6 @@ class FixEngine:
             rel_path = file_path.relative_to(self.context.project_root)
             backup_path = self._backup_dir / rel_path
             backup_path.parent.mkdir(parents=True, exist_ok=True)
-            import shutil
-
             shutil.copy2(file_path, backup_path)
             return True
         except Exception:
