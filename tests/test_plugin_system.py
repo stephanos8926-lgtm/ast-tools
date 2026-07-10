@@ -314,8 +314,8 @@ class TestFixEngineWithPlugin:
             assert result.success
 
             final = test_file.read_text()
-            # Plugin should normalize trailing newlines
-            assert final == "x=1\n"
+            # Plugin should normalize trailing newlines; ruff also formats
+            assert final == "x = 1\n"
         finally:
             test_file.unlink(missing_ok=True)
 

@@ -100,6 +100,10 @@ async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
         ]
 
 
+# Store reference for timeout mode wrapper (SDK v1.28+ compat)
+_call_tool_handler = call_tool
+
+
 # ─── Mode: Timeout (stdio with idle TTL) ─────────────────────────────────
 
 
@@ -113,7 +117,7 @@ async def _run_timeout_mode(config: dict[str, Any]) -> None:
         last_activity = time.monotonic()
 
     # Wrap tool call handler to track activity
-    original_handler = server.call_tool
+    original_handler = _call_tool_handler
 
     @server.call_tool()
     async def _timed_call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
