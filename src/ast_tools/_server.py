@@ -27,14 +27,31 @@ import signal
 import sys
 import time
 from typing import Any
-
 import anyio
+from anyio import create_task_group
 from mcp.server import Server
 from mcp.server.stdio import stdio_server
+from lsprotocol import types as lsp_types
 from mcp.types import TextContent, Tool
 
+from ast_tools.config.unified import UnifiedConfig, load_unified_config
 from ast_tools.server_config import add_server_args, config_from_args
-from ast_tools.tools import TOOL_REGISTRY, get_tool_handler, list_tool_names
+from ast_tools.tools import (
+    TOOL_REGISTRY,
+    TOOL_SCHEMAS,
+    get_tool_handler,
+    list_tool_names,
+)
+
+# Global activity tracking for idle timeout
+_last_activity = time.monotonic()
+
+def _update_activity():
+    global _last_activity
+    _last_activity = time.monotonic()
+
+def _get_last_activity():
+    return _last_activity
 
 logging.basicConfig(level=logging.WARNING, stream=sys.stderr)
 logger = logging.getLogger(__name__)
@@ -42,37 +59,18 @@ logger = logging.getLogger(__name__)
 server = Server("rw-ast-tools")
 
 
-# ─── Tool Definitions ────────────────────────────────────────────────────
-
-
-@server.list_tools()
-async def list_tools() -> list[Tool]:
-    """Dynamically build Tool definitions from TOOL_SCHEMAS."""
-    from ast_tools.tools import TOOL_SCHEMAS, list_tool_names
-
-    tools: list[Tool] = []
-    names = list_tool_names()
-    for name in sorted(names):
-        schema = TOOL_SCHEMAS.get(name)
-        if schema is None:
-            continue
-        tools.append(
-            Tool(
-                name=name,
-                description=schema.get("description", ""),
-                inputSchema=schema.get("inputSchema", {"type": "object", "properties": {}}),
-            )
-        )
-    return tools
-
-
 # ─── Tool Handlers ────────────────────────────────────────────────────────
 
 
 @server.call_tool()
-async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
-    """Dispatch tool calls to registered handlers."""
+async def handle_call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
+    """Dispatch tool calls to registered handlers.
+
+    MCP framework calls this with (tool_name, arguments) directly.
+    """
     try:
+        _update_activity()
+
         if name not in TOOL_REGISTRY:
             return [
                 TextContent(
@@ -88,7 +86,8 @@ async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
             ]
 
         handler = get_tool_handler(name)
-        result = await anyio.to_thread.run_sync(handler, arguments)
+        # Our handlers expect (name, params) - pass both
+        result = await anyio.to_thread.run_sync(handler, name, arguments)
         return [TextContent(type="text", text=json.dumps(result, indent=2, default=str))]
     except Exception as e:
         logger.exception("Tool %s failed", name)
@@ -100,36 +99,19 @@ async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
         ]
 
 
-# Store reference for timeout mode wrapper (SDK v1.28+ compat)
-_call_tool_handler = call_tool
-
-
 # ─── Mode: Timeout (stdio with idle TTL) ─────────────────────────────────
 
 
 async def _run_timeout_mode(config: dict[str, Any]) -> None:
     """Run server in timeout mode — stdio with idle shutdown."""
     timeout_seconds = config["server"]["timeout_seconds"]
-    last_activity = time.monotonic()
-
-    def _update_activity():
-        nonlocal last_activity
-        last_activity = time.monotonic()
-
-    # Wrap tool call handler to track activity
-    original_handler = _call_tool_handler
-
-    @server.call_tool()
-    async def _timed_call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
-        _update_activity()
-        return await original_handler(name, arguments)
 
     async with (
         stdio_server() as (read_stream, write_stream),
         anyio.create_task_group() as tg,
     ):
         # Start idle timeout monitor
-        tg.start_soon(_idle_monitor, timeout_seconds, _update_activity)
+        tg.start_soon(_idle_monitor, timeout_seconds, _get_last_activity)
         await server.run(
             read_stream,
             write_stream,
@@ -248,86 +230,60 @@ async def _run_legacy_http(host: str, port: int, auth_token: str) -> None:
     from aiohttp import web
 
     async def handle_mcp(request):
-        if auth_token:
-            provided = request.headers.get("Authorization", "")
-            if provided != f"Bearer {auth_token}":
-                return web.json_response({"error": "Unauthorized"}, status=401)
+        """Handle MCP request over HTTP."""
+        from aiohttp import web
 
-        body = await request.json()
-        method = body.get("method", "")
+        try:
+            data = await request.json()
+        except Exception:
+            return web.json_response({"error": "Invalid JSON"}, status=400)
 
+        # Forward to MCP server
+        from mcp.types import CallToolRequest, CallToolRequestParams, TextContent
+
+        method = data.get("method")
         if method == "initialize":
-            return web.json_response(
-                {
-                    "jsonrpc": "2.0",
-                    "id": body.get("id"),
-                    "result": {
-                        "protocolVersion": "2024-11-05",
-                        "capabilities": {"tools": {}},
-                        "serverInfo": {"name": "rw-ast-tools", "version": "0.1.0"},
-                    },
-                }
-            )
-        elif method == "tools/list":
-            tools = await list_tools()
-            return web.json_response(
-                {
-                    "jsonrpc": "2.0",
-                    "id": body.get("id"),
-                    "result": {
-                        "tools": [
-                            {
-                                "name": t.name,
-                                "description": t.description,
-                                "inputSchema": t.inputSchema,
-                            }
-                            for t in tools
-                        ]
-                    },
-                }
-            )
-        elif method == "tools/call":
-            params = body.get("params", {})
-            result = await call_tool(
-                params.get("name", ""),
-                params.get("arguments", {}),
-            )
-            return web.json_response(
-                {
-                    "jsonrpc": "2.0",
-                    "id": body.get("id"),
-                    "result": {"content": [r.model_dump() for r in result]},
-                }
-            )
-        else:
-            return web.json_response(
-                {
-                    "jsonrpc": "2.0",
-                    "id": body.get("id", 0),
-                    "error": {"code": -32601, "message": "Method not found"},
-                },
-                status=404,
-            )
+            result = {
+                "protocolVersion": "2024-11-05",
+                "capabilities": {"experimental": {}, "tools": {"listChanged": False}},
+                "serverInfo": {"name": "rw-ast-tools", "version": "1.28.0"},
+            }
+            return web.json_response(result)
+
+        if method == "tools/list":
+            from ast_tools.tools import list_tool_names
+
+            return web.json_response({"tools": list_tool_names()})
+
+        if method == "tools/call":
+            name = data.get("params", {}).get("name")
+            arguments = data.get("params", {}).get("arguments", {})
+            handler = get_tool_handler(name)
+            result = await anyio.to_thread.run_sync(handler, name, arguments)
+            return web.json_response({"content": [{"type": "text", "text": json.dumps(result)}]})
+
+        return web.json_response({"error": f"Unknown method: {method}"}, status=400)
 
     app = web.Application()
     app.router.add_post("/mcp", handle_mcp)
-    app.router.add_get("/health", lambda _: web.json_response({"status": "ok"}))
-
     runner = web.AppRunner(app)
     await runner.setup()
     site = web.TCPSite(runner, host, port)
     await site.start()
-    logger.info("Legacy HTTP server listening on %s:%s", host, port)
+    logger.info("Legacy HTTP server started on %s:%s", host, port)
 
-    # Keep running
-    await asyncio.Event().wait()
+    try:
+        while True:
+            await asyncio.sleep(3600)
+    except asyncio.CancelledError:
+        await runner.cleanup()
 
 
-# ─── Entry point ─────────────────────────────────────────────────────────
+# ─── CLI Entry Point ─────────────────────────────────────────────────────
 
 
-async def main():
-    """Run the ast-tools MCP server in the configured mode."""
+def main_sync() -> int:
+    """Synchronous entry point for console_scripts."""
     import argparse
 
     parser = argparse.ArgumentParser(description="rw-ast-tools MCP Server")
@@ -342,23 +298,17 @@ async def main():
     logger.info("Starting rw-ast-tools server in %s mode", mode)
 
     if mode == "timeout":
-        await _run_timeout_mode(config)
+        anyio.run(_run_timeout_mode, config)
     elif mode == "daemon":
-        await _run_daemon_mode(config)
+        anyio.run(_run_daemon_mode, config)
     elif mode == "remote":
-        await _run_remote_mode(config)
+        anyio.run(_run_remote_mode, config)
     else:
-        logger.error("Unknown mode: %s — falling back to timeout", mode)
-        await _run_timeout_mode(config)
+        logger.error("Unknown mode: %s", mode)
+        return 1
 
-
-def main_sync():
-    """Synchronous entry point for console_scripts."""
-    import anyio
-
-    with contextlib.suppress(KeyboardInterrupt):
-        anyio.run(main)
+    return 0
 
 
 if __name__ == "__main__":
-    main_sync()
+    sys.exit(main_sync())

@@ -116,15 +116,15 @@ class TestCoChangePredict:
         db = tmp_path / "test.db"
         _create_test_db(db)
 
-        # Patch _get_db_path to return our test DB
-        original = cc._get_db_path
-        cc._get_db_path = lambda x=None: str(db)
+        # Patch _resolve_db_path to return our test DB
+        original = cc._resolve_db_path
+        cc._resolve_db_path = lambda x=None: str(db)
         try:
             result = _tool_co_change_predict({"symbol": "app.py"})
             assert "suggestions" in result
             assert result["total_found"] >= 1
         finally:
-            cc._get_db_path = original
+            cc._resolve_db_path = original
 
     def test_suggestions_sorted_by_coupling(self, tmp_path):
         import src.ast_tools.tools.co_change as cc
@@ -133,14 +133,14 @@ class TestCoChangePredict:
         db = tmp_path / "test.db"
         _create_test_db(db)
 
-        original = cc._get_db_path
-        cc._get_db_path = lambda x=None: str(db)
+        original = cc._resolve_db_path
+        cc._resolve_db_path = lambda x=None: str(db)
         try:
             result = _tool_co_change_predict({"symbol": "app.py"})
             couplings = [s["coupling"] for s in result["suggestions"]]
             assert couplings == sorted(couplings, reverse=True)
         finally:
-            cc._get_db_path = original
+            cc._resolve_db_path = original
 
     def test_missing_symbol_raises(self):
         from src.ast_tools.tools.co_change import _tool_co_change_predict

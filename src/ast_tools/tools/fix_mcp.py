@@ -8,7 +8,7 @@ from ast_tools.fix.config import FixConfig as FixConfigData
 from ast_tools.reranker import CrossEncoderReranker, RerankerConfig
 
 
-def _tool_fix_code(params: dict[str, Any]) -> dict[str, Any]:
+def _tool_fix_code(name: str, params: dict[str, Any]) -> dict[str, Any]:
     """Apply auto-fix to files.
 
     Args:
@@ -125,7 +125,7 @@ def _tool_fix_code(params: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def _tool_fix_check(params: dict[str, Any]) -> dict[str, Any]:
+def _tool_fix_check(name: str, params: dict[str, Any]) -> dict[str, Any]:
     """Check what auto-fixes would be applied without modifying files.
 
     Args:
@@ -136,10 +136,10 @@ def _tool_fix_check(params: dict[str, Any]) -> dict[str, Any]:
         List of fixes that would be applied, grouped by file
     """
     params["check_only"] = True
-    return _tool_fix_code(params)
+    return _tool_fix_code(name, params)
 
 
-def _tool_rerank_results(params: dict[str, Any]) -> dict[str, Any]:
+def _tool_rerank_results(name: str, params: dict[str, Any]) -> dict[str, Any]:
     """Rerank search results using cross-encoder.
 
     Args:

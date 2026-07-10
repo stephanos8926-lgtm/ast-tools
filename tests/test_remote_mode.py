@@ -151,10 +151,10 @@ class TestLegacyHTTPFallback:
     """Tests for the legacy aiohttp fallback."""
 
     def test_mode_switcher_remote(self):
-        """Test main() routes to remote mode correctly."""
-        from ast_tools._server import main
+        """Test main_sync() routes to remote mode correctly."""
+        from ast_tools._server import main_sync
 
-        assert main is not None
+        assert main_sync is not None
 
     @pytest.mark.asyncio
     async def test_legacy_http_auth_blocked(self):

@@ -13,7 +13,12 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from ast_tools._server import call_tool
+# Import from the new server module
+from ast_tools._server import handle_call_tool
+
+async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
+    """Wrapper to call handle_call_tool with proper format."""
+    return await handle_call_tool(name, arguments)
 from ast_tools.tools.ast_edit import _tool_ast_edit
 from ast_tools.tools.ast_grep import _tool_ast_grep
 from ast_tools.tools.ast_read import _tool_ast_read
