@@ -367,18 +367,7 @@ def fallback_search(
     return [dict(row) for row in rows]
 
 
-async def _tool_semantic_search(
-    query: str,
-    k: int = 10,
-    kind: str | None = None,
-    lang: str | None = None,
-    db_path: str | None = None,
-    inject_context: bool = True,
-    token_budget: int = 4096,
-    diversity_limit: int = 3,
-    use_reranker: bool = False,
-    session_id: str | None = None,
-) -> str:
+def _tool_semantic_search(args: dict[str, Any]) -> str:
     """
     Search symbols by semantic similarity (meaning) + keyword matching.
 
@@ -412,6 +401,17 @@ async def _tool_semantic_search(
             }
         }
     """
+    query = args.get("query", "")
+    k = args.get("k", 10)
+    kind = args.get("kind")
+    lang = args.get("lang")
+    db_path = args.get("db_path")
+    inject_context = args.get("inject_context", True)
+    token_budget = args.get("token_budget", 4096)
+    diversity_limit = args.get("diversity_limit", 3)
+    use_reranker = args.get("use_reranker", False)
+    session_id = args.get("session_id")
+
     if k < 1:
         k = 1
     elif k > 50:
