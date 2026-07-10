@@ -31,6 +31,8 @@ class FixConfig:
     verbose: bool = False
     parallel: bool = True
     workers: int = 4
+    create_backups: bool = True
+    backup_retention_days: int = 7
 
     # Language-specific fixer configs
     fixers: dict[str, FixerConfig] = field(default_factory=dict)

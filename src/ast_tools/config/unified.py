@@ -61,6 +61,7 @@ class FixConfig:
     timeout: int = 120
     max_file_size: int = 10 * 1024 * 1024  # 10MB
     create_backups: bool = True
+    backup_retention_days: int = 7  # Auto-prune backups older than this
 
     # Language-specific fixer configs
     fixers: dict[str, FixerConfig] = field(default_factory=dict)
@@ -327,6 +328,7 @@ class UnifiedConfig:
             timeout=data.get("timeout", 120),
             max_file_size=data.get("max_file_size", 10 * 1024 * 1024),
             create_backups=data.get("create_backups", True),
+            backup_retention_days=data.get("backup_retention_days", 7),
             fixers=fixers,
             include_patterns=data.get("include_patterns", ["**/*"]),
             exclude_patterns=data.get(

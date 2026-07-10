@@ -120,8 +120,9 @@ class FixEngine:
         self._prune_old_backups()
 
     def _prune_old_backups(self):
-        """Remove backups older than BACKUP_RETENTION_DAYS for this project."""
-        cutoff = datetime.now() - timedelta(days=BACKUP_RETENTION_DAYS)
+        """Remove backups older than retention_days for this project."""
+        retention_days = self._get_retention_days()
+        cutoff = datetime.now() - timedelta(days=retention_days)
         base = self._get_backup_base()
         project_name = self.context.project_root.name
         project_dir = base / project_name
@@ -141,6 +142,17 @@ class FixEngine:
                 continue
         if count:
             logger.debug(f"Pruned {count} old backup dir(s) from {project_dir}")
+
+    @staticmethod
+    def _get_retention_days_from_cfg(config: "FixContext") -> int:
+        """Read backup_retention_days from config, default 7."""
+        try:
+            return config.backup_retention_days
+        except (AttributeError, TypeError):
+            return 7
+
+    def _get_retention_days(self) -> int:
+        return self._get_retention_days_from_cfg(self.context.config)
 
     def _backup_file(self, file_path: Path) -> bool:
         """Create a backup of the file under ~/.ast-tools/backups/."""
