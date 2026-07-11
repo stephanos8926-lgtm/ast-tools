@@ -12,12 +12,14 @@ from __future__ import annotations
 import logging
 import shutil
 import time
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
 logger = logging.getLogger(__name__)
 
 AST_TOOLS_DIR = Path.home() / ".ast-tools"
+BACKUP_DIR = AST_TOOLS_DIR / "backups"
 
 
 def run(aggressive: bool = False, dry_run: bool = False) -> dict[str, Any]:
@@ -69,6 +71,11 @@ def run(aggressive: bool = False, dry_run: bool = False) -> dict[str, Any]:
                 results["warnings"].append(
                     "Model cache cleared — run 'ast-tools init' to re-download"
                 )
+
+    # 5. Clean up old backup directories (>7 days)
+    backup_freed = _cleanup_old_backups(BACKUP_DIR, dry_run, days=7)
+    results["freed_bytes"] += backup_freed
+    results["operations"].append({"op": "old_backups", "freed": backup_freed})
 
     results["freed_human"] = _human_size(results["freed_bytes"])
     return results
@@ -125,6 +132,31 @@ def _cleanup_models(model_dir: Path, dry_run: bool) -> int:
                     total += sub.stat().st_size
             if not dry_run:
                 shutil.rmtree(f, ignore_errors=True)
+    return total
+
+
+def _cleanup_old_backups(backup_dir: Path, dry_run: bool, days: int = 7) -> int:
+    """Remove backup directories older than N days."""
+    total = 0
+    cutoff = time.time() - days * 86400
+    if not backup_dir.exists():
+        return 0
+    for d in backup_dir.iterdir():
+        if d.is_dir():
+            # Check if directory name matches timestamp pattern YYYYMMDD_HHMMSS
+            try:
+                dir_time = datetime.strptime(d.name, "%Y%m%d_%H%M%S").timestamp()
+            except ValueError:
+                continue
+            if dir_time < cutoff:
+                # Calculate size
+                dir_size = sum(f.stat().st_size for f in d.rglob("*") if f.is_file())
+                total += dir_size
+                if not dry_run:
+                    shutil.rmtree(d, ignore_errors=True)
+                    logger.info(f"Removed old backup: {d.name} ({_human_size(dir_size)})")
+    if total > 0 and not dry_run:
+        logger.info(f"Removed old backups: {_human_size(total)}")
     return total
 
 
