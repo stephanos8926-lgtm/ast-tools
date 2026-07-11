@@ -451,7 +451,7 @@ class TestMCPServer:
         """Server lists all 11 tools."""
         from ast_tools._server import list_tools
 
-        tools = asyncio.run(list_tools())
+        tools = list_tools()
         tool_names = [t.name for t in tools]
         assert "ast_grep" in tool_names
         assert "ast_edit" in tool_names

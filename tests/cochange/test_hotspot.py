@@ -111,7 +111,7 @@ class TestHotspots:
 class TestCoChangePredict:
     def test_returns_suggestions_for_symbol(self, tmp_path):
         import src.ast_tools.tools.co_change as cc
-        from src.ast_tools.tools.co_change import _tool_co_change_predict
+        from src.ast_tools.tools.co_change import _tool_co_change_predict, _resolve_db_path
 
         db = tmp_path / "test.db"
         _create_test_db(db)
@@ -128,7 +128,7 @@ class TestCoChangePredict:
 
     def test_suggestions_sorted_by_coupling(self, tmp_path):
         import src.ast_tools.tools.co_change as cc
-        from src.ast_tools.tools.co_change import _tool_co_change_predict
+        from src.ast_tools.tools.co_change import _tool_co_change_predict, _resolve_db_path
 
         db = tmp_path / "test.db"
         _create_test_db(db)
@@ -143,7 +143,7 @@ class TestCoChangePredict:
             cc._resolve_db_path = original
 
     def test_missing_symbol_raises(self):
-        from src.ast_tools.tools.co_change import _tool_co_change_predict
+        from src.ast_tools.tools.co_change import _tool_co_change_predict, _resolve_db_path
 
         try:
             _tool_co_change_predict({})
@@ -153,19 +153,19 @@ class TestCoChangePredict:
 
     def test_symbol_not_found_returns_empty(self, tmp_path):
         import src.ast_tools.tools.co_change as cc
-        from src.ast_tools.tools.co_change import _tool_co_change_predict
+        from src.ast_tools.tools.co_change import _tool_co_change_predict, _resolve_db_path
 
         db = tmp_path / "test.db"
         _create_test_db(db)
 
-        original = cc._get_db_path
-        cc._get_db_path = lambda x=None: str(db)
+        original = cc._resolve_db_path
+        cc._resolve_db_path = lambda x=None: str(db)
         try:
             result = _tool_co_change_predict({"symbol": "nonexistent.py"})
             assert result["total_found"] == 0
             assert result["suggestions"] == []
         finally:
-            cc._get_db_path = original
+            cc._resolve_db_path = original
 
 
 class TestCoChangeHistory:
@@ -176,15 +176,15 @@ class TestCoChangeHistory:
         db = tmp_path / "test.db"
         _create_test_db(db)
 
-        original = cc._get_db_path
-        cc._get_db_path = lambda x=None: str(db)
+        original = cc._resolve_db_path
+        cc._resolve_db_path = lambda x=None: str(db)
         try:
             result = _tool_co_change_history({"file_path": "app.py"})
             assert result["found"] is True
             assert result["commit_count"] == 10
             assert result["lines_added"] == 100
         finally:
-            cc._get_db_path = original
+            cc._resolve_db_path = original
 
     def test_missing_file_returns_not_found(self, tmp_path):
         import src.ast_tools.tools.co_change as cc
@@ -193,14 +193,14 @@ class TestCoChangeHistory:
         db = tmp_path / "test.db"
         _create_test_db(db)
 
-        original = cc._get_db_path
-        cc._get_db_path = lambda x=None: str(db)
+        original = cc._resolve_db_path
+        cc._resolve_db_path = lambda x=None: str(db)
         try:
             result = _tool_co_change_history({"file_path": "missing.py"})
             assert result["found"] is False
             assert "message" in result
         finally:
-            cc._get_db_path = original
+            cc._resolve_db_path = original
 
     def test_missing_file_path_raises(self):
         from src.ast_tools.tools.co_change import _tool_co_change_history
@@ -220,15 +220,15 @@ class TestCoChangeDiff:
         db = tmp_path / "test.db"
         _create_test_db(db)
 
-        original = cc._get_db_path
-        cc._get_db_path = lambda x=None: str(db)
+        original = cc._resolve_db_path
+        cc._resolve_db_path = lambda x=None: str(db)
         try:
             result = _tool_co_change_diff({"symbol": "app.py"})
             assert "changing" in result
             assert "at_risk" in result
             assert result["risk_count"] >= 1
         finally:
-            cc._get_db_path = original
+            cc._resolve_db_path = original
 
 
 class TestToolRegistration:

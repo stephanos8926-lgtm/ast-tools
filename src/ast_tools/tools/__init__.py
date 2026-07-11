@@ -37,6 +37,22 @@ def list_tool_names() -> list[str]:
     return list(TOOL_REGISTRY.keys())
 
 
+def list_tools() -> list[Tool]:
+    """Return list of all registered tools as MCP Tool objects."""
+    from mcp.types import Tool
+    tools = []
+    for name in sorted(TOOL_REGISTRY.keys()):
+        schema = TOOL_SCHEMAS.get(name, {})
+        tools.append(
+            Tool(
+                name=name,
+                description=schema.get("description", ""),
+                inputSchema=schema.get("inputSchema", {"type": "object", "properties": {}}),
+            )
+        )
+    return tools
+
+
 def find_similar_tool(name: str, max_results: int = 3) -> list[str]:
     """Find similar tool names for 'did you mean?' suggestions."""
     import difflib

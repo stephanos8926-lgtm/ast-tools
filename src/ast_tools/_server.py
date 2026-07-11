@@ -37,6 +37,7 @@ from mcp.types import TextContent, Tool
 from ast_tools.config.unified import UnifiedConfig, load_unified_config
 from ast_tools.server_config import add_server_args, config_from_args
 from ast_tools.tools import (
+    list_tools,
     TOOL_REGISTRY,
     TOOL_SCHEMAS,
     get_tool_handler,
@@ -87,7 +88,7 @@ async def handle_call_tool(name: str, arguments: dict[str, Any]) -> list[TextCon
 
         handler = get_tool_handler(name)
         # Our handlers expect (name, params) - pass both
-        result = await anyio.to_thread.run_sync(handler, name, arguments)
+        result = await anyio.to_thread.run_sync(handler, arguments)
         return [TextContent(type="text", text=json.dumps(result, indent=2, default=str))]
     except Exception as e:
         logger.exception("Tool %s failed", name)
@@ -259,7 +260,7 @@ async def _run_legacy_http(host: str, port: int, auth_token: str) -> None:
             name = data.get("params", {}).get("name")
             arguments = data.get("params", {}).get("arguments", {})
             handler = get_tool_handler(name)
-            result = await anyio.to_thread.run_sync(handler, name, arguments)
+            result = await anyio.to_thread.run_sync(handler, arguments)
             return web.json_response({"content": [{"type": "text", "text": json.dumps(result)}]})
 
         return web.json_response({"error": f"Unknown method: {method}"}, status=400)
@@ -312,3 +313,7 @@ def main_sync() -> int:
 
 if __name__ == "__main__":
     sys.exit(main_sync())
+# Export for backward compatibility with tests
+async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
+    """Test-compatible wrapper for handle_call_tool."""
+    return await handle_call_tool(name, arguments)
