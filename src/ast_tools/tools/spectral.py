@@ -387,78 +387,518 @@ def _compute_cohesion_coupling(
 # ── Graph Construction ────────────────────────────────────────────────────────
 
 
+# ── Language Detection & Multi-Language Import Extraction ─────────────────
+
+
+# Language-specific source file extensions
+LANG_EXTENSIONS: dict[str, set[str]] = {
+    "python":      {".py"},
+    "typescript":  {".ts", ".tsx"},
+    "javascript":  {".js", ".jsx", ".mjs", ".cjs"},
+    "go":          {".go"},
+    "rust":        {".rs"},
+    "c":           {".c", ".h"},
+    "cpp":         {".cpp", ".cc", ".cxx", ".hpp", ".hh"},
+}
+
+# Reverse: extension → language code
+_EXT_TO_LANG: dict[str, str] = {}
+for _lang, _exts in LANG_EXTENSIONS.items():
+    for _ext in _exts:
+        _EXT_TO_LANG[_ext] = _lang
+
+
+def _detect_language(file_path: Path) -> str | None:
+    """Detect programming language from file extension."""
+    return _EXT_TO_LANG.get(file_path.suffix.lower())
+
+
+def _iter_source_files(project_path: Path) -> list[Path]:
+    """Iterate all source files across supported languages.
+
+    Skips hidden directories, __pycache__, node_modules, .venv, etc.
+    """
+    skip_dirs = {
+        ".git", "__pycache__", ".venv", "venv", "node_modules",
+        ".tox", ".eggs", "build", "dist", ".mypy_cache",
+        ".pytest_cache", ".idea", ".vscode", "site-packages",
+        "target",  # Rust build dir
+        ".next", ".nuxt",  # JS framework build dirs
+    }
+    source_files: list[Path] = []
+    for f in sorted(project_path.rglob("*")):
+        if not f.is_file():
+            continue
+        # Check if in skip directory
+        rel = f.relative_to(project_path)
+        if any(p in skip_dirs for p in rel.parts):
+            continue
+        if f.suffix.lower() in _EXT_TO_LANG:
+            source_files.append(f)
+    return source_files
+
+
+def _file_to_module_name(file_path: Path, project_path: Path) -> str:
+    """Convert a file path to a canonical module name.
+
+    Examples:
+        src/ast_tools/tools/spectral.py → src.ast_tools.tools.spectral
+        src/ast_tools/__init__.py       → src.ast_tools
+        frontend/src/components/Button.tsx → frontend.src.components.Button
+        cmd/server/main.go             → cmd.server.main
+    """
+    rel = file_path.relative_to(project_path)
+    parts = list(rel.parts)
+    name = parts[-1]
+    # Strip extension
+    dot = name.find(".")
+    if dot > 0:
+        name = name[:dot]
+    parts[-1] = name
+    # Handle __init__ → parent dir
+    if name == "__init__":
+        parts = parts[:-1]
+    # Handle index files for JS/TS
+    if name in ("index", "main", "mod"):
+        # Keep as-is (don't strip)
+        pass
+    return ".".join(parts)
+
+
+def _resolve_ts_import(
+    import_path: str,
+    source_file: Path,
+    project_path: Path,
+) -> set[Path]:
+    """Resolve a TypeScript/JavaScript import relative path to file(s).
+
+    Tries common extensions and index files.
+    """
+    if not import_path.startswith("./") and not import_path.startswith("../"):
+        # Not a relative import — could be a source-level path like "components/Button"
+        # Only resolve if it looks like a source path (no npm package format)
+        if "/" in import_path and not import_path.startswith("@"):
+            # Could be a project-absolute path like "src/components/Button"
+            candidates = set()
+            for ext in (".ts", ".tsx", ".js", ".jsx", ".mjs"):
+                candidate = project_path / f"{import_path}{ext}"
+                if candidate.exists():
+                    candidates.add(candidate)
+            return candidates
+        return set()
+
+    # Resolve relative import
+    resolved = (source_file.parent / import_path).resolve()
+    candidates: set[Path] = set()
+
+    # Try direct file with extensions
+    for ext in (".ts", ".tsx", ".js", ".jsx", ".mjs", ".d.ts", ".d.mts"):
+        candidate = resolved.with_suffix(ext)
+        if candidate.exists() and candidate.is_file():
+            # Normalize to project relative for consistency
+            try:
+                candidates.add(candidate.relative_to(project_path))
+            except ValueError:
+                candidates.add(candidate)
+
+    # Try index files
+    for ext in (".ts", ".tsx", ".js", ".jsx", ".mjs"):
+        index_candidate = resolved / f"index{ext}"
+        if index_candidate.exists():
+            try:
+                candidates.add(index_candidate.relative_to(project_path))
+            except ValueError:
+                candidates.add(index_candidate)
+
+    return candidates
+
+
+def _resolve_go_import(
+    import_path: str,
+    _source_file: Path,
+    project_path: Path,
+) -> set[Path]:
+    """Resolve a Go import path to internal file(s).
+
+    Go imports are full paths like "github.com/user/project/pkg".
+    We check if the import path's last segment(s) match an internal directory.
+    """
+    candidates: set[Path] = set()
+
+    # Try matching as a relative filesystem path
+    candidate = project_path / import_path
+    if candidate.exists() and candidate.is_dir():
+        # Check for Go files in that directory
+        for g in sorted(candidate.glob("*.go")):
+            try:
+                candidates.add(g.relative_to(project_path))
+            except ValueError:
+                candidates.add(g)
+
+    # Try just the last path component
+    parts = import_path.split("/")
+    for i in range(len(parts), 0, -1):
+        subpath = "/".join(parts[-i:])
+        candidate = project_path / subpath
+        if candidate.exists() and candidate.is_dir():
+            for g in sorted(candidate.glob("*.go")):
+                try:
+                    candidates.add(g.relative_to(project_path))
+                except ValueError:
+                    candidates.add(g)
+            if candidates:
+                return candidates
+
+    return candidates
+
+
+def _resolve_rust_import(
+    import_path: str,
+    source_file: Path,
+    project_path: Path,
+) -> set[Path]:
+    """Resolve a Rust use path to internal file(s).
+
+    Handles:
+        crate::module::submodule → path/to/module/submodule
+        super::module → ../path/to/module
+        self::submodule → same dir submodule
+    """
+    candidates: set[Path] = set()
+
+    if import_path.startswith("crate::"):
+        internal_path = import_path.replace("crate::", "")
+        parts = internal_path.split("::")
+        # Try as path: src/<parts>.rs or src/<parts>/mod.rs
+        for prefix in ("", "src", "src/lib", "src/main"):
+            if prefix:
+                full = project_path / prefix / "/".join(parts)
+            else:
+                full = project_path / "/".join(parts)
+            # Try as file
+            for ext in (".rs",):
+                candidate = full.with_suffix(ext)
+                if candidate.exists():
+                    try:
+                        candidates.add(candidate.relative_to(project_path))
+                    except ValueError:
+                        candidates.add(candidate)
+            # Try as directory with mod.rs
+            mod_candidate = full / "mod.rs"
+            if mod_candidate.exists():
+                try:
+                    candidates.add(mod_candidate.relative_to(project_path))
+                except ValueError:
+                    candidates.add(mod_candidate)
+        return candidates
+
+    if import_path.startswith("super::"):
+        # Go up one directory level
+        # e.g. super::module::submodule
+        remaining = import_path.removeprefix("super::")
+        parts = remaining.split("::")
+        parent = source_file.parent.parent  # super = parent dir
+        if parent:
+            full = parent / "/".join(parts)
+            for ext in (".rs",):
+                candidate = full.with_suffix(ext)
+                if candidate.exists():
+                    try:
+                        candidates.add(candidate.relative_to(project_path))
+                    except ValueError:
+                        candidates.add(candidate)
+            mod_candidate = full / "mod.rs"
+            if mod_candidate.exists():
+                try:
+                    candidates.add(mod_candidate.relative_to(project_path))
+                except ValueError:
+                    candidates.add(mod_candidate)
+        return candidates
+
+    if import_path.startswith("self::"):
+        remaining = import_path.removeprefix("self::")
+        parts = remaining.split("::")
+        full = source_file.parent / "/".join(parts)
+        for ext in (".rs",):
+            candidate = full.with_suffix(ext)
+            if candidate.exists():
+                try:
+                    candidates.add(candidate.relative_to(project_path))
+                except ValueError:
+                    candidates.add(candidate)
+        mod_candidate = full / "mod.rs"
+        if mod_candidate.exists():
+            try:
+                candidates.add(mod_candidate.relative_to(project_path))
+            except ValueError:
+                candidates.add(mod_candidate)
+        return candidates
+
+    # External crate (e.g. "serde::Serialize") — skip
+    return candidates
+
+
+def _resolve_c_include(
+    include_path: str,
+    source_file: Path,
+    project_path: Path,
+) -> set[Path]:
+    """Resolve a C/C++ include directive to internal file(s)."""
+    candidates: set[Path] = set()
+
+    # Quoted includes like "internal/header.h" — resolve relative to source
+    if not include_path.startswith("<"):
+        # Try relative to source file
+        candidate = (source_file.parent / include_path).resolve()
+        try:
+            candidate_rel = candidate.relative_to(project_path)
+            if candidate.exists():
+                candidates.add(candidate_rel)
+        except ValueError:
+            if candidate.exists():
+                candidates.add(candidate)
+
+        # Try relative to project root
+        candidate2 = project_path / include_path
+        if candidate2.exists():
+            try:
+                candidates.add(candidate2.relative_to(project_path))
+            except ValueError:
+                candidates.add(candidate2)
+
+    # System includes (<stdio.h>) are skipped — not internal
+
+    return candidates
+
+
+# Multi-language import query string builders
+_TS_IMPORT_QUERY = """
+(import_statement
+  source: (string (string_fragment) @path))
+"""
+
+_GO_IMPORT_QUERY = """
+(import_spec
+  path: (interpreted_string_literal (interpreted_string_literal_content) @path))
+"""
+
+_RUST_USE_QUERY = """
+(use_declaration
+  (scoped_identifier) @path)
+"""
+
+_C_INCLUDE_QUERY = """
+(preproc_include
+  (string_literal (string_content) @path))
+"""
+
+
+def _extract_imports_ts(tree, source: str) -> list[str]:
+    """Extract import paths from a TypeScript/JavaScript tree."""
+    # Tree-sitter 0.26 query API
+    import tree_sitter as ts
+    lang = tree.language
+    query = ts.Query(lang, _TS_IMPORT_QUERY)
+    cursor = ts.QueryCursor(query)
+    captures = cursor.captures(tree.root_node)
+    paths: list[str] = []
+    for name, nodes in captures.items():
+        for node in nodes:
+            path = node.text.decode("utf-8")
+            if path:
+                paths.append(path)
+    return paths
+
+
+def _extract_imports_go(tree, source: str) -> list[str]:
+    """Extract import paths from a Go tree."""
+    import tree_sitter as ts
+    query = ts.Query(tree.language, _GO_IMPORT_QUERY)
+    cursor = ts.QueryCursor(query)
+    captures = cursor.captures(tree.root_node)
+    paths: list[str] = []
+    for name, nodes in captures.items():
+        for node in nodes:
+            path = node.text.decode("utf-8")
+            if path:
+                paths.append(path)
+    return paths
+
+
+def _extract_imports_rust(tree, source: str) -> list[str]:
+    """Extract use paths from a Rust tree."""
+    import tree_sitter as ts
+    query = ts.Query(tree.language, _RUST_USE_QUERY)
+    cursor = ts.QueryCursor(query)
+    captures = cursor.captures(tree.root_node)
+    paths: list[str] = []
+    for name, nodes in captures.items():
+        for node in nodes:
+            path = node.text.decode("utf-8")
+            if path:
+                # Convert path::separators to module-style path
+                # strip any leading/trailing ::
+                path = path.strip().strip(":")
+                if path:
+                    paths.append(path)
+    return paths
+
+
+def _extract_imports_c(tree, source: str) -> list[str]:
+    """Extract include paths from a C/C++ tree."""
+    import tree_sitter as ts
+    query = ts.Query(tree.language, _C_INCLUDE_QUERY)
+    cursor = ts.QueryCursor(query)
+    captures = cursor.captures(tree.root_node)
+    paths: list[str] = []
+    for name, nodes in captures.items():
+        for node in nodes:
+            path = node.text.decode("utf-8")
+            if path:
+                paths.append(path)
+    return paths
+
+
+def _extract_imports_python(source: str, source_module: str,
+                             internal_modules: set[str],
+                             stdlib_modules: set[str],
+                             third_party_prefixes: set[str],
+                             edge_weight: float,
+                             adjacency: dict[tuple[str, str], float]) -> None:
+    """Extract import edges from a Python file using ast.parse.
+
+    Modifies ``adjacency`` in-place.
+    """
+    import ast as ast_module
+    try:
+        tree = ast_module.parse(source, filename="<spectral>")
+    except SyntaxError:
+        return
+
+    for node in ast_module.walk(tree):
+        if isinstance(node, ast_module.Import):
+            for alias in node.names:
+                target = alias.name.split(".")[0]
+                if target in internal_modules:
+                    adjacency[(source_module, target)] += edge_weight
+                elif target not in stdlib_modules and target not in third_party_prefixes:
+                    for im in internal_modules:
+                        if im == target or im.startswith(target + "."):
+                            adjacency[(source_module, im)] += edge_weight * 0.3
+                            break
+
+        elif isinstance(node, ast_module.ImportFrom) and node.module is not None:
+            if node.level == 0:
+                target_pkg = node.module.split(".")[0]
+                if target_pkg in internal_modules:
+                    adjacency[(source_module, node.module)] += edge_weight
+                elif target_pkg not in stdlib_modules and target_pkg not in third_party_prefixes:
+                    for im in internal_modules:
+                        if im == node.module or im.startswith(node.module + "."):
+                            adjacency[(source_module, im)] += edge_weight * 0.3
+                            break
+            else:
+                parts = source_module.split(".")
+                if node.level <= len(parts):
+                    base = ".".join(parts[:-node.level])
+                else:
+                    base = ""
+                resolved = f"{base}.{node.module}" if base and node.module else (base or node.module or "")
+                if resolved and resolved in internal_modules:
+                    adjacency[(source_module, resolved)] += edge_weight
+                elif resolved:
+                    for im in internal_modules:
+                        if im == resolved or im.startswith(resolved + "."):
+                            adjacency[(source_module, im)] += edge_weight * 0.3
+                            break
+
+
+# Language dispatch table
+_LANG_IMPORT_EXTRACTOR = {
+    "python": lambda tree, src: [],  # Handled by _extract_imports_python
+    "typescript": _extract_imports_ts,
+    "javascript": _extract_imports_ts,
+    "go": _extract_imports_go,
+    "rust": _extract_imports_rust,
+    "c": _extract_imports_c,
+    "cpp": _extract_imports_c,
+}
+
+_LANG_RESOLVER = {
+    "typescript": _resolve_ts_import,
+    "javascript": _resolve_ts_import,
+    "go": _resolve_go_import,
+    "rust": _resolve_rust_import,
+    "c": _resolve_c_include,
+    "cpp": _resolve_c_include,
+}
+
+
 def _build_module_adjacency(
     project_root: str,
     edge_weight: float = 1.0,
     include_submodules: bool = True,
 ) -> tuple[np.ndarray, list[str]]:
-    """Build a weighted adjacency matrix from AST-level import analysis.
+    """Build a weighted adjacency matrix from import analysis across all supported languages.
 
-    Parses every Python file in the project, resolves relative imports to
-    full module paths, and creates edges only between internal modules.
-    This catches relative imports (``from . import x``, ``from ..y import z``)
-    that a simple ``build_import_graph`` misses.
+    Parses every source file in the project using the appropriate parser
+    (ast.parse for Python, tree-sitter for others), resolves imports to
+    internal files, and creates a symmetric weighted adjacency matrix.
 
     Args:
         project_root: Root of the project to analyze.
         edge_weight: Weight for import edges (default: 1.0).
         include_submodules: If True, include implicit submodule containment
-                           edges (weight * 0.3).
+                           edges and directory proximity edges.
 
     Returns:
         Tuple of (adjacency_matrix, module_names).
         adjacency_matrix is N×N symmetric with edge weights.
         module_names[i] is the module path corresponding to row i.
     """
-    import ast as ast_module
-
     project_path = Path(project_root)
     if not project_path.is_dir():
         return np.zeros((0, 0)), []
 
-    # Discover all Python files and map to module paths
-    py_files: list[Path] = []
-    for f in sorted(project_path.rglob("*.py")):
-        rel = f.relative_to(project_path)
-        if any(p.startswith(".") or p == "__pycache__" for p in rel.parts):
-            continue
-        if rel.name == "setup.py" or rel.name == "versioneer.py":
-            continue
-        py_files.append(f)
+    # ── Step 1: Discover all source files across languages ──
+    source_files = _iter_source_files(project_path)
+    if not source_files:
+        return np.zeros((0, 0)), []
 
-    # Build module path for each file
-    # e.g. src/ast_tools/tools/spectral.py → ast_tools.tools.spectral
-    #       foo/__init__.py → foo
-    # If the project root itself is a package (has __init__.py), prepend
-    # the directory name so absolute imports like "from pkg.mod import x"
-    # resolve correctly.
-    package_prefix: str = ""
-    if (project_path / "__init__.py").exists():
-        package_prefix = project_path.name + "."
-
-    internal_modules: set[str] = set()
+    # ── Step 2: Build internal module map for ALL files ──
     file_to_module: dict[Path, str] = {}
-    for f in py_files:
-        rel = f.relative_to(project_path)
-        parts = list(rel.parts)
-        if parts[-1] == "__init__.py":
-            parts = parts[:-1]
-        else:
-            parts[-1] = parts[-1].removesuffix(".py")
-        module = package_prefix + ".".join(parts)
-        internal_modules.add(module)
-        file_to_module[f] = module
+    module_to_file: dict[str, Path] = {}
+    # Also maintain relative path map for resolution
+    rel_path_to_file: dict[str, Path] = {}
 
-    # Known stdlib modules for filtering
+    for f in source_files:
+        try:
+            rel = f.relative_to(project_path)
+        except ValueError:
+            continue
+        module = _file_to_module_name(f, project_path)
+        file_to_module[f] = module
+        module_to_file[module] = f
+        rel_path_to_file[str(rel)] = f
+
+    internal_modules: set[str] = set(file_to_module.values())
+
+    # Also index files by stem (for matching imports to files)
+    stem_to_files: dict[str, list[Path]] = {}
+    for f in source_files:
+        try:
+            rel = f.relative_to(project_path)
+        except ValueError:
+            continue
+        stem = rel.stem
+        stem_to_files.setdefault(stem, []).append(f)
+
+    # ── Step 3: Setup stdlib/third-party filters (Python-specific) ──
     stdlib_modules: set[str] = set()
     try:
         import sys
-        stdlib_paths = {
-            p for p in sys.stdlib_module_names  # Python 3.10+
-        }
-        stdlib_modules = stdlib_paths
+        stdlib_modules = {p for p in sys.stdlib_module_names}
     except (AttributeError, KeyError):
-        # Fallback: known common stdlib modules
         stdlib_modules = {
             "abc", "ast", "asyncio", "base64", "collections", "copy",
             "csv", "dataclasses", "datetime", "decimal", "enum", "functools",
@@ -472,74 +912,71 @@ def _build_module_adjacency(
             "xml", "zipfile", "__future__",
         }
 
-    # Third-party prefixes to skip
     third_party_prefixes = {
         "pytest", "numpy", "scipy", "sklearn", "torch", "tensorflow",
-        "yaml", "json", "tomllib", "jsonschema", "libcst", "mcp",
+        "yaml", "jsonschema", "libcst", "mcp",
         "jedi", "tree_sitter", "tiktoken", "watchdog", "anyio",
         "sentence_transformers", "sqlite_vec", "sqlparse", "hnswlib",
     }
 
-    # Parse each file and collect intra-project edges
+    # ── Step 4: Parse each file and collect intra-project edges ──
     adjacency: dict[tuple[str, str], float] = defaultdict(float)
 
-    for f in py_files:
-        source_module = file_to_module[f]
-        try:
-            source = f.read_text(encoding="utf-8", errors="replace")
-            tree = ast_module.parse(source, filename=str(f))
-        except (SyntaxError, OSError):
+    # Pre-load ts_backend if needed
+    _ts_available = False
+    try:
+        import ts_backend
+        _ts_available = True
+    except ImportError:
+        pass
+
+    for f in source_files:
+        source_module = file_to_module.get(f)
+        if source_module is None:
             continue
 
-        for node in ast_module.walk(tree):
-            if isinstance(node, ast_module.Import):
-                for alias in node.names:
-                    target = alias.name.split(".")[0]  # top-level package
-                    if target in internal_modules:
-                        adjacency[(source_module, target)] += edge_weight
-                    elif target not in stdlib_modules and target not in third_party_prefixes:
-                        # Could be an internal module we resolved differently
-                        for im in internal_modules:
-                            if im == target or im.startswith(target + "."):
-                                adjacency[(source_module, im)] += edge_weight * 0.3
-                                break
+        lang = _detect_language(f)
+        if lang is None:
+            continue
 
-            elif isinstance(node, ast_module.ImportFrom) and node.module is not None:
-                if node.level == 0:
-                    # Absolute import: from ast_tools.tools.spectral import ...
-                    target_pkg = node.module.split(".")[0]
-                    if target_pkg in internal_modules:
-                        adjacency[(source_module, node.module)] += edge_weight
-                    elif target_pkg not in stdlib_modules and target_pkg not in third_party_prefixes:
-                        # Try matching full path
-                        for im in internal_modules:
-                            if im == node.module or im.startswith(node.module + "."):
-                                adjacency[(source_module, im)] += edge_weight * 0.3
-                                break
-                else:
-                    # Relative import: from . import x  (level=1)
-                    #                  from ..y import z (level=2)
-                    parts = source_module.split(".")
-                    if node.level <= len(parts):
-                        base = ".".join(parts[:-node.level])
-                    else:
-                        base = ""
-                    if node.module:
-                        resolved = f"{base}.{node.module}" if base else node.module
-                    else:
-                        resolved = base  # from . import x → same package
+        try:
+            source = f.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            continue
 
-                    # Normalize: resolved might be empty string
-                    if resolved and resolved in internal_modules:
-                        adjacency[(source_module, resolved)] += edge_weight
-                    elif resolved:
-                        # Might have submodule that matches
-                        for im in internal_modules:
-                            if im == resolved or im.startswith(resolved + "."):
-                                adjacency[(source_module, im)] += edge_weight * 0.3
-                                break
+        if lang == "python":
+            # Python: use ast.parse (fast, accurate)
+            _extract_imports_python(
+                source, source_module, internal_modules,
+                stdlib_modules, third_party_prefixes,
+                edge_weight, adjacency,
+            )
+        elif _ts_available:
+            # Other languages: use tree-sitter
+            try:
+                tree = ts_backend.ts_parse(source, lang)
+                if tree is None:
+                    continue
+            except Exception:
+                continue
 
-    # Include submodule containment edges (parent ← submodule)
+            extractor = _LANG_IMPORT_EXTRACTOR.get(lang)
+            resolver = _LANG_RESOLVER.get(lang)
+            if extractor is None or resolver is None:
+                continue
+
+            import_paths = extractor(tree, source)
+            for import_path in import_paths:
+                # Resolve to actual file(s)
+                resolved_files = resolver(import_path, f, project_path)
+                for resolved in resolved_files:
+                    # resolvers may return relative or absolute; normalize to absolute
+                    resolved_abs = resolved if resolved.is_absolute() else (project_path / resolved)
+                    target_module = file_to_module.get(resolved_abs)
+                    if target_module and target_module in internal_modules:
+                        adjacency[(source_module, target_module)] += edge_weight
+
+    # ── Step 5: Submodule containment edges ──
     if include_submodules:
         for mod in internal_modules:
             parts = mod.split(".")
@@ -549,24 +986,22 @@ def _build_module_adjacency(
                     adjacency[(mod, parent)] += edge_weight * 0.3
                     adjacency[(parent, mod)] += edge_weight * 0.3
 
-    # Directory proximity edges: files sharing the same directory get a weak
-    # edge. This provides signal for the spectral algorithm on sparse graphs
-    # (typical for tools libraries where each tool is largely independent),
-    # based on the well-known "co-location implies cohesion" heuristic.
-    dir_groups: dict[str, list[str]] = defaultdict(list)
-    for mod in internal_modules:
-        parts = mod.split(".")
-        dir_key = ".".join(parts[:-1]) if len(parts) > 1 else "<root>"
-        dir_groups[dir_key].append(mod)
-    for _dir_key, group in dir_groups.items():
-        if len(group) < 2:
-            continue
-        for i in range(len(group)):
-            for j in range(i + 1, len(group)):
-                adjacency[(group[i], group[j])] += edge_weight * 0.15
-                adjacency[(group[j], group[i])] += edge_weight * 0.15
+    # ── Step 6: Directory proximity edges ──
+    if include_submodules:
+        dir_groups: dict[str, list[str]] = defaultdict(list)
+        for mod in internal_modules:
+            parts = mod.split(".")
+            dir_key = ".".join(parts[:-1]) if len(parts) > 1 else "<root>"
+            dir_groups[dir_key].append(mod)
+        for _dir_key, group in dir_groups.items():
+            if len(group) < 2:
+                continue
+            for i in range(len(group)):
+                for j in range(i + 1, len(group)):
+                    adjacency[(group[i], group[j])] += edge_weight * 0.15
+                    adjacency[(group[j], group[i])] += edge_weight * 0.15
 
-    # Build matrix
+    # ── Step 7: Build matrix ──
     module_names = sorted(internal_modules)
     n = len(module_names)
     if n == 0:
@@ -579,7 +1014,7 @@ def _build_module_adjacency(
         if src in module_index and tgt in module_index:
             i, j = module_index[src], module_index[tgt]
             adj[i, j] += w
-            adj[j, i] += w  # symmetric
+            adj[j, i] += w
 
     return adj, module_names
 

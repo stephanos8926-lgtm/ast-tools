@@ -22,6 +22,7 @@ from ast_tools.tools.spectral import (
     ClusterAssignment,
     PartitionNode,
     SpectralResult,
+    _build_module_adjacency,
     _fiedler_bipartition,
     _fiedler_vector_power_iteration,
     _normalized_laplacian,
@@ -361,6 +362,123 @@ class TestSuggestModules:
             "min_cluster_size": 3,
         })
         assert result_large["num_clusters"] > 0
+
+
+# ── Multi-Language Tests ──────────────────────────────────────────────────
+
+
+class TestMultiLanguage:
+    """Test import extraction across supported languages."""
+
+    def test_python_imports(self, tmp_path: Path) -> None:
+        """Python import resolution works."""
+        (tmp_path / "a.py").write_text("import b\n")
+        (tmp_path / "b.py").write_text("x = 1\n")
+        adj, names = _build_module_adjacency(str(tmp_path))
+        assert "a" in names
+        assert "b" in names
+        # a imports b = edge weight >= 1.0
+        ai = names.index("a")
+        bi = names.index("b")
+        assert adj[ai, bi] >= 1.0, f"No edge a→b, weight={adj[ai, bi]}"
+
+    def test_typescript_imports(self, tmp_path: Path) -> None:
+        """TypeScript relative import resolution works."""
+        (tmp_path / "app.ts").write_text('import { Button } from "./ui/button";\n')
+        ui_dir = tmp_path / "ui"
+        ui_dir.mkdir()
+        (ui_dir / "button.ts").write_text("export const Button = () => {};\n")
+        adj, names = _build_module_adjacency(str(tmp_path))
+        assert "app" in names, f"Expected 'app' in {names}"
+        assert "ui.button" in names, f"Expected 'ui.button' in {names}"
+        ai = names.index("app")
+        bi = names.index("ui.button")
+        assert adj[ai, bi] >= 0.9, f"No edge app→ui.button, weight={adj[ai, bi]:.2f}"
+
+    def test_go_imports(self, tmp_path: Path) -> None:
+        """Go import resolution works for internal packages."""
+        pkg = tmp_path / "internal" / "db"
+        pkg.mkdir(parents=True)
+        (pkg / "db.go").write_text("package db\n")
+        (tmp_path / "main.go").write_text(
+            'package main\nimport "testproj/internal/db"\n'
+        )
+        adj, names = _build_module_adjacency(str(tmp_path))
+        pm = [n for n in names if "main" in n]
+        assert len(pm) >= 1, f"No main module in {names}"
+        main_name = pm[0]
+        db_name = "internal.db.db"
+        assert db_name in names, f"Expected {db_name} in {names}"
+        mi = names.index(main_name)
+        di = names.index(db_name)
+        # Go import resolved → edge weight >= 1.0
+        assert adj[mi, di] >= 0.9, f"No edge main→db, weight={adj[mi, di]:.2f}"
+
+    def test_rust_imports(self, tmp_path: Path) -> None:
+        """Rust crate:: import resolution works."""
+        src = tmp_path / "src"
+        src.mkdir()
+        db_dir = src / "db"
+        db_dir.mkdir()
+        (db_dir / "mod.rs").write_text("pub mod models;\n")
+        (db_dir / "models.rs").write_text("pub struct User;\n")
+        (src / "main.rs").write_text("use crate::db::models;\nfn main() {}\n")
+        adj, names = _build_module_adjacency(str(tmp_path))
+        main_name = [n for n in names if "main" in n][0]
+        assert "src.db.models" in names, f"Expected src.db.models in {names}"
+        mi = names.index(main_name)
+        di = names.index("src.db.models")
+        # Rust use crate:: → edge weight >= 1.0 (via containing edge from containment)
+        # Or at least the mod.rs containment edge
+        assert adj[mi, di] > 0 or any(
+            adj[mi, names.index(n)] > 0
+            for n in names if n.startswith("src.db")
+        ), f"No edge from {main_name} to db modules"
+
+    def test_c_include(self, tmp_path: Path) -> None:
+        """C include resolution works for quoted includes."""
+        inc = tmp_path / "include"
+        inc.mkdir()
+        (inc / "header.h").write_text("#ifndef HEADER_H\n#define HEADER_H\n#endif\n")
+        (tmp_path / "main.c").write_text('#include "include/header.h"\nint main() {}\n')
+        adj, names = _build_module_adjacency(str(tmp_path))
+        main_name = "main"
+        header_name = "include.header"
+        assert main_name in names, f"Expected {main_name} in {names}"
+        assert header_name in names, f"Expected {header_name} in {names}"
+        mi = names.index(main_name)
+        hi = names.index(header_name)
+        assert adj[mi, hi] >= 0.9, f"No edge main→header, weight={adj[mi, hi]:.2f}"
+
+    def test_cpp_include(self, tmp_path: Path) -> None:
+        """C++ include resolution works."""
+        inc = tmp_path / "inc"
+        inc.mkdir()
+        (inc / "util.hpp").write_text("#pragma once\n")
+        (tmp_path / "main.cpp").write_text('#include "inc/util.hpp"\nint main() {}\n')
+        adj, names = _build_module_adjacency(str(tmp_path))
+        assert "main" in names
+        assert "inc.util" in names
+        mi = names.index("main")
+        hi = names.index("inc.util")
+        assert adj[mi, hi] >= 0.9
+
+    def test_mixed_language_project(self, tmp_path: Path) -> None:
+        """Multi-language project creates a unified graph."""
+        # Python
+        (tmp_path / "main.py").write_text("import helpers\n")
+        (tmp_path / "helpers.py").write_text("x = 1\n")
+        # TypeScript
+        (tmp_path / "app.ts").write_text('import { greet } from "./lib/util";\n')
+        lib = tmp_path / "lib"
+        lib.mkdir()
+        (lib / "util.ts").write_text("export function greet() {}\n")
+        # Both should appear in the same graph
+        adj, names = _build_module_adjacency(str(tmp_path))
+        expected = {"main", "helpers", "app", "lib.util"}
+        found = set(names)
+        missing = expected - found
+        assert not missing, f"Missing modules: {missing}"
 
 
 # ── Edge Cases ────────────────────────────────────────────────────────────────
