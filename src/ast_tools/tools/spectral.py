@@ -1281,6 +1281,233 @@ def _name_to_modules(name: str, project_path: Path) -> set[str]:
     return candidates
 
 
+# ── Semantic Affinity Adjacency ──────────────────────────────────────────────
+
+
+def _build_semantic_adjacency(
+    project_root: str,
+    module_names: list[str],
+    file_to_module: dict[Path, str] | None = None,
+    semantic_weight: float = 0.3,
+) -> np.ndarray:
+    """Build adjacency from semantic similarity between module documents.
+
+    Generates text embeddings for each module's source content and adds edges
+    weighted by cosine similarity. Only adds edges above 0.5 cosine similarity.
+
+    Gracefully degrades to zero matrix if sentence-transformers is unavailable.
+
+    Args:
+        project_root: Root of the project.
+        module_names: Sorted list of module names to analyze.
+        file_to_module: Optional mapping of file paths to module names.
+        semantic_weight: Multiplier for semantic edges (default: 0.3).
+
+    Returns:
+        N×N symmetric adjacency matrix, or zeros if model unavailable.
+    """
+    n = len(module_names)
+    if n == 0:
+        return np.zeros((0, 0))
+
+    project_path = Path(project_root)
+    mod_to_file: dict[str, Path] = {}
+    if file_to_module:
+        for f, m in file_to_module.items():
+            mod_to_file[m] = f
+    else:
+        for f in _iter_source_files(project_path):
+            m = _file_to_module_name(f, project_path)
+            mod_to_file[m] = f
+
+    module_docs: list[str] = []
+    for mod in module_names:
+        f = mod_to_file.get(mod)
+        if not f:
+            module_docs.append("")
+            continue
+        try:
+            text = f.read_text(encoding="utf-8", errors="replace")
+            module_docs.append(text[:2000])
+        except OSError:
+            module_docs.append("")
+
+    try:
+        from sentence_transformers import SentenceTransformer
+    except ImportError:
+        logger.info("sentence-transformers not installed, skipping semantic affinity")
+        return np.zeros((n, n))
+
+    try:
+        model_name = "all-MiniLM-L6-v2"
+        logger.info(f"Loading embedding model for semantic affinity: {model_name}")
+        model = SentenceTransformer(model_name)
+        logger.info(f"Generating {len(module_docs)} module embeddings...")
+        embeddings = model.encode(module_docs, show_progress_bar=False, batch_size=32)
+        logger.info("Computing cosine similarity matrix...")
+    except Exception as e:
+        logger.warning(f"Failed to generate semantic embeddings ({e}), skipping")
+        return np.zeros((n, n))
+
+    adj = np.zeros((n, n), dtype=np.float64)
+    SIMILARITY_THRESHOLD = 0.5
+    for i in range(n):
+        if not module_docs[i]:
+            continue
+        for j in range(i + 1, n):
+            if not module_docs[j]:
+                continue
+            vi = embeddings[i]
+            vj = embeddings[j]
+            dot = np.dot(vi, vj)
+            norm_i = np.linalg.norm(vi)
+            norm_j = np.linalg.norm(vj)
+            if norm_i > 1e-10 and norm_j > 1e-10:
+                sim = dot / (norm_i * norm_j)
+                if sim > SIMILARITY_THRESHOLD:
+                    w = sim * semantic_weight
+                    adj[i, j] += w
+                    adj[j, i] += w
+
+    logger.info(f"Semantic affinity: {len(adj.nonzero()[0]) // 2} edges added")
+    return adj
+
+
+# ── Co-Change Adjacency ──────────────────────────────────────────────────────
+
+
+def _build_cochange_adjacency(
+    project_root: str,
+    module_names: list[str],
+    cochange_weight: float = 0.4,
+    max_commits: int = 1000,
+) -> np.ndarray:
+    """Build adjacency from git co-change frequency (evolutionary coupling).
+
+    Analyzes git history to find modules that frequently change together.
+    Uses Jaccard similarity on commit co-occurrence.
+
+    Gracefully degrades to zero matrix if the project is not a git repo,
+    git is not installed, or no commits found.
+
+    Args:
+        project_root: Root of the project (must be a git repo).
+        module_names: Sorted list of module names to analyze.
+        cochange_weight: Multiplier for co-change edges (default: 0.4).
+        max_commits: Maximum number of recent commits (default: 1000).
+
+    Returns:
+        N×N symmetric adjacency matrix, or zeros if git unavailable.
+    """
+    n = len(module_names)
+    if n == 0:
+        return np.zeros((0, 0))
+
+    import subprocess
+
+    project_path = Path(project_root)
+    git_dir = project_path / ".git"
+    if not git_dir.exists():
+        logger.info("Not a git repository, skipping co-change analysis")
+        return np.zeros((n, n))
+
+    # Map module names to relative file paths
+    mod_to_relpath: dict[str, str] = {}
+    relpath_to_mod: dict[str, str] = {}
+    for mod in module_names:
+        parts = mod.split(".")
+        base_path = "/".join(parts)
+        for ext in (".py", ".ts", ".tsx", ".js", ".jsx", ".go", ".rs", ".c", ".h", ".cpp", ".hpp"):
+            rel = base_path + ext
+            if (project_path / rel).exists():
+                mod_to_relpath[mod] = rel
+                relpath_to_mod[rel] = mod
+                break
+        else:
+            # __init__.py, mod.rs, index.ts patterns
+            for init in (f"{base_path}/__init__.py", f"{base_path}/mod.rs", f"{base_path}/index.ts"):
+                if (project_path / init).exists():
+                    mod_to_relpath[mod] = init
+                    relpath_to_mod[init] = mod
+                    break
+
+    if not mod_to_relpath:
+        logger.info("No module-to-file mappings, skipping co-change")
+        return np.zeros((n, n))
+
+    tracked: set[str] = set(mod_to_relpath.values())
+
+    try:
+        result = subprocess.run(
+            [
+                "git", "log", "--all", "--name-only",
+                f"--max-count={max_commits}",
+                "--diff-filter=M",
+                "--pretty=format:%H",
+            ],
+            capture_output=True, text=True, cwd=project_root, timeout=30,
+        )
+    except (subprocess.SubprocessError, FileNotFoundError, OSError) as e:
+        logger.warning(f"Git co-change failed ({e}), skipping")
+        return np.zeros((n, n))
+
+    if result.returncode != 0 or not result.stdout.strip():
+        logger.info("No git history, skipping co-change")
+        return np.zeros((n, n))
+
+    cochange: dict[tuple[str, str], int] = defaultdict(int)
+    file_changes: dict[str, int] = defaultdict(int)
+    current_files: list[str] = []
+
+    for line in result.stdout.splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        if len(line) == 40 and all(c in "0123456789abcdef" for c in line):
+            tracked_in = [f for f in current_files if f in tracked]
+            for i in range(len(tracked_in)):
+                file_changes[tracked_in[i]] += 1
+                for j in range(i + 1, len(tracked_in)):
+                    key = tuple(sorted([tracked_in[i], tracked_in[j]]))
+                    cochange[key] += 1
+            current_files = []
+        else:
+            current_files.append(line)
+
+    tracked_in = [f for f in current_files if f in tracked]
+    for i in range(len(tracked_in)):
+        file_changes[tracked_in[i]] += 1
+        for j in range(i + 1, len(tracked_in)):
+            key = tuple(sorted([tracked_in[i], tracked_in[j]]))
+            cochange[key] += 1
+
+    if not cochange:
+        logger.info("No co-change pairs, skipping")
+        return np.zeros((n, n))
+
+    adj = np.zeros((n, n), dtype=np.float64)
+    MIN_JACCARD = 0.05
+    for (fa, fb), both in cochange.items():
+        ca = file_changes[fa]
+        cb = file_changes[fb]
+        union = ca + cb - both
+        if union > 0:
+            jac = both / union
+            if jac > MIN_JACCARD:
+                ma = relpath_to_mod.get(fa)
+                mb = relpath_to_mod.get(fb)
+                if ma and mb and ma != mb:
+                    i, j = module_names.index(ma), module_names.index(mb)
+                    w = jac * cochange_weight
+                    adj[i, j] += w
+                    adj[j, i] += w
+
+    ec = len(adj.nonzero()[0]) // 2
+    if ec > 0:
+        logger.info(f"Co-change: {ec} edges from {len(cochange)} pairs")
+    return adj
+
+
 # ── Public API ────────────────────────────────────────────────────────────────
 
 
@@ -1291,20 +1518,31 @@ def suggest_modules(
     edge_weight: float = 1.0,
     database_path: str | None = None,
     use_call_graph: bool = False,
+    semantic_weight: float = 0.0,
+    cochange_weight: float = 0.0,
 ) -> SpectralResult:
     """Suggest module decomposition using spectral clustering.
 
-    Builds a dependency graph from the project's import structure, then
-    recursively partitions using the Fiedler vector of the graph Laplacian.
+    Builds a weighted dependency graph from multiple signal sources:
+    - Import graph (all supported languages)
+    - Database-backed call graph (optional, use_call_graph=True)
+    - Semantic similarity via embeddings (optional, semantic_weight > 0)
+    - Git co-change history (optional, cochange_weight > 0)
+
+    All enabled sources are fused additively into a single adjacency matrix,
+    then recursively partitioned using the Fiedler vector.
 
     Args:
-        project_root: Root directory of the Python project.
+        project_root: Root directory of the project to analyze.
         min_cluster_size: Minimum modules per cluster (default: 2).
-        max_clusters: Maximum number of clusters to produce. If None,
-                     determined automatically by partition quality.
-        edge_weight: Weight for dependency edges (default: 1.0).
-        database_path: Path to semantic database (for Phase 2 call graph).
-        use_call_graph: If True, use enriched call graph when available.
+        max_clusters: Maximum clusters (None = auto-determined).
+        edge_weight: Base weight for import/dependency edges (default: 1.0).
+        database_path: Path to semantic database (for call graph).
+        use_call_graph: If True, enrich with DB symbol edges (default: False).
+        semantic_weight: Weight for semantic similarity edges.
+                         0.0 = disabled (default). Recommended: 0.2–0.5.
+        cochange_weight: Weight for git co-change edges.
+                         0.0 = disabled (default). Recommended: 0.3–0.6.
 
     Returns:
         SpectralResult with cluster assignments, tree, and quality metrics.
@@ -1313,11 +1551,27 @@ def suggest_modules(
     if not project_path.is_dir():
         raise ValueError(f"Project root does not exist: {project_root}")
 
-    # Step 1: Build adjacency matrix
+    # Step 1: Build adjacency matrices from enabled sources
     if use_call_graph:
         adj, module_names = _build_call_graph_adjacency(project_root, database_path, edge_weight)
     else:
         adj, module_names = _build_module_adjacency(project_root, edge_weight)
+
+    # Fuse semantic affinity edges
+    if semantic_weight > 0:
+        sem_adj = _build_semantic_adjacency(
+            project_root, module_names, semantic_weight=semantic_weight,
+        )
+        if sem_adj.shape == adj.shape:
+            adj += sem_adj
+
+    # Fuse co-change edges
+    if cochange_weight > 0:
+        co_adj = _build_cochange_adjacency(
+            project_root, module_names, cochange_weight=cochange_weight,
+        )
+        if co_adj.shape == adj.shape:
+            adj += co_adj
 
     n = len(module_names)
     if n == 0:
@@ -1474,9 +1728,9 @@ def suggest_modules(
 def _tool_suggest_modules(args: dict[str, Any]) -> dict[str, Any]:
     """MCP tool: suggest module decomposition via spectral clustering.
 
-    Builds the import dependency graph of a Python project, then recursively
-    partitions it using the Fiedler vector of the graph Laplacian to identify
-    cohesive module groups.
+    Builds a weighted dependency graph from the project's import structure
+    (plus optional call graph, semantic similarity, and co-change), then
+    recursively partitions using the Fiedler vector.
 
     Args (from MCP):
         project_root: Root directory of the project.
@@ -1484,15 +1738,11 @@ def _tool_suggest_modules(args: dict[str, Any]) -> dict[str, Any]:
         max_clusters: Maximum clusters to produce (default: None = auto).
         edge_weight: Weight for dependency edges (default: 1.0).
         use_call_graph: If True, use enriched call graph (default: False).
+        semantic_weight: Weight for semantic similarity (default: 0.0 = off).
+        cochange_weight: Weight for git co-change (default: 0.0 = off).
 
     Returns:
-        Dict with keys:
-            clusters: List of cluster assignments
-            num_modules: Total modules analyzed
-            num_clusters: Number of clusters found
-            quality: Overall modularity quality score
-            algebraic_connectivity: λ₂ of the graph
-            isolated_modules: Modules with no dependencies
+        Dict with clusters, num_modules, num_clusters, quality, ...
     """
     project_root = args.get("project_root", ".")
     min_cluster_size = args.get("min_cluster_size", 2)
@@ -1500,6 +1750,8 @@ def _tool_suggest_modules(args: dict[str, Any]) -> dict[str, Any]:
     edge_weight = args.get("edge_weight", 1.0)
     database_path = args.get("database_path")
     use_call_graph = args.get("use_call_graph", False)
+    semantic_weight = args.get("semantic_weight", 0.0)
+    cochange_weight = args.get("cochange_weight", 0.0)
 
     result = suggest_modules(
         project_root=project_root,
@@ -1508,6 +1760,8 @@ def _tool_suggest_modules(args: dict[str, Any]) -> dict[str, Any]:
         edge_weight=edge_weight,
         database_path=database_path,
         use_call_graph=use_call_graph,
+        semantic_weight=semantic_weight,
+        cochange_weight=cochange_weight,
     )
 
     return {

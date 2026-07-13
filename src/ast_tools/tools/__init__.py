@@ -1365,12 +1365,22 @@ register_tool(
                 },
                 "use_call_graph": {
                     "type": "boolean",
-                    "description": "Use call graph edges (requires indexed database) — default: False",
+                    "description": "Use call graph edges (requires indexed database)",
                     "default": False,
                 },
                 "database_path": {
                     "type": "string",
                     "description": "Path to semantic search database (for call graph mode)",
+                },
+                "semantic_weight": {
+                    "type": "number",
+                    "description": "Weight for semantic similarity edges (0=off, recommended 0.2-0.5). Requires sentence-transformers.",
+                    "default": 0.0,
+                },
+                "cochange_weight": {
+                    "type": "number",
+                    "description": "Weight for git co-change edges (0=off, recommended 0.3-0.6). Requires git history.",
+                    "default": 0.0,
                 },
             },
             "required": [],

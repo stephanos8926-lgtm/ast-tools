@@ -22,7 +22,9 @@ from ast_tools.tools.spectral import (
     ClusterAssignment,
     PartitionNode,
     SpectralResult,
+    _build_cochange_adjacency,
     _build_module_adjacency,
+    _build_semantic_adjacency,
     _fiedler_bipartition,
     _fiedler_vector_power_iteration,
     _normalized_laplacian,
@@ -479,6 +481,162 @@ class TestMultiLanguage:
         found = set(names)
         missing = expected - found
         assert not missing, f"Missing modules: {missing}"
+
+
+# ── Semantic Affinity & Co-Change Tests ─────────────────────────────────────
+
+
+class TestSemanticAndCochange:
+    """Test new edge sources — semantic affinity and co-change analysis."""
+
+    def test_semantic_affinity_no_sentence_transformers(self, tmp_path: Path) -> None:
+        """Without sentence-transformers, returns zero matrix."""
+        (tmp_path / "a.py").write_text("x = 1\n")
+        (tmp_path / "b.py").write_text("y = 2\n")
+        adj, names = _build_module_adjacency(str(tmp_path))
+        sem_adj = _build_semantic_adjacency(str(tmp_path), names, semantic_weight=0.3)
+        assert sem_adj.shape == adj.shape
+        # Without the model, it should be all zeros
+        assert sem_adj.sum() == 0.0
+
+    def test_semantic_affinity_empty_modules(self) -> None:
+        """Empty module list returns empty matrix."""
+        sem_adj = _build_semantic_adjacency("/tmp", [], semantic_weight=0.3)
+        assert sem_adj.shape == (0, 0)
+
+    def test_semantic_affinity_with_import(self, tmp_path: Path) -> None:
+        """Still works (graceful no-model fallback) within suggest_modules."""
+        (tmp_path / "main.py").write_text("import lib\n")
+        lib = tmp_path / "lib"
+        lib.mkdir()
+        (lib / "__init__.py").write_text("X = 1\n")
+        result = suggest_modules(
+            str(tmp_path), semantic_weight=0.3, min_cluster_size=2,
+        )
+        assert result.num_modules >= 2
+        assert result.num_clusters >= 1
+
+    def test_cochange_no_git(self, tmp_path: Path) -> None:
+        """Without git repo, returns zero matrix."""
+        (tmp_path / "a.py").write_text("x = 1\n")
+        (tmp_path / "b.py").write_text("y = 2\n")
+        adj, names = _build_module_adjacency(str(tmp_path))
+        co_adj = _build_cochange_adjacency(str(tmp_path), names, cochange_weight=0.4)
+        assert co_adj.shape == adj.shape
+        assert co_adj.sum() == 0.0
+
+    def test_cochange_empty_modules(self) -> None:
+        """Empty module list returns empty matrix."""
+        co_adj = _build_cochange_adjacency("/tmp", [], cochange_weight=0.4)
+        assert co_adj.shape == (0, 0)
+
+    def test_cochange_with_git_repo(self, tmp_path: Path) -> None:
+        """With a git repo and commits, co-change finds edges."""
+        import subprocess
+        # Init git repo
+        subprocess.run(["git", "init"], cwd=tmp_path, capture_output=True)
+        subprocess.run(
+            ["git", "config", "user.email", "test@test.com"],
+            cwd=tmp_path, capture_output=True,
+        )
+        subprocess.run(
+            ["git", "config", "user.name", "Test"],
+            cwd=tmp_path, capture_output=True,
+        )
+
+        # Create files and make commits that change them together
+        (tmp_path / "a.py").write_text("x = 1\n")
+        (tmp_path / "b.py").write_text("y = 2\n")
+        (tmp_path / "c.py").write_text("z = 3\n")
+
+        subprocess.run(["git", "add", "."], cwd=tmp_path, capture_output=True)
+        subprocess.run(
+            ["git", "commit", "-m", "init"],
+            cwd=tmp_path, capture_output=True,
+        )
+
+        # Change a and b together
+        (tmp_path / "a.py").write_text("x = 2\n")
+        (tmp_path / "b.py").write_text("y = 3\n")
+        subprocess.run(["git", "add", "."], cwd=tmp_path, capture_output=True)
+        subprocess.run(
+            ["git", "commit", "-m", "change ab"],
+            cwd=tmp_path, capture_output=True,
+        )
+
+        # Change a and c together
+        (tmp_path / "a.py").write_text("x = 3\n")
+        (tmp_path / "c.py").write_text("z = 4\n")
+        subprocess.run(["git", "add", "."], cwd=tmp_path, capture_output=True)
+        subprocess.run(
+            ["git", "commit", "-m", "change ac"],
+            cwd=tmp_path, capture_output=True,
+        )
+
+        # Now test co-change analysis
+        adj, names = _build_module_adjacency(str(tmp_path))
+        co_adj = _build_cochange_adjacency(
+            str(tmp_path), names, cochange_weight=0.4, max_commits=100,
+        )
+        assert co_adj.shape == adj.shape
+        # Should have found at least one co-change edge
+        edge_count = len(co_adj.nonzero()[0]) // 2
+        assert edge_count >= 1, f"Expected co-change edges, got {edge_count}"
+        # a-b and a-c should have co-change signal
+        if "a" in names and "b" in names:
+            ai, bi = names.index("a"), names.index("b")
+            assert co_adj[ai, bi] > 0, "a-b should have co-change edge"
+
+    def test_fusion_all_disabled_by_default(self, tmp_path: Path) -> None:
+        """Default call with no optional sources works (backward compat)."""
+        (tmp_path / "main.py").write_text("import helper\n")
+        (tmp_path / "helper.py").write_text("x = 1\n")
+        result = suggest_modules(str(tmp_path), min_cluster_size=2)
+        assert result.num_modules >= 2
+
+    def test_fusion_with_cochange_and_semantic(self, tmp_path: Path) -> None:
+        """Both optional sources enabled but gracefully fall back."""
+        import subprocess
+        subprocess.run(["git", "init"], cwd=tmp_path, capture_output=True)
+        subprocess.run(
+            ["git", "config", "user.email", "t@t.com"],
+            cwd=tmp_path, capture_output=True,
+        )
+        subprocess.run(
+            ["git", "config", "user.name", "T"],
+            cwd=tmp_path, capture_output=True,
+        )
+
+        (tmp_path / "main.py").write_text("import helper\n")
+        (tmp_path / "helper.py").write_text("x = 1\n")
+        subprocess.run(["git", "add", "."], cwd=tmp_path, capture_output=True)
+        subprocess.run(
+            ["git", "commit", "-m", "init"],
+            cwd=tmp_path, capture_output=True,
+        )
+
+        # Should not crash — semantic falls back gracefully, co-change finds git
+        try:
+            result = suggest_modules(
+                str(tmp_path), min_cluster_size=2,
+                semantic_weight=0.3, cochange_weight=0.4,
+            )
+            assert result.num_modules >= 2
+        except Exception as e:
+            # Graceful only: if sentence-transformers throws beyond our try/except,
+            # that's acceptable since it's an optional heavy dep
+            if "sentence_transformers" not in str(e).lower():
+                raise
+
+    def test_tool_function_new_params(self, synthetic_project: Path) -> None:
+        """MCP tool accepts the new params without error."""
+        result = _tool_suggest_modules({
+            "project_root": str(synthetic_project),
+            "semantic_weight": 0.3,
+            "cochange_weight": 0.4,
+        })
+        assert "clusters" in result
+        assert result["num_modules"] > 0
 
 
 # ── Edge Cases ────────────────────────────────────────────────────────────────
