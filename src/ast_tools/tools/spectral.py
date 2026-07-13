@@ -1,19 +1,125 @@
 #!/usr/bin/env python3
 """Spectral clustering for module decomposition.
 
-Uses the Fiedler vector of the graph Laplacian to partition a codebase's
-dependency graph into cohesive modules. Pure numpy implementation with
-optional scipy acceleration.
+Partitions a codebase's dependency graph into cohesive module groups using
+the Fiedler vector (2nd eigenvector) of the normalized graph Laplacian.
 
-Phase 1 of the spectral clustering feature:
-  - Builds weighted affinity matrix from import/call dependency graphs
-  - Computes Fiedler vector via power iteration (numpy-only fallback)
-  - Recursive bipartitioning with automatic stop based on partition quality
-  - Returns cluster assignments with module/file mappings
+━━━ Architecture Overview ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Usage:
-    from ast_tools.tools.spectral import suggest_modules
-    result = suggest_modules("/path/to/project")
+    suggest_modules(project_root, ...)
+        │
+        ├── _build_module_adjacency()        ← Import graph (7 languages)
+        │     ├── ast.parse (Python)
+        │     ├── tree-sitter (TS/JS/Go/Rust/C/C++)
+        │     ├── directory proximity edges  (+0.15 weight)
+        │     └── submodule containment      (+0.30 weight)
+        │
+        ├── _build_call_graph_adjacency()    ← DB symbol edges (optional)
+        │     ├── calls=1.0, imports=0.7, inherits=0.5, instantiates=0.5
+        │     └── falls back to import graph if no DB
+        │
+        ├── _build_semantic_adjacency()      ← Embedding similarity (optional)
+        │     ├── all-MiniLM-L6-v2, 384-dim cosine similarity
+        │     └── weight ~0.2-0.5, threshold >0.5
+        │
+        ├── _build_cochange_adjacency()      ← Git evolution (optional)
+        │     ├── Jaccard on commit co-occurrence
+        │     └── weight ~0.3-0.6, threshold >0.05
+        │
+        │   All enabled sources fused additively → one weighted adjacency
+        │
+        └── Recursive spectral partitioning
+              ├── _normalized_laplacian()        ← L = I - D^{-1/2} A D^{-1/2}
+              ├── _fiedler_vector_power_iteration() ← λ₂ eigenvector via pow iter
+              ├── _fiedler_bipartition()         ← Recursive split by sign
+              ├── _partition_quality()           ← Modularity Q scoring
+              └── _collect_leaves()              ← Leaves = clusters
+
+━━━ Edge Sources ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Source              | Default  | Recommended | Requires
+  ─────────────────────|──────────|─────────────|──────────────────────────
+  Import graph        |  1.0     | always on   | Nothing (ast.parse / ts)
+  Call graph (DB)     |  1.0*    | on if DB    | ast_tools indexed DB
+  Semantic affinity   |  0.0     | 0.2-0.5     | sentence-transformers
+  Co-change (git)     |  0.0     | 0.3-0.6     | git history
+  Submodule contain   |  0.3     | always on   | Nothing
+  Directory proximity |  0.15    | always on   | Nothing
+
+  * Per edge type: calls=1.0, imports=0.7, inherits=0.5, instantiates=0.5
+
+━━━ Function Map ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Public:
+    suggest_modules(project_root, ...)        Main entry point
+    _tool_suggest_modules(args)               MCP tool wrapper
+
+  Core Algorithm:
+    _normalized_laplacian(adj)                L = I - D^{-1/2} A D^{-1/2}
+    _fiedler_vector_power_iteration(L)        Power iteration for λ₂
+    _fiedler_bipartition(...)                 Recursive binary split
+    _partition_quality(adj, labels, k)        Modularity Q (Newman-Girvan)
+
+  Graph Construction:
+    _build_module_adjacency(root)             Multi-language import graph
+    _build_call_graph_adjacency(...)          DB-backed symbol edges
+    _build_semantic_adjacency(...)            Embedding cosine similarity
+    _build_cochange_adjacency(...)            Git co-occurrence Jaccard
+
+  Utilities:
+    _file_to_module_name(path, root)          File path → dot.module.name
+    _filepath_to_module(path, root)           DB file path → module name
+    _name_to_modules(name, root)              Symbol name → module candidates
+    _iter_source_files(root)                  Discover all source files
+    _detect_language(path)                    Extension → language
+    _derive_cluster_name(modules)             Common prefix → cluster name
+    _assign_cluster_names(clusters)           Disambiguate duplicate names
+
+  Language-Specific Import Extraction:
+    _extract_imports_python(...)              ast.parse (stdlib)
+    _extract_imports_ts(tree)                 TS/JS tree-sitter query
+    _extract_imports_go(tree)                 Go tree-sitter query
+    _extract_imports_rust(tree)               Rust tree-sitter query
+    _extract_imports_c(tree)                  C/C++ tree-sitter query
+    _resolve_ts_import(...)                   TS/JS path resolution
+    _resolve_go_import(...)                   Go path resolution
+    _resolve_rust_import(...)                 Rust path resolution
+    _resolve_c_include(...)                   C/C++ include resolution
+
+━━━ Usage ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+    # Basic: import graph only
+    result = suggest_modules("src/ast_tools")
+
+    # With all signals
+    result = suggest_modules(
+        "src/ast_tools",
+        use_call_graph=True,     # DB symbol edges (auto fallback)
+        semantic_weight=0.3,     # embedding cosine sim
+        cochange_weight=0.4,     # git co-change Jaccard
+    )
+
+    # Via MCP tool
+    _tool_suggest_modules({
+        "project_root": "src/ast_tools",
+        "min_cluster_size": 3,
+        "use_call_graph": True,
+    })
+
+━━━ Dependencies ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Core:      numpy
+  Optional:  scipy (for eigsh on >1000 node graphs)
+  Optional:  tree-sitter + grammars (for non-Python import extraction)
+  Optional:  sentence-transformers (for semantic affinity)
+  Optional:  sqlite3 (stdlib, for call graph DB queries)
+
+━━━ Data Structures ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  SpectralResult    ─ Top-level: clusters, tree, quality, connectivity
+  SpectralConfig    ─ Configuration: project_root, weights, edge sources
+  ClusterAssignment ─ A single cluster: id, name, modules, cohesion, coupling
+  PartitionNode     ─ Binary tree node: id, modules, left, right, score
 """
 
 from __future__ import annotations
@@ -61,6 +167,7 @@ class ClusterAssignment:
 
     Attributes:
         cluster_id: Numeric cluster identifier (0-indexed)
+        name: Descriptive cluster name derived from common module prefix
         modules: List of module paths in this cluster
         size: Number of modules in cluster
         cohesion: Average intra-cluster edge weight
@@ -70,6 +177,7 @@ class ClusterAssignment:
     cluster_id: int
     modules: list[str]
     size: int
+    name: str = ""
     cohesion: float = 0.0
     coupling: float = 0.0
 
@@ -95,6 +203,64 @@ class SpectralResult:
     quality: float = 0.0
     algebraic_connectivity: float = 0.0
     isolated_modules: list[str] = field(default_factory=list)
+
+
+@dataclass
+class SpectralConfig:
+    """Configuration for spectral clustering.
+
+    Encapsulates all parameters for ``suggest_modules`` in a single dataclass,
+    making the API extensible and self-documenting.
+
+    Edge sources:
+        - **Import graph** (always on): parses source files across 7 languages
+          using ast.parse (Python) or tree-sitter (TS/JS/Go/Rust/C/C++).
+        - **Call graph** (optional): resolves symbol-level edges (CALLS, IMPORTS,
+          INHERITS, INSTANTIATES) from the ast-tools semantic database. Falls
+          back to import graph if no database found.
+        - **Semantic affinity** (optional): cosine similarity between per-module
+          source embeddings (all-MiniLM-L6-v2, 384-dim). Edges added above a
+          0.5 cosine threshold. Requires sentence-transformers.
+        - **Co-change** (optional): Jaccard similarity on git commit co-occurrence.
+          Analyzes the last ``max_commits`` modifications. Requires git history.
+
+    Attributes:
+        project_root: Root directory of the project to analyze (required).
+        min_cluster_size: Minimum modules per cluster (default: 2).
+        max_clusters: Maximum clusters (None = auto-determined by quality).
+        edge_weight: Base weight for import edges (default: 1.0).
+        database_path: Path to semantic DB for call graph (auto-detected if None).
+        use_call_graph: If True, enrich with DB symbol edges (default: False).
+        semantic_weight: Weight for embedding similarity edges. 0 = off.
+            Recommended: 0.2–0.5.
+        cochange_weight: Weight for git co-change edges. 0 = off.
+            Recommended: 0.3–0.6.
+        max_commits: Max git commits to scan for co-change (default: 1000).
+    """
+
+    project_root: str
+    min_cluster_size: int = 2
+    max_clusters: int | None = None
+    edge_weight: float = 1.0
+    database_path: str | None = None
+    use_call_graph: bool = False
+    semantic_weight: float = 0.0
+    cochange_weight: float = 0.0
+    max_commits: int = 1000
+
+    @classmethod
+    def from_dict(cls, args: dict[str, Any]) -> SpectralConfig:
+        """Build a config from an MCP-style dict (ignores unknown keys).
+
+        Args:
+            args: Dict with keys matching SpectralConfig field names.
+
+        Returns:
+            SpectralConfig instance.
+        """
+        valid_keys = cls.__dataclass_fields__.keys()
+        filtered = {k: v for k, v in args.items() if k in valid_keys}
+        return cls(**filtered)
 
 
 # ── Core Spectral Algorithm ─────────────────────────────────────────────────
@@ -1508,11 +1674,75 @@ def _build_cochange_adjacency(
     return adj
 
 
+# ── Cluster Naming ──────────────────────────────────────────────────────────
+
+
+def _derive_cluster_name(modules: list[str]) -> str:
+    """Derive a descriptive name for a cluster from its module paths.
+
+    Finds the longest common prefix of dot-delimited module paths.
+    Examples:
+        [ast_tools.tools.spectral, ast_tools.tools.dependency] → "ast_tools.tools"
+        [ast_tools.tools, ast_tools.database]                 → "ast_tools"
+        [frontend.app, frontend.components.button]             → "frontend"
+        [helpers]                                              → "helpers"
+        []                                                     → ""
+
+    Args:
+        modules: Sorted list of dot-delimited module paths.
+
+    Returns:
+        Common prefix as a descriptive cluster name.
+    """
+    if not modules:
+        return ""
+    if len(modules) == 1:
+        return modules[0]
+
+    # Split each module into parts
+    parts_list = [m.split(".") for m in modules]
+
+    # Find longest common prefix
+    common = parts_list[0]
+    for parts in parts_list[1:]:
+        i = 0
+        while i < len(common) and i < len(parts) and common[i] == parts[i]:
+            i += 1
+        common = common[:i]
+        if not common:
+            break
+
+    return ".".join(common) if common else modules[0]
+
+
+def _assign_cluster_names(
+    clusters: list[ClusterAssignment],
+) -> None:
+    """Assign descriptive names to all clusters, disambiguating duplicates.
+
+    Scans for clusters that share the same derived name and appends
+    a distinguishing suffix (e.g. "tools", "tools_2", "tools_3").
+    """
+    name_counts: dict[str, int] = {}
+    for c in clusters:
+        name_counts[c.name] = name_counts.get(c.name, 0) + 1
+
+    seen: dict[str, int] = {}
+    for c in clusters:
+        if name_counts[c.name] > 1:
+            seen[c.name] = seen.get(c.name, 0) + 1
+            if seen[c.name] > 1:
+                c.name = f"{c.name}_{seen[c.name]}"
+        elif c.name == "":
+            # Fallback for clusters with no common prefix
+            c.name = f"cluster_{c.cluster_id}"
+
+
 # ── Public API ────────────────────────────────────────────────────────────────
 
 
 def suggest_modules(
-    project_root: str,
+    project_root: str | None = None,
     min_cluster_size: int = 2,
     max_clusters: int | None = None,
     edge_weight: float = 1.0,
@@ -1520,6 +1750,7 @@ def suggest_modules(
     use_call_graph: bool = False,
     semantic_weight: float = 0.0,
     cochange_weight: float = 0.0,
+    config: SpectralConfig | None = None,
 ) -> SpectralResult:
     """Suggest module decomposition using spectral clustering.
 
@@ -1534,19 +1765,36 @@ def suggest_modules(
 
     Args:
         project_root: Root directory of the project to analyze.
+            Ignored if ``config`` is provided (use ``config.project_root`` instead).
         min_cluster_size: Minimum modules per cluster (default: 2).
         max_clusters: Maximum clusters (None = auto-determined).
         edge_weight: Base weight for import/dependency edges (default: 1.0).
         database_path: Path to semantic database (for call graph).
         use_call_graph: If True, enrich with DB symbol edges (default: False).
         semantic_weight: Weight for semantic similarity edges.
-                         0.0 = disabled (default). Recommended: 0.2–0.5.
+            0.0 = disabled (default). Recommended: 0.2–0.5.
         cochange_weight: Weight for git co-change edges.
-                         0.0 = disabled (default). Recommended: 0.3–0.6.
+            0.0 = disabled (default). Recommended: 0.3–0.6.
+        config: SpectralConfig instance. When provided, all other kwargs are
+            ignored in favor of the config's fields. This is the recommended
+            way to call ``suggest_modules`` for clarity and extensibility.
 
     Returns:
         SpectralResult with cluster assignments, tree, and quality metrics.
     """
+    # Unpack config if provided (overrides individual kwargs)
+    if config is not None:
+        project_root = config.project_root
+        min_cluster_size = config.min_cluster_size
+        max_clusters = config.max_clusters
+        edge_weight = config.edge_weight
+        database_path = config.database_path
+        use_call_graph = config.use_call_graph
+        semantic_weight = config.semantic_weight
+        cochange_weight = config.cochange_weight
+
+    if not project_root:
+        raise ValueError("project_root is required")
     project_path = Path(project_root)
     if not project_path.is_dir():
         raise ValueError(f"Project root does not exist: {project_root}")
@@ -1590,7 +1838,7 @@ def suggest_modules(
     if len(connected_indices) == 0:
         # All modules are isolated — each gets its own cluster
         clusters = [
-            ClusterAssignment(cluster_id=i, modules=[m], size=1)
+            ClusterAssignment(cluster_id=i, modules=[m], size=1, name=m)
             for i, m in enumerate(module_names)
         ]
         return SpectralResult(
@@ -1689,6 +1937,7 @@ def suggest_modules(
                 cluster_id=cid,
                 modules=mods,
                 size=len(mods),
+                name=_derive_cluster_name(mods),
                 cohesion=cohesion,
                 coupling=coupling,
             )
@@ -1699,8 +1948,11 @@ def suggest_modules(
         cid = len(clusters_out) + i
         cluster_assignments[mod] = cid
         clusters_out.append(
-            ClusterAssignment(cluster_id=cid, modules=[mod], size=1)
+            ClusterAssignment(cluster_id=cid, modules=[mod], size=1, name=mod)
         )
+
+    # Assign descriptive cluster names and disambiguate duplicates
+    _assign_cluster_names(clusters_out)
 
     # Step 9: Compute overall quality
     if connected_names:
@@ -1744,30 +1996,14 @@ def _tool_suggest_modules(args: dict[str, Any]) -> dict[str, Any]:
     Returns:
         Dict with clusters, num_modules, num_clusters, quality, ...
     """
-    project_root = args.get("project_root", ".")
-    min_cluster_size = args.get("min_cluster_size", 2)
-    max_clusters = args.get("max_clusters")
-    edge_weight = args.get("edge_weight", 1.0)
-    database_path = args.get("database_path")
-    use_call_graph = args.get("use_call_graph", False)
-    semantic_weight = args.get("semantic_weight", 0.0)
-    cochange_weight = args.get("cochange_weight", 0.0)
-
-    result = suggest_modules(
-        project_root=project_root,
-        min_cluster_size=min_cluster_size,
-        max_clusters=max_clusters,
-        edge_weight=edge_weight,
-        database_path=database_path,
-        use_call_graph=use_call_graph,
-        semantic_weight=semantic_weight,
-        cochange_weight=cochange_weight,
-    )
+    config = SpectralConfig.from_dict(args)
+    result = suggest_modules(config=config)
 
     return {
         "clusters": [
             {
                 "cluster_id": c.cluster_id,
+                "name": c.name,
                 "modules": c.modules,
                 "size": c.size,
                 "cohesion": round(c.cohesion, 4),

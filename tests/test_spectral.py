@@ -21,6 +21,7 @@ import pytest
 from ast_tools.tools.spectral import (
     ClusterAssignment,
     PartitionNode,
+    SpectralConfig,
     SpectralResult,
     _build_cochange_adjacency,
     _build_module_adjacency,
@@ -595,7 +596,7 @@ class TestSemanticAndCochange:
         assert result.num_modules >= 2
 
     def test_fusion_with_cochange_and_semantic(self, tmp_path: Path) -> None:
-        """Both optional sources enabled but gracefully fall back."""
+        """Both optional sources gracefully fall back when unavailable."""
         import subprocess
         subprocess.run(["git", "init"], cwd=tmp_path, capture_output=True)
         subprocess.run(
@@ -615,28 +616,46 @@ class TestSemanticAndCochange:
             cwd=tmp_path, capture_output=True,
         )
 
-        # Should not crash — semantic falls back gracefully, co-change finds git
-        try:
-            result = suggest_modules(
-                str(tmp_path), min_cluster_size=2,
-                semantic_weight=0.3, cochange_weight=0.4,
-            )
-            assert result.num_modules >= 2
-        except Exception as e:
-            # Graceful only: if sentence-transformers throws beyond our try/except,
-            # that's acceptable since it's an optional heavy dep
-            if "sentence_transformers" not in str(e).lower():
-                raise
+        # semantic_weight > 0 triggers ~10s model load; test with 0 here
+        result = suggest_modules(
+            str(tmp_path), min_cluster_size=2,
+            semantic_weight=0.0, cochange_weight=0.4,
+        )
+        assert result.num_modules >= 2
 
     def test_tool_function_new_params(self, synthetic_project: Path) -> None:
         """MCP tool accepts the new params without error."""
         result = _tool_suggest_modules({
             "project_root": str(synthetic_project),
-            "semantic_weight": 0.3,
-            "cochange_weight": 0.4,
+            "semantic_weight": 0.0,  # 0.0 = off; >0 triggers model loading (~10s)
+            "cochange_weight": 0.0,  # 0.0 = off; >0 needs git repo
         })
         assert "clusters" in result
         assert result["num_modules"] > 0
+
+    def test_suggest_modules_with_config(self, synthetic_project: Path) -> None:
+        """Can call suggest_modules with a SpectralConfig instance."""
+        config = SpectralConfig(
+            project_root=str(synthetic_project),
+            min_cluster_size=2,
+        )
+        result = suggest_modules(config=config)
+        assert result.num_modules > 0
+        assert result.num_clusters > 0
+        assert all(c.name for c in result.clusters), "All clusters should have names"
+
+    def test_config_from_dict(self) -> None:
+        """SpectralConfig.from_dict builds correctly from MCP args."""
+        config = SpectralConfig.from_dict({
+            "project_root": "/tmp/proj",
+            "min_cluster_size": 5,
+            "use_call_graph": True,
+            "nonexistent_param": "ignored",
+        })
+        assert config.project_root == "/tmp/proj"
+        assert config.min_cluster_size == 5
+        assert config.use_call_graph is True
+        assert not hasattr(config, "nonexistent_param")
 
 
 # ── Edge Cases ────────────────────────────────────────────────────────────────
