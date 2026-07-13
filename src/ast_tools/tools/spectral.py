@@ -1024,23 +1024,261 @@ def _build_call_graph_adjacency(
     database_path: str | None = None,
     edge_weight: float = 1.0,
 ) -> tuple[np.ndarray, list[str]]:
-    """Build weighted adjacency from the call graph / edge database.
+    """Build weighted adjacency from the semantic database's symbol edges.
 
-    Uses the indexed symbol edges (CALLS, IMPORTS, INHERITS) from the
-    semantic database to build a finer-grained adjacency than the simple
-    import graph. Falls back to import graph if database unavailable.
+    Queries the indexed edges table (CALLS, IMPORTS, INHERITS, INSTANTIATES),
+    maps symbols to their file paths, and aggregates edges at the module level.
+    Different edge types get different weights:
+        - calls:        1.0 × edge_weight
+        - imports:      0.7 × edge_weight
+        - inherits:     0.5 × edge_weight
+        - instantiates: 0.5 × edge_weight
+
+    Falls back to import-based adjacency if no database found.
 
     Args:
         project_root: Root of the project to analyze.
-        database_path: Path to the semantic index database. If None, uses default.
-        edge_weight: Base weight for edges (adjusted by edge type).
+        database_path: Path to the semantic index database. If None, auto-detect
+                      in project_root (default: project_root/.db/ast_tools.db).
+        edge_weight: Base weight multiplier.
 
     Returns:
         Tuple of (adjacency_matrix, module_names).
     """
-    # For Phase 1, piggyback on the import graph from dependency.py
-    # Phase 2 will integrate database edges
-    return _build_module_adjacency(project_root, edge_weight=edge_weight)
+    import sqlite3
+
+    # Auto-detect database path
+    if database_path is None:
+        candidates = [
+            Path(project_root) / ".db" / "ast_tools.db",
+            Path(project_root) / "ast_tools.db",
+            Path(project_root) / "index" / "ast_tools.db",
+        ]
+        db_path: Path | None = None
+        for c in candidates:
+            if c.exists():
+                db_path = c
+                break
+    else:
+        db_path = Path(database_path)
+
+    if db_path is None or not db_path.exists():
+        logger.info("No semantic database found, falling back to import graph")
+        return _build_module_adjacency(project_root, edge_weight=edge_weight)
+
+    logger.info(f"Using semantic database: {db_path}")
+
+    # Edge type → relative weight
+    EDGE_WEIGHTS = {
+        "calls": 1.0,
+        "imports": 0.7,
+        "inherits": 0.5,
+        "instantiates": 0.5,
+    }
+
+    # Resolve project root for relative paths
+    project_path = Path(project_root).resolve()
+    adjacency: dict[tuple[str, str], float] = defaultdict(float)
+
+    try:
+        conn = sqlite3.connect(str(db_path))
+        conn.row_factory = sqlite3.Row
+
+        # Query all resolved edges with their source & target symbol info
+        query = """
+            SELECT e.edge_type,
+                   s.file_path AS src_file,
+                   t.file_path AS tgt_file,
+                   s.lang AS src_lang,
+                   t.lang AS tgt_lang
+            FROM edges e
+            JOIN symbols s ON e.source_id = s.id
+            JOIN symbols t ON e.target_id = t.id
+            WHERE e.resolution_state = 2
+              AND s.file_path IS NOT NULL
+              AND t.file_path IS NOT NULL
+        """
+        rows = conn.execute(query).fetchall()
+
+        # Also get unresolved edges (target_name may map to a known file)
+        query_unresolved = """
+            SELECT e.edge_type, e.target_name,
+                   s.file_path AS src_file,
+                   s.lang AS src_lang
+            FROM edges e
+            JOIN symbols s ON e.source_id = s.id
+            WHERE e.resolution_state != 2
+              AND s.file_path IS NOT NULL
+        """
+        rows_unresolved = conn.execute(query_unresolved).fetchall()
+
+        conn.close()
+
+        # Process resolved edges
+        module_pairs: dict[tuple[str, str], float] = defaultdict(float)
+
+        for row in rows:
+            src_file = row["src_file"]
+            tgt_file = row["tgt_file"]
+            etype = row["edge_type"]
+
+            # Normalize file paths to module paths
+            src_mod = _filepath_to_module(src_file, project_path)
+            tgt_mod = _filepath_to_module(tgt_file, project_path)
+
+            if src_mod and tgt_mod and src_mod != tgt_mod:
+                weight = EDGE_WEIGHTS.get(etype, 0.5) * edge_weight
+                key = (src_mod, tgt_mod)
+                module_pairs[key] = max(module_pairs[key], weight)
+
+        # Process unresolved edges — try to match target_name to file paths
+        # Fall back on simple import graph for these
+        for row in rows_unresolved:
+            src_file = row["src_file"]
+            etype = row["edge_type"]
+            target_name = row["target_name"]
+            src_mod = _filepath_to_module(src_file, project_path)
+            if not src_mod:
+                continue
+
+            # Try matching target_name to known modules
+            # (handles the case where target_name is a module path)
+            if target_name and not target_name.startswith(("_", ".")):
+                # Could be a module name like "ast_tools.tools.dependency"
+                tgt_candidates = _name_to_modules(target_name, project_path)
+                for tgt_mod in tgt_candidates:
+                    if src_mod != tgt_mod:
+                        weight = (EDGE_WEIGHTS.get(etype, 0.5) * edge_weight * 0.5)
+                        key = (src_mod, tgt_mod)
+                        module_pairs[key] = max(module_pairs[key], weight)
+
+        # Build module set from all source files in the DB
+        conn2 = sqlite3.connect(str(db_path))
+        conn2.row_factory = sqlite3.Row
+        file_rows = conn2.execute("""
+            SELECT DISTINCT file_path FROM symbols WHERE file_path IS NOT NULL
+        """).fetchall()
+        conn2.close()
+
+        internal_modules: set[str] = set()
+        for row in file_rows:
+            mod = _filepath_to_module(row["file_path"], project_path)
+            if mod:
+                internal_modules.add(mod)
+
+        # If DB gave us nothing useful, fall back
+        if not internal_modules:
+            logger.info("No modules from DB, falling back to import graph")
+            return _build_module_adjacency(project_root, edge_weight=edge_weight)
+
+        # Add edges from DB
+        for (src, tgt), w in module_pairs.items():
+            if src in internal_modules and tgt in internal_modules:
+                adjacency[(src, tgt)] += w
+                adjacency[(tgt, src)] += w
+
+        # Also add import graph edges for coverage
+        import_adj, import_names = _build_module_adjacency(
+            project_root, edge_weight=edge_weight * 0.5, include_submodules=True
+        )
+        import_index = {name: i for i, name in enumerate(import_names)}
+        for i, src_name in enumerate(import_names):
+            for j in range(i + 1, len(import_names)):
+                if import_adj[i, j] > 0:
+                    if src_name in internal_modules and import_names[j] in internal_modules:
+                        adjacency[(src_name, import_names[j])] += import_adj[i, j]
+                        adjacency[(import_names[j], src_name)] += import_adj[i, j]
+
+        # Build matrix
+        module_names = sorted(internal_modules)
+        n = len(module_names)
+        if n == 0:
+            return _build_module_adjacency(project_root, edge_weight=edge_weight)
+
+        module_index = {m: i for i, m in enumerate(module_names)}
+        adj = np.zeros((n, n), dtype=np.float64)
+        for (src, tgt), w in adjacency.items():
+            if src in module_index and tgt in module_index:
+                i, j = module_index[src], module_index[tgt]
+                adj[i, j] += w
+                adj[j, i] += w
+
+        logger.info(f"Call graph adjacency: {len(module_names)} modules, "
+                    f"{len(adj.nonzero()[0]) // 2} edges")
+        return adj, module_names
+
+    except (sqlite3.Error, OSError) as e:
+        logger.warning(f"Database error ({e}), falling back to import graph")
+        return _build_module_adjacency(project_root, edge_weight=edge_weight)
+
+
+def _filepath_to_module(file_path: str, project_path: Path) -> str | None:
+    """Convert a database file_path to a canonical module name.
+
+    Handles both absolute paths and paths relative to project root.
+    """
+    fp = Path(file_path)
+    try:
+        rel = fp.relative_to(project_path)
+    except ValueError:
+        # Maybe it's already relative
+        try:
+            rel = Path(file_path).relative_to(project_path)
+        except ValueError:
+            return None
+
+    parts = list(rel.parts)
+    if not parts:
+        return None
+
+    name = parts[-1]
+    # Strip double extensions like .py, .ts, etc.
+    if name.endswith((".py", ".ts", ".tsx", ".js", ".jsx", ".go", ".rs", ".c", ".h", ".cpp", ".hpp")):
+        dot = name.find(".")
+        if dot > 0:
+            parts[-1] = name[:dot]
+
+    # Handle __init__ → parent dir
+    if parts[-1] == "__init__":
+        parts = parts[:-1]
+
+    if not parts:
+        return None
+
+    return ".".join(parts)
+
+
+def _name_to_modules(name: str, project_path: Path) -> set[str]:
+    """Try to match a symbol/target name to internal module paths.
+
+    Converts dotted names to potential filesystem paths and checks
+    if they exist relative to project_root.
+    """
+    candidates: set[str] = set()
+
+    # Try the dotted name as-is as a potential module
+    candidates.add(name)
+
+    # Try stripping one component at a time (e.g. pkg.mod.Class → pkg.mod)
+    parts = name.split(".")
+    for i in range(len(parts) - 1, 0, -1):
+        candidate = ".".join(parts[:i])
+        candidates.add(candidate)
+
+    # Try as a filesystem path
+    path_candidate = project_path / name.replace(".", "/")
+    if path_candidate.exists() and path_candidate.is_dir():
+        for f in sorted(path_candidate.rglob("*")):
+            if f.suffix in _EXT_TO_LANG and f.is_file():
+                try:
+                    rel = f.relative_to(project_path)
+                    mod = _filepath_to_module(str(rel), project_path)
+                    if mod:
+                        candidates.add(mod)
+                except ValueError:
+                    pass
+
+    return candidates
 
 
 # ── Public API ────────────────────────────────────────────────────────────────
@@ -1076,7 +1314,7 @@ def suggest_modules(
         raise ValueError(f"Project root does not exist: {project_root}")
 
     # Step 1: Build adjacency matrix
-    if use_call_graph and database_path:
+    if use_call_graph:
         adj, module_names = _build_call_graph_adjacency(project_root, database_path, edge_weight)
     else:
         adj, module_names = _build_module_adjacency(project_root, edge_weight)
