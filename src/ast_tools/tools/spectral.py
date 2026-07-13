@@ -27,8 +27,6 @@ from typing import Any
 
 import numpy as np
 
-from ast_tools.tools.dependency import _iter_project_python_files, build_import_graph
-
 logger = logging.getLogger(__name__)
 
 # ── Data Structures ──────────────────────────────────────────────────────────
@@ -394,50 +392,196 @@ def _build_module_adjacency(
     edge_weight: float = 1.0,
     include_submodules: bool = True,
 ) -> tuple[np.ndarray, list[str]]:
-    """Build a weighted adjacency matrix from the module-level import graph.
+    """Build a weighted adjacency matrix from AST-level import analysis.
+
+    Parses every Python file in the project, resolves relative imports to
+    full module paths, and creates edges only between internal modules.
+    This catches relative imports (``from . import x``, ``from ..y import z``)
+    that a simple ``build_import_graph`` misses.
 
     Args:
         project_root: Root of the project to analyze.
         edge_weight: Weight for import edges (default: 1.0).
-        include_submodules: If True, include submodule edges (e.g. a.b -> a)
-                           as weaker edges (weight * 0.3).
+        include_submodules: If True, include implicit submodule containment
+                           edges (weight * 0.3).
 
     Returns:
         Tuple of (adjacency_matrix, module_names).
         adjacency_matrix is N×N symmetric with edge weights.
         module_names[i] is the module path corresponding to row i.
     """
-    import_graph = build_import_graph(project_root)
+    import ast as ast_module
 
-    # Filter to only project-internal modules
-    all_modules = sorted(import_graph.keys())
-
-    if not all_modules:
+    project_path = Path(project_root)
+    if not project_path.is_dir():
         return np.zeros((0, 0)), []
 
-    n = len(all_modules)
-    module_index = {m: i for i, m in enumerate(all_modules)}
+    # Discover all Python files and map to module paths
+    py_files: list[Path] = []
+    for f in sorted(project_path.rglob("*.py")):
+        rel = f.relative_to(project_path)
+        if any(p.startswith(".") or p == "__pycache__" for p in rel.parts):
+            continue
+        if rel.name == "setup.py" or rel.name == "versioneer.py":
+            continue
+        py_files.append(f)
+
+    # Build module path for each file
+    # e.g. src/ast_tools/tools/spectral.py → ast_tools.tools.spectral
+    #       foo/__init__.py → foo
+    # If the project root itself is a package (has __init__.py), prepend
+    # the directory name so absolute imports like "from pkg.mod import x"
+    # resolve correctly.
+    package_prefix: str = ""
+    if (project_path / "__init__.py").exists():
+        package_prefix = project_path.name + "."
+
+    internal_modules: set[str] = set()
+    file_to_module: dict[Path, str] = {}
+    for f in py_files:
+        rel = f.relative_to(project_path)
+        parts = list(rel.parts)
+        if parts[-1] == "__init__.py":
+            parts = parts[:-1]
+        else:
+            parts[-1] = parts[-1].removesuffix(".py")
+        module = package_prefix + ".".join(parts)
+        internal_modules.add(module)
+        file_to_module[f] = module
+
+    # Known stdlib modules for filtering
+    stdlib_modules: set[str] = set()
+    try:
+        import sys
+        stdlib_paths = {
+            p for p in sys.stdlib_module_names  # Python 3.10+
+        }
+        stdlib_modules = stdlib_paths
+    except (AttributeError, KeyError):
+        # Fallback: known common stdlib modules
+        stdlib_modules = {
+            "abc", "ast", "asyncio", "base64", "collections", "copy",
+            "csv", "dataclasses", "datetime", "decimal", "enum", "functools",
+            "glob", "hashlib", "html", "http", "importlib", "inspect",
+            "io", "itertools", "json", "logging", "math", "multiprocessing",
+            "os", "pathlib", "pickle", "platform", "pprint", "queue",
+            "random", "re", "shutil", "signal", "socket", "sqlite3",
+            "statistics", "string", "struct", "subprocess", "sys",
+            "tempfile", "textwrap", "threading", "time", "traceback",
+            "typing", "unittest", "urllib", "uuid", "warnings", "weakref",
+            "xml", "zipfile", "__future__",
+        }
+
+    # Third-party prefixes to skip
+    third_party_prefixes = {
+        "pytest", "numpy", "scipy", "sklearn", "torch", "tensorflow",
+        "yaml", "json", "tomllib", "jsonschema", "libcst", "mcp",
+        "jedi", "tree_sitter", "tiktoken", "watchdog", "anyio",
+        "sentence_transformers", "sqlite_vec", "sqlparse", "hnswlib",
+    }
+
+    # Parse each file and collect intra-project edges
+    adjacency: dict[tuple[str, str], float] = defaultdict(float)
+
+    for f in py_files:
+        source_module = file_to_module[f]
+        try:
+            source = f.read_text(encoding="utf-8", errors="replace")
+            tree = ast_module.parse(source, filename=str(f))
+        except (SyntaxError, OSError):
+            continue
+
+        for node in ast_module.walk(tree):
+            if isinstance(node, ast_module.Import):
+                for alias in node.names:
+                    target = alias.name.split(".")[0]  # top-level package
+                    if target in internal_modules:
+                        adjacency[(source_module, target)] += edge_weight
+                    elif target not in stdlib_modules and target not in third_party_prefixes:
+                        # Could be an internal module we resolved differently
+                        for im in internal_modules:
+                            if im == target or im.startswith(target + "."):
+                                adjacency[(source_module, im)] += edge_weight * 0.3
+                                break
+
+            elif isinstance(node, ast_module.ImportFrom) and node.module is not None:
+                if node.level == 0:
+                    # Absolute import: from ast_tools.tools.spectral import ...
+                    target_pkg = node.module.split(".")[0]
+                    if target_pkg in internal_modules:
+                        adjacency[(source_module, node.module)] += edge_weight
+                    elif target_pkg not in stdlib_modules and target_pkg not in third_party_prefixes:
+                        # Try matching full path
+                        for im in internal_modules:
+                            if im == node.module or im.startswith(node.module + "."):
+                                adjacency[(source_module, im)] += edge_weight * 0.3
+                                break
+                else:
+                    # Relative import: from . import x  (level=1)
+                    #                  from ..y import z (level=2)
+                    parts = source_module.split(".")
+                    if node.level <= len(parts):
+                        base = ".".join(parts[:-node.level])
+                    else:
+                        base = ""
+                    if node.module:
+                        resolved = f"{base}.{node.module}" if base else node.module
+                    else:
+                        resolved = base  # from . import x → same package
+
+                    # Normalize: resolved might be empty string
+                    if resolved and resolved in internal_modules:
+                        adjacency[(source_module, resolved)] += edge_weight
+                    elif resolved:
+                        # Might have submodule that matches
+                        for im in internal_modules:
+                            if im == resolved or im.startswith(resolved + "."):
+                                adjacency[(source_module, im)] += edge_weight * 0.3
+                                break
+
+    # Include submodule containment edges (parent ← submodule)
+    if include_submodules:
+        for mod in internal_modules:
+            parts = mod.split(".")
+            if len(parts) > 1:
+                parent = ".".join(parts[:-1])
+                if parent in internal_modules:
+                    adjacency[(mod, parent)] += edge_weight * 0.3
+                    adjacency[(parent, mod)] += edge_weight * 0.3
+
+    # Directory proximity edges: files sharing the same directory get a weak
+    # edge. This provides signal for the spectral algorithm on sparse graphs
+    # (typical for tools libraries where each tool is largely independent),
+    # based on the well-known "co-location implies cohesion" heuristic.
+    dir_groups: dict[str, list[str]] = defaultdict(list)
+    for mod in internal_modules:
+        parts = mod.split(".")
+        dir_key = ".".join(parts[:-1]) if len(parts) > 1 else "<root>"
+        dir_groups[dir_key].append(mod)
+    for _dir_key, group in dir_groups.items():
+        if len(group) < 2:
+            continue
+        for i in range(len(group)):
+            for j in range(i + 1, len(group)):
+                adjacency[(group[i], group[j])] += edge_weight * 0.15
+                adjacency[(group[j], group[i])] += edge_weight * 0.15
+
+    # Build matrix
+    module_names = sorted(internal_modules)
+    n = len(module_names)
+    if n == 0:
+        return np.zeros((0, 0)), []
+
+    module_index = {m: i for i, m in enumerate(module_names)}
     adj = np.zeros((n, n), dtype=np.float64)
 
-    for source, targets in import_graph.items():
-        if source not in module_index:
-            continue
-        si = module_index[source]
-        for target in targets:
-            # Check if target is an internal module (has its own imports)
-            if target in module_index:
-                ti = module_index[target]
-                adj[si, ti] += edge_weight
-                adj[ti, si] += edge_weight  # Make symmetric
-            elif include_submodules:
-                # Try to match target as a prefix (submodule relationship)
-                for internal_mod in all_modules:
-                    if internal_mod.startswith(target + ".") or internal_mod == target:
-                        ti = module_index[internal_mod]
-                        adj[si, ti] += edge_weight * 0.3
-                        adj[ti, si] += edge_weight * 0.3
+    for (src, tgt), w in adjacency.items():
+        if src in module_index and tgt in module_index:
+            i, j = module_index[src], module_index[tgt]
+            adj[i, j] += w
+            adj[j, i] += w  # symmetric
 
-    return adj, all_modules
+    return adj, module_names
 
 
 def _build_call_graph_adjacency(
