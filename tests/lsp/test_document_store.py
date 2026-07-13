@@ -57,69 +57,34 @@ class TestDocumentStore:
 
     def test_did_open(self):
         store = DocumentStore()
-        params = lsp_types.DidOpenTextDocumentParams(
-            text_document=lsp_types.TextDocumentItem(
-                uri="file:///test.py",
-                language_id="python",
-                version=1,
-                text="x = 1",
-            )
-        )
-        store.did_open(params)
+        store.did_open("file:///test.py", "x = 1", "python", version=1)
         assert store.get_text("file:///test.py") == "x = 1"
         assert store.get_language("file:///test.py") == "python"
         assert store.get_version("file:///test.py") == 1
 
     def test_did_change(self):
         store = DocumentStore()
-        store.did_open(lsp_types.DidOpenTextDocumentParams(
-            text_document=lsp_types.TextDocumentItem(
-                uri="file:///test.py", language_id="python", version=1, text="x = 1"
-            )
-        ))
-        change_params = lsp_types.DidChangeTextDocumentParams(
-            text_document=lsp_types.VersionedTextDocumentIdentifier(
-                uri="file:///test.py", version=2
-            ),
-            content_changes=[
-                lsp_types.TextDocumentContentChangeWholeDocument(text="y = 2")
-            ],
-        )
-        store.did_change(change_params)
+        store.did_open("file:///test.py", "x = 1", "python", version=1)
+        change = lsp_types.TextDocumentContentChangeWholeDocument(text="y = 2")
+        store.did_change("file:///test.py", change)
         assert store.get_text("file:///test.py") == "y = 2"
         assert store.get_version("file:///test.py") == 2
 
     def test_did_change_nonexistent(self):
         store = DocumentStore()
-        change_params = lsp_types.DidChangeTextDocumentParams(
-            text_document=lsp_types.VersionedTextDocumentIdentifier(
-                uri="file:///nonexistent.py", version=1
-            ),
-            content_changes=[lsp_types.TextDocumentContentChangeWholeDocument(text="y")],
-        )
-        # Should not raise
-        store.did_change(change_params)
+        change = lsp_types.TextDocumentContentChangeWholeDocument(text="y = 2")
+        store.did_change("file:///nonexistent.py", change)  # Should not raise
 
     def test_did_close(self):
         store = DocumentStore()
-        store.did_open(lsp_types.DidOpenTextDocumentParams(
-            text_document=lsp_types.TextDocumentItem(
-                uri="file:///test.py", language_id="python", version=1, text="x = 1"
-            )
-        ))
-        store.did_close(lsp_types.DidCloseTextDocumentParams(
-            text_document=lsp_types.TextDocumentIdentifier(uri="file:///test.py")
-        ))
+        store.did_open("file:///test.py", "x = 1", "python", version=1)
+        store.did_close("file:///test.py")
         assert store.get_text("file:///test.py") is None
         assert store.get_version("file:///test.py") is None
 
     def test_get_document(self):
         store = DocumentStore()
-        store.did_open(lsp_types.DidOpenTextDocumentParams(
-            text_document=lsp_types.TextDocumentItem(
-                uri="file:///test.py", language_id="python", version=1, text="x = 1"
-            )
-        ))
+        store.did_open("file:///test.py", "x = 1", "python", version=1)
         doc = store.get_document("file:///test.py")
         assert doc is not None
         assert doc.text == "x = 1"

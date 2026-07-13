@@ -50,30 +50,42 @@ class DocumentStore:
     def __init__(self):
         self._documents: dict[str, TextDocument] = {}
     
-    def did_open(self, params: lsp_types.DidOpenTextDocumentParams):
-        """Handle textDocument/didOpen notification."""
-        doc = params.text_document
-        self._documents[doc.uri] = TextDocument(
-            uri=doc.uri,
-            text=doc.text,
-            language_id=doc.language_id,
-            version=doc.version,
+    def did_open(self, uri: str, text: str, language_id: str, version: int = 1):
+        """Handle textDocument/didOpen — store document from server."""
+        self._documents[uri] = TextDocument(
+            uri=uri,
+            text=text,
+            language_id=language_id,
+            version=version,
         )
     
-    def did_change(self, params: lsp_types.DidChangeTextDocumentParams):
-        """Handle textDocument/didChange notification."""
+    def did_open_params(self, params: lsp_types.DidOpenTextDocumentParams):
+        """Handle textDocument/didOpen from raw LSP params."""
+        doc = params.text_document
+        self.did_open(doc.uri, doc.text, doc.language_id, doc.version)
+    
+    def did_change(self, uri: str, change):
+        """Handle textDocument/didChange — apply change to stored document."""
+        if uri not in self._documents:
+            return
+        self._documents[uri].apply_change(change)
+    
+    def did_change_params(self, params: lsp_types.DidChangeTextDocumentParams):
+        """Handle textDocument/didChange from raw LSP params."""
         uri = params.text_document.uri
         if uri not in self._documents:
             return
-        
         doc = self._documents[uri]
         for change in params.content_changes:
             doc.apply_change(change)
     
-    def did_close(self, params: lsp_types.DidCloseTextDocumentParams):
-        """Handle textDocument/didClose notification."""
-        uri = params.text_document.uri
+    def did_close(self, uri: str):
+        """Handle textDocument/didClose — remove stored document."""
         self._documents.pop(uri, None)
+    
+    def did_close_params(self, params: lsp_types.DidCloseTextDocumentParams):
+        """Handle textDocument/didClose from raw LSP params."""
+        self.did_close(params.text_document.uri)
     
     def get_document(self, uri: str) -> TextDocument | None:
         """Get document by URI."""

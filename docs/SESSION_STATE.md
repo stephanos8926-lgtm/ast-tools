@@ -1,7 +1,7 @@
 # SESSION STATE — ast-tools
-**Date:** 2026-07-10
+**Date:** 2026-07-11
 **Branch:** master
-**Last Commit:** 40a25f9 — fix: export list_tools from tools/__init__.py and fix test imports
+**Last Commit:** 9ab4adf — feat(lsp): Phase 1 — Core LSP server infrastructure
 
 ## ✅ Phase 0 Complete — Foundation & Configuration + Plugin Tests
 
@@ -17,15 +17,7 @@
 - tests/lsp/test_document_store.py — 9 tests (document sync, apply changes, position conversion)
 - tests/lsp/test_diagnostic_publisher.py — 18 tests (diagnostic conversion, debouncing, dedup, safety mapping)
 
-### Test Fixes Applied
-1. **Fixed test imports**: ast_tools.tools.list_tools exported and imported in _server.py
-2. **Fixed test signature**: test_list_tools in test_e2e.py — list_tools() is sync, not async
-3. **Fixed plugin test assertion**: Expected ruff output format (x=1
- not x = 1
-)
-4. **Fixed co-change tests**: Updated import from _get_db_path to _resolve_db_path
-
-### All Tests Passing (124 tests run)
+### All Tests Passing
 - tests/lsp/ — 39 passed
 - tests/test_plugin_system.py — 31 passed
 - tests/test_e2e.py — 26 passed (including test_list_tools and test_call_tool_ast_grep)
@@ -40,7 +32,7 @@
 - tests/cochange/test_hotspot.py — fix internal function import name
 - docs/SESSION_STATE.md — this file
 
-### Next: F4 — LSP Server (Remaining 10-day effort)
+### Next: F4 — LSP Server (Remaining ~10-day effort)
 1. Write integration tests for core LSP protocol (initialize, didOpen, didChange, publishDiagnostics)
 2. Implement ast_tools/lsp/capabilities.py with minimal capabilities needed for Phase 1
 3. Test LSP server with real editors (VS Code, Zed, neovim)
@@ -50,3 +42,7 @@
 
 ## Machine Status
 **rw-workstation-01** (i3 7G / 4GB / 500GB SSD / Trixie) — RAM ceiling 4GB · i3 WM · Zed broken (Mesa 25/DRI2 regression) · Terminal editors fallback
+
+## Gateway Status
+**Workstation (rw-workstation-01):** Active (restarted 02:04 EDT) — Cloudflare MCP disabled, LCM context engine running
+**Server (rapidwebs):** Active (restarted 06:06 UTC) — Config synced, gateway running
