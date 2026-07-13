@@ -104,6 +104,7 @@ from .transitive_analysis import _tool_transitive_dependents
 from .ts_edit import _tool_ts_edit
 from .watcher import _tool_reindex_path, _tool_watch_add, _tool_watch_status
 from .fix_mcp import _tool_fix_code, _tool_fix_check, _tool_rerank_results
+from .llm_suggest_fix import _tool_llm_suggest_fix, _tool_llm_check_available
 
 # Core AST tools with schemas
 register_tool(
@@ -1331,6 +1332,47 @@ register_tool(
                 },
             },
             "required": ["query", "candidates"],
+        },
+    },
+)
+
+register_tool(
+    "llm_suggest_fix",
+    _tool_llm_suggest_fix,
+    {
+        "description": "LLM-assisted fix suggestion — uses configured LLM backends to suggest a fix for a code issue",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string",
+                    "description": "Source code snippet to fix",
+                },
+                "diagnostic": {
+                    "type": "string",
+                    "description": "Human-readable diagnostic message",
+                },
+                "diagnostic_code": {
+                    "type": "string",
+                    "description": "Rule code (e.g., F401, E302)",
+                },
+                "file_path": {
+                    "type": "string",
+                    "description": "Path to the file (for context)",
+                    "default": "unknown",
+                },
+                "language": {
+                    "type": "string",
+                    "description": "Programming language",
+                    "default": "python",
+                },
+                "context_lines": {
+                    "type": "integer",
+                    "description": "Lines of context to include",
+                    "default": 20,
+                },
+            },
+            "required": ["code", "diagnostic"],
         },
     },
 )

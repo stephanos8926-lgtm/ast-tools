@@ -87,13 +87,62 @@ class CodeActionHandler:
             temp_path.unlink(missing_ok=True)
     
     async def resolve_code_action(self, action: lsp_types.CodeAction) -> lsp_types.CodeAction:
-        """Resolve a lazy code action (compute full edit)."""
+        """Resolve a lazy code action (compute full edit).
+
+        Supports LLM fix resolution via LLMBridge when action.data
+        indicates an llm_fix action type.
+        """
         # If action already has edit, return as-is
         if action.edit:
             return action
-        
-        # If action has data with action_id, we could compute the full edit here
-        # For now, return the action as-is (lazy resolution not fully implemented)
+
+        # Check if this is an LLM fix action needing lazy resolution
+        if action.data and isinstance(action.data, dict):
+            action_type = action.data.get("action_type")
+            if action_type == "llm_fix":
+                return await self._resolve_llm_fix(action)
+
+        # Return as-is for other cases
+        return action
+
+    async def _resolve_llm_fix(self, action: lsp_types.CodeAction) -> lsp_types.CodeAction:
+        """Resolve an LLM fix action by calling the LLM bridge."""
+        from .llm_bridge import LLMBridge
+
+        bridge = LLMBridge(self.server)
+        try:
+            result = await bridge.resolve_llm_fix(action, dict(action.data))
+            if result and result.get("diff"):
+                # Apply the diff as a workspace edit
+                uri = action.data.get("uri", "")
+                diff = result["diff"]
+                # Parse the diff into TextEdits
+                from ast_tools.llm.diff_parser import parse_and_validate_diff
+
+                text = self.server.document_store.get_text(uri)
+                if text:
+                    parsed = parse_and_validate_diff(diff, text)
+                    if parsed.success and parsed.edits:
+                        edits = [
+                            lsp_types.TextEdit(
+                                range=lsp_types.Range(
+                                    start=lsp_types.Position(line=e["start_line"], character=0),
+                                    end=lsp_types.Position(line=e["end_line"], character=0),
+                                ),
+                                new_text=e["new_text"],
+                            )
+                            for e in parsed.edits
+                        ]
+                        action.edit = lsp_types.WorkspaceEdit(
+                            changes={uri: edits}
+                        )
+                        action.title = f"🤖 {action.title} (via {result.get('model_used', 'LLM')})"
+        except Exception as e:
+            logger = __import__("logging").getLogger(__name__)
+            logger.exception("Failed to resolve LLM fix: %s", e)
+        finally:
+            await bridge.close()
+
         return action
     
     def _fix_action_to_code_action(self, action, range_: lsp_types.Range, uri: str) -> lsp_types.CodeAction | None:

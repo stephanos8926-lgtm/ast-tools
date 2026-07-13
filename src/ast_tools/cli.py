@@ -1186,6 +1186,41 @@ def cmd_fix(args: argparse.Namespace) -> int:
     # Run engine
     engine = FixEngine(context)
     result = engine.run()
+    llm_results = None
+
+    # LLM-assisted fix mode
+    if args.llm and result.actions_applied:
+        import asyncio
+        from ast_tools.config.unified import load_unified_config
+        from ast_tools.llm.client import LLMClient, LLMFixContext
+
+        unified = load_unified_config()
+        llm_config = unified.lsp.llm
+        if llm_config.enabled:
+            client = LLMClient(llm_config)
+            llm_results = []
+            for action in result.actions_applied:
+                try:
+                    text = Path(action.file_path).read_text() if action.file_path else ""
+                    ctx = LLMFixContext(
+                        code=text,
+                        diagnostic_message=action.description,
+                        diagnostic_code=action.tool,
+                        file_path=str(action.file_path) if action.file_path else "",
+                        language=list(languages)[0] if languages else "python",
+                    )
+                    llm_result = asyncio.run(client.suggest_fix(ctx))
+                    if llm_result.success:
+                        llm_results.append({
+                            "tool": action.tool,
+                            "file": str(action.file_path),
+                            "llm_diff": llm_result.diff,
+                            "llm_confidence": llm_result.confidence,
+                            "model": llm_result.model_used,
+                        })
+                except Exception as e:
+                    llm_results.append({"tool": action.tool, "error": str(e)})
+            asyncio.run(client.close())
 
     # Format output
     if args.format == "json":
@@ -1671,6 +1706,11 @@ def main() -> int:
         choices=["table", "json", "markdown"],
         default="table",
         help="Output format",
+    )
+    fix_p.add_argument(
+        "--llm",
+        action="store_true",
+        help="Use LLM to suggest fixes for diagnostics (requires API key)",
     )
     fix_p.set_defaults(func=cmd_fix)
 
