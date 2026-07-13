@@ -63,6 +63,10 @@ tree-sitter = [
     "tree-sitter-c-sharp>=0.23",
 ]
 
+spectral = [
+    "scipy>=1.9.0",
+]
+
 [project.scripts]
 ast-tools-server = "ast_tools._server:main_sync"
 ast-tools-project = "ast_tools._project_tools:cli_main"
