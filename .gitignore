@@ -57,3 +57,8 @@ wheels/
 
 # Auto-fix backups
 .ast-tools-backups-*/
+
+# Node.js
+node_modules/
+packages/*/node_modules/
+packages/*/out/

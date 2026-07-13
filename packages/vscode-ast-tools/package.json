@@ -1,0 +1,110 @@
+{
+  "name": "ast-tools",
+  "displayName": "ast-tools",
+  "description": "Structural code analysis, auto-fix, and LLM-assisted fixes for Python, TypeScript, Go, Rust, C++, and Markdown",
+  "version": "0.2.0",
+  "publisher": "rapidwebs",
+  "license": "MIT",
+  "icon": "icon.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/stephanos8926-lgtm/ast-tools.git"
+  },
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Linters",
+    "Formatters",
+    "Other"
+  ],
+  "activationEvents": [
+    "onLanguage:python",
+    "onLanguage:typescript",
+    "onLanguage:javascript",
+    "onLanguage:go",
+    "onLanguage:rust",
+    "onLanguage:cpp",
+    "onLanguage:markdown"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "configuration": {
+      "type": "object",
+      "title": "ast-tools",
+      "properties": {
+        "ast-tools.enable": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable ast-tools LSP server"
+        },
+        "ast-tools.configPath": {
+          "type": "string",
+          "default": "",
+          "description": "Path to ast-tools.yaml config file (empty = auto-detect)"
+        },
+        "ast-tools.fixOnSave": {
+          "type": "boolean",
+          "default": false,
+          "description": "Run auto-fix pipeline on save"
+        },
+        "ast-tools.llmFixes": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show LLM-assisted fix suggestions in code actions"
+        },
+        "ast-tools.trace.server": {
+          "type": "string",
+          "enum": [
+            "off",
+            "messages",
+            "verbose"
+          ],
+          "default": "off",
+          "description": "Trace LSP communication for debugging"
+        }
+      }
+    },
+    "commands": [
+      {
+        "command": "ast-tools.restart",
+        "title": "ast-tools: Restart LSP Server"
+      },
+      {
+        "command": "ast-tools.fixAll",
+        "title": "ast-tools: Run Fix All on Workspace"
+      },
+      {
+        "command": "ast-tools.openConfig",
+        "title": "ast-tools: Open Config File"
+      },
+      {
+        "command": "ast-tools.llmFix",
+        "title": "ast-tools: 🤖 Suggest LLM Fix for Issue"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "ast-tools.fixAll",
+        "key": "ctrl+alt+f",
+        "when": "editorTextFocus"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "lint": "eslint src --ext .ts",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.1",
+    "@types/vscode": "^1.80.0",
+    "eslint": "^8.50.0",
+    "typescript": "^5.3.0"
+  },
+  "dependencies": {
+    "vscode-languageclient": "^9.0.0"
+  }
+}
