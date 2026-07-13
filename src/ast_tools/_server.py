@@ -32,7 +32,7 @@ from anyio import create_task_group
 from mcp.server import Server
 from mcp.server.stdio import stdio_server
 from lsprotocol import types as lsp_types
-from mcp.types import TextContent, Tool
+from mcp.types import TextContent, Tool, InitializedNotification
 
 from ast_tools.config.unified import UnifiedConfig, load_unified_config
 from ast_tools.server_config import add_server_args, config_from_args
@@ -45,22 +45,75 @@ from ast_tools.tools import (
 )
 
 # Global activity tracking for idle timeout
+# Global activity tracking for idle timeout
 _last_activity = time.monotonic()
 
-def _update_activity():
+# Set up file logging to capture Forge interactions
+log_file = "/tmp/ast-tools-forge.log"
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s %(levelname)s %(name)s: %(message)s',
+    handlers=[
+        logging.FileHandler(log_file),
+        logging.StreamHandler(sys.stderr)
+    ]
+)
+logger = logging.getLogger(__name__)
+logger.info(f"Server started, logging to {log_file}")
+
+def _update_activity() -> None:
+    """Update the last activity timestamp for idle timeout."""
     global _last_activity
     _last_activity = time.monotonic()
+
 
 def _get_last_activity():
     return _last_activity
 
-logging.basicConfig(level=logging.WARNING, stream=sys.stderr)
+logging.basicConfig(level=logging.DEBUG, stream=sys.stderr)
 logger = logging.getLogger(__name__)
 
 server = Server("rw-ast-tools")
 
+# Log all incoming requests
+async def _log_request(request):
+    logger.debug(f"Incoming request: {request.method}")
+    return None  # Continue to next handler
+
+server.request_handlers["*"] = _log_request
+
+
+# ─── Notification Handlers ───────────────────────────────────────────────────
+
+
+async def _handle_initialized(notification: InitializedNotification) -> None:
+    """Handle the initialized notification from client."""
+    logger.info("Client initialized")
+
+
+server.notification_handlers[InitializedNotification] = _handle_initialized
+
 
 # ─── Tool Handlers ────────────────────────────────────────────────────────
+
+
+@server.list_tools()
+async def handle_list_tools() -> list[Tool]:
+    """Return list of all available tools."""
+    return list_tools()
+
+
+@server.list_resources()
+async def handle_list_resources() -> list:
+    """Return list of available resources (none for this server)."""
+    return []
+
+
+@server.list_prompts()
+@server.list_prompts()
+async def handle_list_prompts() -> list:
+    """Return list of available prompts (none for this server)."""
+    return []
 
 
 @server.call_tool()
