@@ -34,7 +34,7 @@ class Prompts:
         """
         # Truncate code if too long to avoid token overflow
         if len(code) > Prompts.MAX_CODE_CHARS:
-            code = code[:Prompts.MAX_CODE_CHARS] + "\n# ... [truncated]\n"
+            code = code[: Prompts.MAX_CODE_CHARS] + "\n# ... [truncated]\n"
 
         return (
             "You are an expert code reviewer and fixer. Given a diagnostic and "

@@ -9,7 +9,7 @@ from typing import Any
 
 import httpx
 
-from ast_tools.config.unified import LLMConfig
+from ast_tools.config.unified import LLMConfig  # noqa: TC001
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +26,7 @@ class LLMFixContext:
         language: Language ID (python, typescript, etc.)
         context_lines: Lines of context to include
     """
+
     code: str
     diagnostic_message: str
     diagnostic_code: str
@@ -48,6 +49,7 @@ class LLMFixResult:
         error: Error message if failed
         token_usage: Token counts from the provider
     """
+
     success: bool
     diff: str | None = None
     edits: list[dict[str, Any]] = field(default_factory=list)
@@ -154,7 +156,7 @@ class LLMClient:
         """
         code = context.code
 
-        max_code = getattr(self.config, 'max_code_chars', 6000)
+        max_code = getattr(self.config, "max_code_chars", 6000)
         if len(code) > max_code:
             code = code[:max_code] + "\n# ... [truncated]\n"
 
@@ -182,13 +184,15 @@ class LLMClient:
                 return LLMFixResult(success=False, error=f"Unknown backend: {backend}")
         except (httpx.TimeoutException, httpx.ConnectError) as e:
             if attempt < max_attempts:
-                wait = 2 ** attempt
+                wait = 2**attempt
                 logger.warning("Local backend failed (%s), retrying in %ds", e, wait)
                 await asyncio.sleep(wait)
                 return await self._try_local_with_retry(prompt, attempt + 1)
             return LLMFixResult(success=False, error=f"Local backend failed: {e}")
 
-    async def _try_remote_with_retry(self, prompt: str, provider: str, attempt: int = 0) -> LLMFixResult:
+    async def _try_remote_with_retry(
+        self, prompt: str, provider: str, attempt: int = 0
+    ) -> LLMFixResult:
         """Try a remote provider with exponential backoff on 429/timeout."""
         max_attempts = 2
 
@@ -196,7 +200,7 @@ class LLMClient:
             return await self._call_remote(prompt, provider)
         except httpx.HTTPStatusError as e:
             if e.response.status_code == 429 and attempt < max_attempts:
-                retry_after = int(e.response.headers.get("Retry-After", str(2 ** attempt)))
+                retry_after = int(e.response.headers.get("Retry-After", str(2**attempt)))
                 logger.warning("Rate limited on %s, retrying in %ds", provider, retry_after)
                 await asyncio.sleep(retry_after)
                 return await self._try_remote_with_retry(prompt, provider, attempt + 1)
@@ -206,7 +210,7 @@ class LLMClient:
             )
         except (httpx.TimeoutException, httpx.ConnectError) as e:
             if attempt < max_attempts:
-                wait = 2 ** attempt
+                wait = 2**attempt
                 logger.warning("%s failed (%s), retrying in %ds", provider, e, wait)
                 await asyncio.sleep(wait)
                 return await self._try_remote_with_retry(prompt, provider, attempt + 1)
@@ -229,7 +233,7 @@ class LLMClient:
                 model_used=f"ollama:{self.config.remote_model}",
             )
 
-    async def _call_vllm(self, prompt: str) -> LLMFixResult:
+    async def _call_vllm(self, prompt: str) -> LLMFixResult:  # noqa: ARG002
         """Call vLLM OpenAI-compatible API."""
         return LLMFixResult(success=False, error="vLLM requires CUDA (not available)")
 
@@ -261,6 +265,7 @@ class LLMClient:
             return LLMFixResult(success=False, error=f"Unknown provider: {provider}")
 
         import os
+
         api_key = os.environ.get(api_key_env)
         if not api_key:
             return LLMFixResult(
@@ -282,22 +287,18 @@ class LLMClient:
                 }
                 headers = {
                     "Authorization": f"Bearer {api_key}",
-                    "HTTP-Referer": (
-                        "https://github.com/stephanos8926-lgtm/ast-tools"
-                    ),
+                    "HTTP-Referer": ("https://github.com/stephanos8926-lgtm/ast-tools"),
                 }
                 resp = await client.post(
-                    endpoint, json=data, headers=headers,
+                    endpoint,
+                    json=data,
+                    headers=headers,
                     timeout=self.config.timeout_seconds,
                 )
                 resp.raise_for_status()
                 result_data = resp.json()
                 choices = result_data.get("choices", [])
-                content = (
-                    choices[0].get("message", {}).get("content", "")
-                    if choices
-                    else ""
-                )
+                content = choices[0].get("message", {}).get("content", "") if choices else ""
                 usage = result_data.get("usage", {})
                 return LLMFixResult(
                     success=True,
@@ -323,7 +324,9 @@ class LLMClient:
                     "content-type": "application/json",
                 }
                 resp = await client.post(
-                    endpoint, json=data, headers=headers,
+                    endpoint,
+                    json=data,
+                    headers=headers,
                     timeout=self.config.timeout_seconds,
                 )
                 resp.raise_for_status()
@@ -353,7 +356,8 @@ class LLMClient:
                     },
                 }
                 resp = await client.post(
-                    f"{url}?key={api_key}", json=data,
+                    f"{url}?key={api_key}",
+                    json=data,
                     timeout=self.config.timeout_seconds,
                 )
                 resp.raise_for_status()
@@ -401,10 +405,9 @@ class LLMClient:
     async def _probe_remote(self, provider: str) -> bool:
         """Probe remote provider availability (just check API key exists)."""
         import os
+
         api_key_env = _PROVIDER_API_KEY_ENV.get(provider)
-        if api_key_env and os.environ.get(api_key_env):
-            return True
-        return False
+        return bool(api_key_env and os.environ.get(api_key_env))
 
     def _http(self) -> httpx.AsyncClient:
         """Get or create the shared HTTP client."""

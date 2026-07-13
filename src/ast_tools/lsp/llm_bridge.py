@@ -6,11 +6,8 @@ Used by CodeActionHandler to resolve lazy LLM fix actions.
 
 from __future__ import annotations
 
-import asyncio
 import logging
-from pathlib import Path
 
-from ast_tools.config.unified import UnifiedConfig
 from ast_tools.llm.client import LLMClient, LLMFixContext
 
 logger = logging.getLogger(__name__)
@@ -34,7 +31,7 @@ class LLMBridge:
             self._client = LLMClient(self.server.config.lsp.llm)
         return self._client
 
-    async def resolve_llm_fix(self, action, action_data: dict) -> dict | None:
+    async def resolve_llm_fix(self, action, action_data: dict) -> dict | None:  # noqa: ARG002
         """Resolve an LLM fix action by calling the LLM.
 
         Args:

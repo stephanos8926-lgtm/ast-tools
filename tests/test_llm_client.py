@@ -44,7 +44,7 @@ class TestSuggestFix:
         """Successful remote fix suggestion returns diff."""
         client = LLMClient(config)
 
-        with patch.object(client, '_try_remote_with_retry', new=AsyncMock()) as mock_remote:
+        with patch.object(client, "_try_remote_with_retry", new=AsyncMock()) as mock_remote:
             mock_remote.return_value = LLMFixResult(
                 success=True,
                 diff="--- a/test.py\n+++ b/test.py\n@@ -1 +1 @@\n-x = 1\n+print('hello')\n",
@@ -65,7 +65,7 @@ class TestSuggestFix:
         """Graceful failure when all backends fail."""
         client = LLMClient(config)
 
-        with patch.object(client, '_try_remote_with_retry', new=AsyncMock()) as mock_remote:
+        with patch.object(client, "_try_remote_with_retry", new=AsyncMock()) as mock_remote:
             mock_remote.return_value = LLMFixResult(success=False, error="API returned 429")
 
             result = await client.suggest_fix(context)

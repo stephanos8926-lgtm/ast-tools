@@ -10,6 +10,7 @@ from typing import Any
 @dataclass
 class ParseResult:
     """Result of parsing and validating a unified diff."""
+
     success: bool
     edits: list[dict[str, Any]] = field(default_factory=list)
     confidence: float = 0.0
@@ -26,7 +27,7 @@ _DIFF_LINE_RE = re.compile(r"^([ +\-\\])")
 def parse_and_validate_diff(
     diff_text: str,
     original_content: str,
-    file_extension: str = ".py",
+    file_extension: str = ".py",  # noqa: ARG001
 ) -> ParseResult:
     """Parse a unified diff and validate it applies cleanly.
 
@@ -174,7 +175,7 @@ def _apply_hunk(hunk: dict, lines: list[str]) -> ParseResult:
 
     # Apply the change in-place: replace removed lines with added lines
     added_with_newlines = [a + ("\n" if not a.endswith("\n") else "") for a in added]
-    lines[removed_start:removed_start + len(removed)] = added_with_newlines
+    lines[removed_start : removed_start + len(removed)] = added_with_newlines
 
     # Calculate confidence based on context match ratio
     total_context = len(context_before) + len(context_after)

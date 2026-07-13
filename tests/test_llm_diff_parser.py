@@ -1,8 +1,6 @@
 """Tests for LLM diff parser."""
 
-import pytest
-
-from ast_tools.llm.diff_parser import parse_and_validate_diff, ParseResult
+from ast_tools.llm.diff_parser import parse_and_validate_diff
 
 
 class TestParseSimpleDiff:
@@ -19,10 +17,7 @@ class TestParseSimpleDiff:
 
     def test_with_context_lines(self):
         original = "import os\nx = 1\n"
-        diff = (
-            "--- a/test.py\n+++ b/test.py\n"
-            "@@ -1,2 +1,2 @@\n import os\n-x = 1\n+x = 2\n"
-        )
+        diff = "--- a/test.py\n+++ b/test.py\n@@ -1,2 +1,2 @@\n import os\n-x = 1\n+x = 2\n"
         result = parse_and_validate_diff(diff, original)
         assert result.success is True
         assert result.applied_text == "import os\nx = 2\n"
@@ -90,10 +85,7 @@ class TestConfidenceScoring:
 
     def test_high_confidence_with_context(self):
         original = "a = 1\nb = 2\nc = 3\n"
-        diff = (
-            "--- a/test.py\n+++ b/test.py\n"
-            "@@ -1,3 +1,3 @@\n a = 1\n-b = 2\n+z = 2\n c = 3\n"
-        )
+        diff = "--- a/test.py\n+++ b/test.py\n@@ -1,3 +1,3 @@\n a = 1\n-b = 2\n+z = 2\n c = 3\n"
         result = parse_and_validate_diff(diff, original)
         assert result.confidence >= 0.5
 
