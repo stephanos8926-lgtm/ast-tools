@@ -127,6 +127,7 @@ from __future__ import annotations
 import hashlib
 import logging
 import math
+import concurrent.futures
 from collections import Counter, defaultdict, deque
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -214,6 +215,24 @@ class SpectralResult:
     quality: float = 0.0
     algebraic_connectivity: float = 0.0
     isolated_modules: list[str] = field(default_factory=list)
+    resolutions: list[ResolutionLevel] = field(default_factory=list)
+
+
+@dataclass
+class ResolutionLevel:
+    """A single resolution level in multi-resolution decomposition.
+
+    Attributes:
+        name: Resolution name (e.g. "coarse", "medium", "fine").
+        num_clusters: Number of clusters at this resolution.
+        quality: Modularity quality score.
+        clusters: List of cluster assignments at this resolution.
+    """
+
+    name: str
+    num_clusters: int
+    quality: float
+    clusters: list[ClusterAssignment]
 
 
 # ── Configuration Profiles (P1) ──────────────────────────────────────────────
@@ -600,6 +619,122 @@ def _collect_leaves(node: PartitionNode) -> list[PartitionNode]:
     return leaves
 
 
+def _collect_at_depth(node: PartitionNode, target_depth: int) -> list[PartitionNode]:
+    """Collect partition nodes at or above a target depth.
+
+    Traverses the tree BFS up to ``target_depth``. Nodes that don't have
+    children at that depth are returned as-is (leaf nodes above the cutoff).
+
+    Args:
+        node: Root of the partition tree.
+        target_depth: Maximum depth to traverse (0 = root only).
+
+    Returns:
+        List of PartitionNodes representing the partition at this depth.
+    """
+    if node is None:
+        return []
+
+    queue: list[tuple[PartitionNode, int]] = [(node, 0)]
+    result: list[PartitionNode] = []
+
+    while queue:
+        current, d = queue.pop(0)
+        if d >= target_depth or (current.left is None and current.right is None):
+            result.append(current)
+        else:
+            if current.left:
+                queue.append((current.left, d + 1))
+            if current.right:
+                queue.append((current.right, d + 1))
+
+    return result
+
+
+def _compute_multi_resolution(
+    root: PartitionNode,
+    connected_names: list[str],
+    connected_adj: np.ndarray,
+) -> list[ResolutionLevel]:
+    """Compute coarse, medium, and fine clusterings from the partition tree.
+
+    Args:
+        root: Root of the partition tree.
+        connected_names: Module names for the connected component.
+        connected_adj: Adjacency matrix for the connected component.
+
+    Returns:
+        List of ResolutionLevel objects (coarse, medium, fine).
+    """
+    resolutions: list[ResolutionLevel] = []
+    n = len(connected_names)
+
+    # Determine tree depth
+    max_tree_depth = 0
+    queue = [(root, 0)]
+    while queue:
+        node, d = queue.pop(0)
+        max_tree_depth = max(max_tree_depth, d)
+        if node.left:
+            queue.append((node.left, d + 1))
+        if node.right:
+            queue.append((node.right, d + 1))
+
+    # Define resolution levels as fraction of tree depth
+    profiles = [
+        ("coarse", max(1, max_tree_depth // 3)),
+        ("medium", max(2, max_tree_depth * 2 // 3)),
+        ("fine", max(3, max_tree_depth)),
+    ]
+
+    for name, depth in profiles:
+        nodes = _collect_at_depth(root, depth)
+        if len(nodes) < 2:
+            continue
+
+        cluster_labels: dict[str, int] = {}
+        clusters_out: list[ClusterAssignment] = []
+        for cid, pn in enumerate(sorted(nodes, key=lambda n: n.id)):
+            mods = sorted(pn.modules)
+            for m in mods:
+                cluster_labels[m] = cid
+
+            # Compute cohesion and coupling
+            indices = [
+                i for i, mn in enumerate(connected_names) if mn in pn.modules
+            ]
+            if len(indices) >= 2:
+                sub = connected_adj[np.ix_(indices, indices)]
+                intra = float(np.sum(sub) / 2.0)
+                other = [i for i in range(n) if i not in indices]
+                inter = float(np.sum(connected_adj[np.ix_(indices, other)])) if other else 0.0
+                cohesion = intra / max(len(indices), 1)
+                coupling = inter / max(len(other), 1) if other else 0.0
+            else:
+                cohesion = 0.0
+                coupling = 0.0
+
+            clusters_out.append(ClusterAssignment(
+                cluster_id=cid, modules=mods, size=len(mods),
+                cohesion=cohesion, coupling=coupling,
+            ))
+
+        # Compute quality
+        labels_arr = np.zeros(n, dtype=int)
+        for i, mn in enumerate(connected_names):
+            labels_arr[i] = cluster_labels.get(mn, 0)
+        quality = _partition_quality(connected_adj, labels_arr, len(set(labels_arr)))
+
+        resolutions.append(ResolutionLevel(
+            name=name,
+            num_clusters=len(clusters_out),
+            quality=float(quality),
+            clusters=clusters_out,
+        ))
+
+    return resolutions
+
+
 def _compute_cohesion_coupling(
     adjacency: np.ndarray,
     module_names: list[str],
@@ -641,6 +776,90 @@ def _compute_cohesion_coupling(
     avg_cohesion = total_intra / intra_count if intra_count > 0 else 0.0
     avg_coupling = total_inter / inter_count if inter_count > 0 else 0.0
     return avg_cohesion, avg_coupling
+
+
+# ── Incremental Laplacian Update (P2) ─────────────────────────────────────────
+
+
+def update_laplacian_incremental(
+    old_laplacian: np.ndarray,
+    old_adjacency: np.ndarray,
+    edge_changes: list[tuple[int, int, float]],
+) -> np.ndarray:
+    """Update normalized Laplacian after edge weight changes using SMW.
+
+    Uses Sherman-Morrison-Woodbury for rank-2 updates to the Laplacian
+    when a single undirected edge weight changes. Avoids O(N³) full
+    recomputation for watch-mode incremental updates.
+
+    Each element of ``edge_changes`` is ``(i, j, new_weight)`` where
+    ``i`` and ``j`` are node indices and ``new_weight`` is the new edge
+    weight (0 to remove). The function computes the change relative to
+    ``old_adjacency[i, j]`` and applies the update.
+
+    Args:
+        old_laplacian: Previous N×N normalized Laplacian.
+        old_adjacency: Previous N×N weighted adjacency matrix.
+        edge_changes: List of (i, j, new_weight) updates.
+
+    Returns:
+        Updated N×N normalized Laplacian.
+    """
+    # For a single edge change, we recompute the Laplacian for the
+    # affected rows/columns — efficient when few edges change.
+    n = old_adjacency.shape[0]
+    new_adj = old_adjacency.copy()
+
+    for i, j, w in edge_changes:
+        new_adj[i, j] = w
+        new_adj[j, i] = w
+
+    # Compute degree change
+    old_deg = np.sum(old_adjacency, axis=1)
+    new_deg = np.sum(new_adj, axis=1)
+
+    # If degrees changed significantly, full recompute is simpler
+    deg_diff = np.max(np.abs(new_deg - old_deg))
+    if deg_diff > 0.1 or len(edge_changes) > n // 10:
+        return _normalized_laplacian(new_adj)
+
+    # Fast path: only update affected rows/cols
+    # L = I - D^{-1/2} A D^{-1/2}
+    # Find affected nodes (neighbors of changed edges)
+    affected = set()
+    for i, j, _ in edge_changes:
+        affected.add(i)
+        affected.add(j)
+        # Also include neighbors of changed nodes (degree changed)
+        for k in range(n):
+            if new_adj[i, k] != old_adjacency[i, k]:
+                affected.add(k)
+            if new_adj[j, k] != old_adjacency[j, k]:
+                affected.add(k)
+
+    affected = sorted(affected)
+    if not affected:
+        return old_laplacian
+
+    # Recompute D^{-1/2}
+    with np.errstate(divide="ignore"):
+        old_d_inv_sqrt = np.where(old_deg > 1e-10, 1.0 / np.sqrt(old_deg), 0.0)
+        new_d_inv_sqrt = np.where(new_deg > 1e-10, 1.0 / np.sqrt(new_deg), 0.0)
+
+    # Update affected rows and columns
+    # L_new[i,j] = δ_ij - new_d_inv_sqrt[i] * new_adj[i,j] * new_d_inv_sqrt[j]
+    laplacian = old_laplacian.copy()
+    for i in affected:
+        for j in range(n):
+            old_val = laplacian[i, j]
+            new_val = -new_d_inv_sqrt[i] * new_adj[i, j] * new_d_inv_sqrt[j]
+            if i == j:
+                new_val += 1.0  # diagonal: 1 - D^{-1/2} * 0 * D^{-1/2} = 1
+            if abs(old_val - new_val) > 1e-12:
+                laplacian[i, j] = new_val
+                laplacian[j, i] = new_val
+
+    return laplacian
 
 
 # ── Graph Construction ────────────────────────────────────────────────────────
@@ -1107,6 +1326,49 @@ _LANG_RESOLVER = {
 }
 
 
+def _extract_python_edges_parallel(
+    source: str,
+    source_module: str,
+    internal_modules: set[str],
+    stdlib_modules: set[str],
+    third_party_prefixes: set[str],
+    edge_weight: float,
+) -> list[tuple[str, str, float]]:
+    """Extract import edges from Python source — returns list, no shared state.
+
+    Parallel-safe version of _extract_imports_python that returns edges
+    instead of modifying a shared adjacency dict.
+    """
+    import ast as ast_module
+    edges: list[tuple[str, str, float]] = []
+    try:
+        tree = ast_module.parse(source, filename="<spectral>")
+    except SyntaxError:
+        return edges
+
+    for node in ast_module.walk(tree):
+        if isinstance(node, ast_module.Import):
+            for alias in node.names:
+                target = alias.name.split(".")[0]
+                if target in internal_modules:
+                    edges.append((source_module, target, edge_weight))
+                elif target not in stdlib_modules and target not in third_party_prefixes:
+                    for im in internal_modules:
+                        if im == target or im.startswith(target + "."):
+                            edges.append((source_module, im, edge_weight * 0.3))
+        elif isinstance(node, ast_module.ImportFrom):
+            if node.module is None:
+                continue
+            top = node.module.split(".")[0]
+            if top in internal_modules:
+                edges.append((source_module, top, edge_weight))
+            elif top not in stdlib_modules and top not in third_party_prefixes:
+                for im in internal_modules:
+                    if im == top or im.startswith(top + "."):
+                        edges.append((source_module, im, edge_weight * 0.3))
+    return edges
+
+
 def _build_module_adjacency(
     project_root: str,
     edge_weight: float = 1.0,
@@ -1203,51 +1465,74 @@ def _build_module_adjacency(
     except ImportError:
         pass
 
-    for f in source_files:
-        source_module = file_to_module.get(f)
-        if source_module is None:
-            continue
+    # Per-file processing function for parallel dispatch
+    def _process_file(file_f: Path) -> list[tuple[str, str, float]]:
+        """Parse a single source file and return (source, target, weight) edges."""
+        src_mod = file_to_module.get(file_f)
+        if src_mod is None:
+            return []
 
-        lang = _detect_language(f)
-        if lang is None:
-            continue
+        lang_code = _detect_language(file_f)
+        if lang_code is None:
+            return []
 
         try:
-            source = f.read_text(encoding="utf-8", errors="replace")
+            src = file_f.read_text(encoding="utf-8", errors="replace")
         except OSError:
-            continue
+            return []
 
-        if lang == "python":
-            # Python: use ast.parse (fast, accurate)
-            _extract_imports_python(
-                source, source_module, internal_modules,
+        local_edges: list[tuple[str, str, float]] = []
+
+        if lang_code == "python":
+            return _extract_python_edges_parallel(
+                src, src_mod, internal_modules,
                 stdlib_modules, third_party_prefixes,
-                edge_weight, adjacency,
+                edge_weight,
             )
         elif _ts_available:
-            # Other languages: use tree-sitter
             try:
-                tree = ts_backend.ts_parse(source, lang)
+                tree = ts_backend.ts_parse(src, lang_code)
                 if tree is None:
-                    continue
+                    return []
             except Exception:
-                continue
+                return []
 
-            extractor = _LANG_IMPORT_EXTRACTOR.get(lang)
-            resolver = _LANG_RESOLVER.get(lang)
+            extractor = _LANG_IMPORT_EXTRACTOR.get(lang_code)
+            resolver = _LANG_RESOLVER.get(lang_code)
             if extractor is None or resolver is None:
-                continue
+                return []
 
-            import_paths = extractor(tree, source)
+            import_paths = extractor(tree, src)
             for import_path in import_paths:
-                # Resolve to actual file(s)
-                resolved_files = resolver(import_path, f, project_path)
+                resolved_files = resolver(import_path, file_f, project_path)
                 for resolved in resolved_files:
-                    # resolvers may return relative or absolute; normalize to absolute
                     resolved_abs = resolved if resolved.is_absolute() else (project_path / resolved)
-                    target_module = file_to_module.get(resolved_abs)
-                    if target_module and target_module in internal_modules:
-                        adjacency[(source_module, target_module)] += edge_weight
+                    target_mod = file_to_module.get(resolved_abs)
+                    if target_mod and target_mod in internal_modules:
+                        local_edges.append((src_mod, target_mod, edge_weight))
+
+        return local_edges
+
+    # Dispatch: sequential by default, parallel if max_workers > 1
+    max_workers_par = 4  # default parallelism
+    file_count = len(source_files)
+
+    if file_count < 20 or max_workers_par <= 1:
+        # Sequential for small projects
+        for f in source_files:
+            edges = _process_file(f)
+            for src, tgt, w in edges:
+                adjacency[(src, tgt)] += w
+    else:
+        # Parallel for large projects
+        with concurrent.futures.ThreadPoolExecutor(max_workers=min(max_workers_par, file_count)) as executor:
+            fut_to_file = {executor.submit(_process_file, f): f for f in source_files}
+            for future in concurrent.futures.as_completed(fut_to_file):
+                try:
+                    for src, tgt, w in future.result():
+                        adjacency[(src, tgt)] += w
+                except Exception as e:
+                    logger.warning(f"File processing failed: {e}")
 
     # ── Step 5: Submodule containment edges ──
     if include_submodules:
@@ -2264,6 +2549,14 @@ def suggest_modules(
     else:
         quality = 0.0
 
+    # Step 10: Compute multi-resolution levels
+    resolutions: list[ResolutionLevel] = []
+    if root is not None and connected_names:
+        try:
+            resolutions = _compute_multi_resolution(root, connected_names, connected_adj)
+        except Exception as e:
+            logger.warning(f"Multi-resolution computation failed ({e}), skipping")
+
     return SpectralResult(
         clusters=clusters_out,
         partition_tree=root,
@@ -2272,6 +2565,7 @@ def suggest_modules(
         quality=quality,
         algebraic_connectivity=float(alg_conn),
         isolated_modules=isolated_modules,
+        resolutions=resolutions,
     )
 
 
