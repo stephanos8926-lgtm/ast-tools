@@ -32,7 +32,7 @@ JsonRpcResponse = namedtuple("JsonRpcResponse", ["jsonrpc", "id", "result", "err
 
 LSP_SERVERS = {
     "python": {
-        "command": ["py right-langserver", "--stdio"],
+        "command": ["pyright-langserver", "--stdio"],
         "install_hint": "pip install pyright",
         "file_extensions": [".py", ".pyi"],
     },
@@ -78,10 +78,15 @@ class LSPClient:
 
         self.proc: subprocess.Popen | None = None
         self.request_id = 0
-        self.pending = {}
+        self.pending: dict[int, threading.Event] = {}
         self.lock = threading.Lock()
         self._response_thread = None
         self._running = False
+
+        # ─── Phase 2: Persistent session + diagnostics ────────────────────
+        self._diagnostics: dict[str, list[dict]] = {}
+        self._capabilities: dict[str, Any] = {}
+        self._open_files: set[str] = set()
 
     def start(self):
         """Spawn the language server process."""
@@ -125,6 +130,10 @@ class LSPClient:
         self.proc.terminate()
         self.proc.wait(timeout=5)
         self.proc = None
+
+    def close(self):
+        """Alias for stop()."""
+        self.stop()
 
     def _send_request(self, method: str, params: dict) -> Any:
         """Send an LSP request and wait for response."""
@@ -205,8 +214,16 @@ class LSPClient:
                         self.pending[req_id] = data.get("result")
                     self.pending[req_id].set()
         elif "method" in data:
-            # Server notification (e.g., diagnostics)
-            logger.debug(f"LSP notification: {data['method']}")
+            method = data["method"]
+            params = data.get("params", {})
+            if method == "textDocument/publishDiagnostics":
+                uri = params.get("uri", "")
+                file_path = uri.replace("file://", "")
+                self._diagnostics[file_path] = params.get("diagnostics", [])
+            elif method == "window/logMessage":
+                logger.info(f"LSP [{self.lang}]: {params.get('message', '')}")
+            else:
+                logger.debug(f"LSP notification: {method}")
 
     def _initialize(self):
         """Initialize LSP session."""
@@ -217,17 +234,42 @@ class LSPClient:
                 "rootUri": f"file://{self.root_path}",
                 "capabilities": {
                     "textDocument": {
-                        "synchronization": {"didSave": True},
+                        "synchronization": {"didSave": True, "didOpen": True, "willSave": False},
                         "definition": {"linkSupport": True},
                         "references": {},
                         "hover": {"contentFormat": ["markdown", "plaintext"]},
                         "completion": {"completionItem": {"snippetSupport": False}},
-                    }
+                        "signatureHelp": {},
+                        "codeAction": {"codeActionLiteralSupport": True},
+                        "rename": {"prepareSupport": True},
+                        "formatting": {},
+                        "documentSymbol": {},
+                        "callHierarchy": {},
+                    },
+                    "workspace": {
+                        "symbol": {},
+                    },
                 },
             },
         )
+        self._capabilities = result.get("capabilities", {}) if result else {}
         self._send_notification("initialized")
         return result
+
+    def _ensure_open(self, file: str) -> None:
+        """Send didOpen if file not yet tracked by the server."""
+        abs_path = str(Path(file).resolve())
+        if abs_path in self._open_files:
+            return
+        uri = f"file://{abs_path}"
+        try:
+            text = Path(file).read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            text = ""
+        self._send_notification("textDocument/didOpen", {
+            "textDocument": {"uri": uri, "languageId": self.lang, "version": 1, "text": text},
+        })
+        self._open_files.add(abs_path)
 
     # ─── LSP Query Methods ──────────────────────────────────────────────
 
@@ -307,33 +349,163 @@ class LSPClient:
         result = self._send_request("callHierarchy/outgoingCalls", {"item": items[0]})
         return result or []
 
-    def diagnostics(self, _file: str) -> list[dict]:
-        """Get compiler errors and warnings for a file."""
-        # Diagnostics are pushed by server, return last known
-        # This would need state tracking - simplified for now
-        return []
+    def diagnostics(self, file: str) -> list[dict]:
+        """Get tracked diagnostics for a file.
 
-    def format_document(self, file: str) -> str:
-        """Format a file using the language server's formatter."""
+        Diagnostics are pushed asynchronously by the LSP server via
+        textDocument/publishDiagnostics after didOpen or didChange.
+        Opens the file if needed to trigger push.
+        """
+        self._ensure_open(file)
+        abs_path = str(Path(file).resolve())
+        return self._diagnostics.get(abs_path, [])
+
+    def format_document(self, file: str) -> list[dict]:
+        """Format a file using the language server's formatter.
+
+        Returns:
+            List of TextEdit dicts with range and newText.
+        """
         uri = f"file://{Path(file).resolve()}"
+        self._ensure_open(file)
         result = self._send_request(
             "textDocument/formatting",
             {"textDocument": {"uri": uri}, "options": {"tabSize": 4, "insertSpaces": True}},
         )
-        # Return edits - caller applies them
         return result or []
 
-    def signature_help(self, file: str, line: int, col: int) -> str | None:
+    def signature_help(self, file: str, line: int, col: int) -> dict | None:
         """Get function signature and parameter docs at call site."""
+        self._ensure_open(file)
         uri = f"file://{Path(file).resolve()}"
         result = self._send_request(
             "textDocument/signatureHelp",
             {"textDocument": {"uri": uri}, "position": {"line": line - 1, "character": col}},
         )
-        if result and "signatures" in result and result["signatures"]:
-            sig = result["signatures"][0]
-            return sig.get("label", "")
-        return None
+        return result
+
+    def code_actions(self, file: str, line: int, col: int) -> list[dict]:
+        """Get code actions (quick fixes, refactorings) at a position.
+
+        Returns available actions from the language server, including
+        quick fixes for diagnostics, refactoring suggestions, and
+        source actions.
+        """
+        self._ensure_open(file)
+        uri = f"file://{Path(file).resolve()}"
+        # Get diagnostics for this file to pass as context
+        file_diags = self._diagnostics.get(str(Path(file).resolve()), [])
+
+        # Filter diagnostics at or near the requested position
+        diags_at_pos = [
+            d for d in file_diags
+            if abs(d.get("range", {}).get("start", {}).get("line", 0) - (line - 1)) <= 2
+        ]
+
+        result = self._send_request(
+            "textDocument/codeAction",
+            {
+                "textDocument": {"uri": uri},
+                "range": {
+                    "start": {"line": line - 1, "character": col},
+                    "end": {"line": line - 1, "character": col + 1},
+                },
+                "context": {
+                    "diagnostics": diags_at_pos,
+                    "only": [],
+                },
+            },
+        )
+        return result or []
+
+    def rename_symbol(self, file: str, line: int, col: int, new_name: str) -> list[dict] | None:
+        """Rename a symbol across the workspace.
+
+        Returns:
+            List of TextEdit workspace edits, or None if not supported.
+        """
+        self._ensure_open(file)
+        uri = f"file://{Path(file).resolve()}"
+        result = self._send_request(
+            "textDocument/rename",
+            {
+                "textDocument": {"uri": uri},
+                "position": {"line": line - 1, "character": col},
+                "newName": new_name,
+            },
+        )
+        return result
+
+    def completion(self, file: str, line: int, col: int) -> list[dict]:
+        """Get code completions at a position.
+
+        Returns:
+            List of completion items.
+        """
+        self._ensure_open(file)
+        uri = f"file://{Path(file).resolve()}"
+        result = self._send_request(
+            "textDocument/completion",
+            {
+                "textDocument": {"uri": uri},
+                "position": {"line": line - 1, "character": col},
+            },
+        )
+        if not result:
+            return []
+
+        # LSP returns CompletionList or CompletionItem[]
+        if isinstance(result, dict):
+            return result.get("items", [])
+        return result
+
+    def apply_text_edits(self, file: str, edits: list[dict]) -> dict:
+        """Apply LSP text edits to a file on disk.
+
+        Args:
+            file: File path to edit.
+            edits: List of TextEdit dicts with range (start/end line, col) and newText.
+
+        Returns:
+            {applied: bool, count: int, error: str?}
+        """
+        try:
+            path = Path(file).resolve()
+            text = path.read_text(encoding="utf-8", errors="replace")
+            lines = text.splitlines(keepends=True)
+
+            # Apply edits in reverse order (last range first to preserve offsets)
+            for edit in sorted(edits, key=lambda e: (
+                -e["range"]["start"]["line"],
+                -e["range"]["start"]["character"],
+            )):
+                r = edit["range"]
+                sl, sc = r["start"]["line"], r["start"]["character"]  # 0-indexed
+                el, ec = r["end"]["line"], r["end"]["character"]
+
+                # Handle single-line and multi-line ranges
+                if sl == el:
+                    old_line = lines[sl]
+                    lines[sl] = old_line[:sc] + edit["newText"] + old_line[ec:]
+                else:
+                    # Multi-line: replace from start char of first line to end char of last
+                    before = lines[sl][:sc]
+                    after = lines[el][ec:]
+                    middle = edit["newText"].splitlines(keepends=True)
+                    replacement = [before] if before else []
+                    replacement.extend(middle)
+                    if after:
+                        replacement[-1] = replacement[-1].rstrip("\n")
+                        replacement[-1] += after.lstrip("\n")
+                    # Actually, easier to just replace the whole range
+                    lines[sl] = before + edit["newText"] + after
+                    # Remove lines between sl+1 and el
+                    del lines[sl + 1 : el + 1]
+
+            path.write_text("".join(lines), encoding="utf-8")
+            return {"applied": True, "count": len(edits)}
+        except Exception as e:
+            return {"applied": False, "count": 0, "error": str(e)}
 
 
 # ─── Convenience Functions ─────────────────────────────────────────────
@@ -348,11 +520,59 @@ def detect_language(file: str) -> str:
     return "python"  # Default
 
 
+# ─── Persistent Client Cache (Phase 2) ─────────────────────────────────
+
+
+_client_cache: dict[str, LSPClient] = {}
+_client_refcount: dict[str, int] = {}
+_cache_lock = threading.Lock()
+
+
 def get_lsp_client(file: str, root: str | None = None) -> LSPClient:
-    """Get or create an LSP client for a file."""
+    """Get or create a persistent LSP client for a file.
+
+    Clients are cached by (lang, root_path) and reused across queries.
+    Call ``release_lsp_client`` when done to allow eventual cleanup.
+    """
     lang = detect_language(file)
     root_path = root or str(Path(file).parent)
-    return LSPClient(lang, root_path)
+    key = f"{lang}:{root_path}"
+
+    with _cache_lock:
+        if key not in _client_cache:
+            client = LSPClient(lang, root_path)
+            client.start()
+            _client_cache[key] = client
+            _client_refcount[key] = 0
+        _client_refcount[key] += 1
+        return _client_cache[key]
+
+
+def release_lsp_client(client: LSPClient) -> None:
+    """Release an LSP client obtained via ``get_lsp_client``.
+
+    Clients stay alive while refcount > 0. When refcount reaches 0,
+    the client is kept for reuse (may be cleaned up by session end).
+    """
+    key = None
+    with _cache_lock:
+        for k, c in _client_cache.items():
+            if c is client:
+                key = k
+                break
+        if key and key in _client_refcount:
+            _client_refcount[key] = max(0, _client_refcount[key] - 1)
+
+
+def shutdown_all_lsp_clients() -> None:
+    """Shutdown all cached LSP clients. Call on session end."""
+    for key, client in _client_cache.items():
+        try:
+            client.stop()
+        except Exception as e:
+            logger.warning(f"Error stopping LSP client {key}: {e}")
+    _client_cache.clear()
+    _client_refcount.clear()
 
 
 # ─── CLI ────────────────────────────────────────────────────────────────
