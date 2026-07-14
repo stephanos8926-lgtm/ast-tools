@@ -124,6 +124,7 @@ the Fiedler vector (2nd eigenvector) of the normalized graph Laplacian.
 
 from __future__ import annotations
 
+import hashlib
 import logging
 import math
 from collections import defaultdict, deque
@@ -132,6 +133,16 @@ from pathlib import Path
 from typing import Any
 
 import numpy as np
+
+# Scipy availability for sparse eigensolver (eigsh)
+try:
+    import scipy  # noqa: F401
+    from scipy.sparse import csr_matrix
+    from scipy.sparse.linalg import eigsh as scipy_eigsh
+    SCIPY_AVAILABLE = True
+except ImportError:
+    SCIPY_AVAILABLE = False
+    csr_matrix = None  # type: ignore
 
 logger = logging.getLogger(__name__)
 
@@ -354,6 +365,54 @@ def _fiedler_vector_power_iteration(
     return v, fiedler_value
 
 
+def _fiedler_vector_scalable(
+    laplacian: np.ndarray,
+    n: int,
+    n_iter: int = 1000,
+    tol: float = 1e-6,
+    rng_seed: int = 42,
+) -> tuple[np.ndarray, float]:
+    """Compute Fiedler vector using the best available method.
+
+    Uses scipy.sparse.linalg.eigsh (Lanczos) for large graphs (n >= 500),
+    falls back to power iteration for smaller graphs or when scipy unavailable.
+
+    Args:
+        laplacian: N×N Laplacian matrix (dense numpy).
+        n: Number of nodes.
+        n_iter: Maximum iterations.
+        tol: Convergence tolerance.
+        rng_seed: RNG seed for power iteration fallback.
+
+    Returns:
+        Tuple of (fiedler_vector, fiedler_value).
+    """
+    # Small graphs or no scipy → use existing power iteration
+    if n < 500 or not SCIPY_AVAILABLE:
+        return _fiedler_vector_power_iteration(laplacian, n_iter, tol, rng_seed)
+
+    # Large graph with scipy → use sparse eigsh (Lanczos)
+    try:
+        sparse_L = csr_matrix(laplacian)
+        # Find 2 smallest eigenvalues (k=2 → λ₁ ≈ 0, λ₂ = Fiedler)
+        eigenvalues, eigenvectors = scipy_eigsh(
+            sparse_L, k=2, which="SM", tol=tol, maxiter=n_iter, v0=None,
+        )
+        # Sort ascending (eigsh doesn't guarantee order for SM)
+        idx = np.argsort(eigenvalues)
+        eigenvalues = eigenvalues[idx]
+        eigenvectors = eigenvectors[:, idx]
+
+        fiedler_vec = eigenvectors[:, 1]
+        fiedler_val = float(eigenvalues[1])
+        # Bound
+        fiedler_val = max(0.0, min(fiedler_val, float(n)))
+        return fiedler_vec, fiedler_val
+    except Exception as e:
+        logger.warning(f"scipy eigsh failed ({e}), falling back to power iteration")
+        return _fiedler_vector_power_iteration(laplacian, n_iter, tol, rng_seed)
+
+
 def _partition_quality(
     adjacency: np.ndarray,
     labels: np.ndarray,
@@ -432,9 +491,9 @@ def _fiedler_bipartition(
             depth=depth,
         )
 
-    # Compute Fiedler vector
+    # Compute Fiedler vector using scalable method
     laplacian = _normalized_laplacian(adjacency)
-    fiedler_vec, fiedler_val = _fiedler_vector_power_iteration(laplacian)
+    fiedler_vec, fiedler_val = _fiedler_vector_scalable(laplacian, n)
 
     # Split by sign of Fiedler vector entries
     threshold = 0.0
@@ -1461,6 +1520,72 @@ def _name_to_modules(name: str, project_path: Path) -> set[str]:
     return candidates
 
 
+# ── Embedding Cache (P0) ───────────────────────────────────────────────────────
+
+
+class EmbeddingCache:
+    """Simple LRU cache for module embeddings keyed by (file_path, content_hash, model).
+
+    Prevents re-encoding unchanged modules on repeated suggest_modules calls.
+    Thread-safe for concurrent reads (dict operations are atomic in CPython).
+    """
+
+    def __init__(self, max_entries: int = 512):
+        self._cache: dict[tuple[str, str, str], list[float]] = {}
+        self._order: list[tuple[str, str, str]] = []
+        self._max_entries = max_entries
+
+    def get(self, file_path: str, content_hash: str, model: str = "all-MiniLM-L6-v2") -> list[float] | None:
+        """Get cached embedding. Returns None on miss.
+        
+        Args:
+            file_path: Absolute path to the source file.
+            content_hash: Hash of file content (e.g. SHA256 hex).
+            model: Embedding model name.
+        Returns:
+            Cached embedding list or None.
+        """
+        key = (file_path, content_hash, model)
+        val = self._cache.get(key)
+        if val is not None:
+            # Move to end (most recently used)
+            try:
+                self._order.remove(key)
+                self._order.append(key)
+            except ValueError:
+                pass
+            return val
+        return None
+
+    def put(self, file_path: str, content_hash: str, embedding: list[float], model: str = "all-MiniLM-L6-v2") -> None:
+        """Store embedding in cache. Evicts LRU entry if at capacity."""
+        key = (file_path, content_hash, model)
+        if key in self._cache:
+            # Refresh position
+            try:
+                self._order.remove(key)
+            except ValueError:
+                pass
+        elif len(self._cache) >= self._max_entries:
+            # Evict least recently used
+            lru_key = self._order.pop(0)
+            self._cache.pop(lru_key, None)
+        self._cache[key] = embedding
+        self._order.append(key)
+
+    def clear(self) -> None:
+        """Clear all cached embeddings."""
+        self._cache.clear()
+        self._order.clear()
+
+    @property
+    def size(self) -> int:
+        return len(self._cache)
+
+
+# Global cache instance (shared across calls for the same process lifetime)
+_EMBEDDING_CACHE = EmbeddingCache()
+
 # ── Semantic Affinity Adjacency ──────────────────────────────────────────────
 
 
@@ -1469,11 +1594,13 @@ def _build_semantic_adjacency(
     module_names: list[str],
     file_to_module: dict[Path, str] | None = None,
     semantic_weight: float = 0.3,
+    cache: EmbeddingCache | None = None,
 ) -> np.ndarray:
     """Build adjacency from semantic similarity between module documents.
 
     Generates text embeddings for each module's source content and adds edges
     weighted by cosine similarity. Only adds edges above 0.5 cosine similarity.
+    Uses EmbeddingCache to avoid re-encoding unchanged files.
 
     Gracefully degrades to zero matrix if sentence-transformers is unavailable.
 
@@ -1482,6 +1609,7 @@ def _build_semantic_adjacency(
         module_names: Sorted list of module names to analyze.
         file_to_module: Optional mapping of file paths to module names.
         semantic_weight: Multiplier for semantic edges (default: 0.3).
+        cache: Optional embedding cache to reuse across calls.
 
     Returns:
         N×N symmetric adjacency matrix, or zeros if model unavailable.
@@ -1501,44 +1629,79 @@ def _build_semantic_adjacency(
             mod_to_file[m] = f
 
     module_docs: list[str] = []
-    for mod in module_names:
+    content_hashes: list[str] = []
+    cached_embeddings: list[list[float] | None] = [None] * n
+    use_cache = cache is not None
+    cached_count = 0
+
+    for i, mod in enumerate(module_names):
         f = mod_to_file.get(mod)
         if not f:
             module_docs.append("")
+            content_hashes.append("")
             continue
         try:
-            text = f.read_text(encoding="utf-8", errors="replace")
-            module_docs.append(text[:2000])
+            text = f.read_text(encoding="utf-8", errors="replace")[:2000]
+            module_docs.append(text)
+            h = hashlib.sha256(text.encode("utf-8")).hexdigest()
+            content_hashes.append(h)
+
+            # Check cache
+            if use_cache:
+                cached = cache.get(str(f.resolve()), h)
+                if cached is not None:
+                    cached_embeddings[i] = cached
+                    cached_count += 1
         except OSError:
             module_docs.append("")
+            content_hashes.append("")
 
-    try:
-        from sentence_transformers import SentenceTransformer
-    except ImportError:
-        logger.info("sentence-transformers not installed, skipping semantic affinity")
-        return np.zeros((n, n))
+    # If all embeddings cached, skip model loading entirely
+    if use_cache and cached_count == n:
+        logger.info(f"All {n} embeddings loaded from cache")
+        embeddings_np = np.array([cached_embeddings[i] for i in range(n)], dtype=np.float64)
+    else:
+        try:
+            from sentence_transformers import SentenceTransformer
+        except ImportError:
+            logger.info("sentence-transformers not installed, skipping semantic affinity")
+            return np.zeros((n, n))
 
-    try:
-        model_name = "all-MiniLM-L6-v2"
-        logger.info(f"Loading embedding model for semantic affinity: {model_name}")
-        model = SentenceTransformer(model_name)
-        logger.info(f"Generating {len(module_docs)} module embeddings...")
-        embeddings = model.encode(module_docs, show_progress_bar=False, batch_size=32)
-        logger.info("Computing cosine similarity matrix...")
-    except Exception as e:
-        logger.warning(f"Failed to generate semantic embeddings ({e}), skipping")
-        return np.zeros((n, n))
+        try:
+            model_name = "all-MiniLM-L6-v2"
+            logger.info(f"Loading embedding model for semantic affinity: {model_name}")
+            model = SentenceTransformer(model_name)
+            logger.info(f"Generating {len(module_docs)} module embeddings...")
+            embeddings_np = model.encode(module_docs, show_progress_bar=False, batch_size=32)
+            logger.info("Computing cosine similarity matrix...")
+        except Exception as e:
+            logger.warning(f"Failed to generate semantic embeddings ({e}), skipping")
+            return np.zeros((n, n))
+
+        # Store in cache for future calls
+        if use_cache:
+            for i, mod in enumerate(module_names):
+                f = mod_to_file.get(mod)
+                if f and content_hashes[i]:
+                    try:
+                        cache.put(str(f.resolve()), content_hashes[i], embeddings_np[i].tolist())
+                    except Exception:
+                        pass
 
     adj = np.zeros((n, n), dtype=np.float64)
     SIMILARITY_THRESHOLD = 0.5
     for i in range(n):
         if not module_docs[i]:
             continue
+        vi = embeddings_np[i]
+        if isinstance(vi, (list, tuple)):
+            vi = np.array(vi, dtype=np.float64)
         for j in range(i + 1, n):
             if not module_docs[j]:
                 continue
-            vi = embeddings[i]
-            vj = embeddings[j]
+            vj = embeddings_np[j]
+            if isinstance(vj, (list, tuple)):
+                vj = np.array(vj, dtype=np.float64)
             dot = np.dot(vi, vj)
             norm_i = np.linalg.norm(vi)
             norm_j = np.linalg.norm(vj)
@@ -1823,6 +1986,7 @@ def suggest_modules(
     if semantic_weight > 0:
         sem_adj = _build_semantic_adjacency(
             project_root, module_names, semantic_weight=semantic_weight,
+            cache=_EMBEDDING_CACHE,
         )
         if sem_adj.shape == adj.shape:
             adj += sem_adj
@@ -1869,7 +2033,7 @@ def suggest_modules(
 
     # Step 4: Compute full-graph algebraic connectivity
     full_laplacian = _normalized_laplacian(connected_adj)
-    _, alg_conn = _fiedler_vector_power_iteration(full_laplacian)
+    _, alg_conn = _fiedler_vector_scalable(full_laplacian, len(connected_names))
 
     # Step 5: Determine max depth
     max_depth = math.ceil(math.log2(max_clusters)) if max_clusters else 10
