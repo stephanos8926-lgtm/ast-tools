@@ -1,10 +1,123 @@
 """ast_edit tool — surgical AST-based code modification using libcst."""
 
-from typing import Any
+from typing import Any, Sequence
 
 import libcst as cst
+from libcst.metadata import PositionProvider
 
 from ast_tools.utils.file_utils import validate_file_path
+
+
+def _extract_method_python(
+    tree: cst.Module,
+    start_line: int,
+    end_line: int,
+    new_method_name: str,
+    new_method_params: Sequence[str] | None = None,
+    indentation: str = "    ",
+) -> cst.Module:
+    """Extracts a block of code into a new Python method."""
+    if new_method_params is None:
+        new_method_params = []
+
+    # Use a visitor to collect statement positions via correct libcst metadata API
+    class PosCollector(cst.CSTTransformer):
+        METADATA_DEPENDENCIES = (cst.metadata.PositionProvider,)
+
+        def __init__(self):
+            self.positions: dict[int, tuple[int, int]] = {}
+
+        def on_leave(self, original_node, updated_node):
+            if isinstance(original_node, (cst.SimpleStatementLine, cst.BaseCompoundStatement)):
+                try:
+                    pos = self.get_metadata(cst.metadata.PositionProvider, original_node)
+                    self.positions[id(original_node)] = (pos.start.line, pos.end.line)
+                except Exception:
+                    pass
+            return updated_node
+
+    wrapper = cst.MetadataWrapper(tree)
+    collector = PosCollector()
+    wrapper.visit(collector)
+
+    extracted_statements: list[cst.BaseStatement] = []
+    new_body: list[cst.BaseStatement] = []
+
+    for stmt in wrapper.module.body:
+        sid = id(stmt)
+        if sid in collector.positions:
+            stmt_start, stmt_end = collector.positions[sid]
+            if stmt_start <= end_line and stmt_end >= start_line:
+                extracted_statements.append(stmt)
+            else:
+                new_body.append(stmt)
+        else:
+            new_body.append(stmt)
+
+    if not extracted_statements:
+        raise ValueError("No statements found in the specified range for extraction.")
+
+    # Calculate indent level — default to 1 (one level)
+    indent_level = 1
+
+    # Re-indent extracted statements for the new function body
+    re_indented_statements: list[cst.BaseStatement] = []
+    for stmt in extracted_statements:
+        re_indented_statements.append(stmt)
+
+    # Create new function definition
+    new_function_def = cst.FunctionDef(
+        name=cst.Name(new_method_name),
+        params=cst.Parameters(
+            params=[
+                cst.Param(name=cst.Name(p))
+                for p in new_method_params
+            ]
+        ),
+        body=cst.IndentedBlock(body=re_indented_statements),
+    )
+
+    # Create a call to the new function to replace the extracted block
+    call_args = [
+        cst.Arg(value=cst.Name(p))
+        for p in new_method_params
+    ]
+    new_call = cst.Expr(
+        value=cst.Call(
+            func=cst.Name(new_method_name),
+            args=call_args,
+        )
+    )
+
+    # Insert the new function and the call back into the module
+    call_insert_index = -1
+
+    # Find where to insert call: right before the first statement that was AFTER the extracted range
+    for i, stmt in enumerate(new_body):
+        sid = id(stmt)
+        if sid in collector.positions:
+            stmt_start, _ = collector.positions[sid]
+            if stmt_start > end_line:
+                call_insert_index = i
+                break
+
+    if call_insert_index >= 0:
+        new_body.insert(call_insert_index, new_call)
+    else:
+        new_body.append(new_call) # If no statements after, append to end of existing body
+
+    # Insert new function before the first class/func def, or at beginning
+    func_insert_index = -1
+    for i, stmt in enumerate(new_body):
+        if isinstance(stmt, (cst.ClassDef, cst.FunctionDef)):
+            func_insert_index = i
+            break
+    if func_insert_index >= 0:
+        new_body.insert(func_insert_index, new_function_def)
+    else:
+        new_body.insert(0, new_function_def)
+
+    return tree.with_changes(body=tuple(new_body))
 
 
 def _build_transformer(operation: str, params: dict):
@@ -164,6 +277,22 @@ def _tool_ast_edit(args: dict[str, Any]) -> dict[str, Any]:
             "error_code": "PARSE_ERROR",
             "tool": "ast_edit",
         }
+
+    # Handle extract_method specially — direct tree manipulation
+    if operation == "extract_method":
+        start_line = params.get("start_line", 1)
+        end_line = params.get("end_line", start_line)
+        new_method_name = params.get("new_method_name", "extracted")
+        new_method_params = params.get("new_method_params", [])
+        try:
+            new_tree = _extract_method_python(tree, start_line, end_line, new_method_name, new_method_params)
+        except ValueError as e:
+            return {"error": str(e), "error_code": "NO_EXTRACTABLE", "tool": "ast_edit"}
+        new_source = new_tree.code
+        if dry_run:
+            return {"file": str(file_path), "operation": operation, "modified_source": new_source}
+        file_path.write_text(new_source)
+        return {"file": str(file_path), "operation": operation, "status": "written"}
 
     transformer = _build_transformer(operation, params)
     if transformer is None:
