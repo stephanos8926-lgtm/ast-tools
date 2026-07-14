@@ -64,6 +64,17 @@ tree-sitter = [
     "tree-sitter-c-sharp>=0.23",
 ]
 
+spectral = [
+    "scipy>=1.9.0",
+    "tree-sitter>=0.23",
+    "tree-sitter-python>=0.23",
+    "tree-sitter-typescript>=0.23",
+    "tree-sitter-go>=0.25",
+    "tree-sitter-rust>=0.24",
+    "tree-sitter-c>=0.24",
+    "tree-sitter-cpp>=0.23",
+]
+
 [project.scripts]
 ast-tools-server = "ast_tools._server:main_sync"
 ast-tools-project = "ast_tools._project_tools:cli_main"

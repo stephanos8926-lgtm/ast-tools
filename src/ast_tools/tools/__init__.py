@@ -105,6 +105,7 @@ from .ts_edit import _tool_ts_edit
 from .watcher import _tool_reindex_path, _tool_watch_add, _tool_watch_status
 from .fix_mcp import _tool_fix_code, _tool_fix_check, _tool_rerank_results
 from .llm_suggest_fix import _tool_llm_suggest_fix, _tool_llm_check_available
+from .spectral import _tool_suggest_modules
 
 # Core AST tools with schemas
 register_tool(
@@ -1373,6 +1374,58 @@ register_tool(
                 },
             },
             "required": ["code", "diagnostic"],
+        },
+    },
+)
+
+register_tool(
+    "suggest_modules",
+    _tool_suggest_modules,
+    {
+        "description": "Suggest module decomposition via spectral clustering — partitions a project's dependency graph into cohesive module groups using the Fiedler vector of the graph Laplacian",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "project_root": {
+                    "type": "string",
+                    "description": "Root directory of the project to analyze",
+                    "default": ".",
+                },
+                "min_cluster_size": {
+                    "type": "integer",
+                    "description": "Minimum modules per cluster",
+                    "default": 2,
+                },
+                "max_clusters": {
+                    "type": "integer",
+                    "description": "Maximum number of clusters (auto-determined if None)",
+                },
+                "edge_weight": {
+                    "type": "number",
+                    "description": "Weight for dependency edges",
+                    "default": 1.0,
+                },
+                "use_call_graph": {
+                    "type": "boolean",
+                    "description": "Use call graph edges (requires indexed database)",
+                    "default": False,
+                },
+                "database_path": {
+                    "type": "string",
+                    "description": "Path to semantic search database (for call graph mode)",
+                },
+                "semantic_weight": {
+                    "type": "number",
+                    "description": "Weight for semantic similarity edges (0=off, recommended 0.2-0.5). Requires sentence-transformers.",
+                    "default": 0.0,
+                },
+                "cochange_weight": {
+                    "type": "number",
+                    "description": "Weight for git co-change edges (0=off, recommended 0.3-0.6). Requires git history.",
+                    "default": 0.0,
+                },
+            },
+            "required": [],
         },
     },
 )
