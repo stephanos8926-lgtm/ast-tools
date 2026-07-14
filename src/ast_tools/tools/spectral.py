@@ -127,7 +127,7 @@ from __future__ import annotations
 import hashlib
 import logging
 import math
-from collections import defaultdict, deque
+from collections import Counter, defaultdict, deque
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -216,6 +216,31 @@ class SpectralResult:
     isolated_modules: list[str] = field(default_factory=list)
 
 
+# ── Configuration Profiles (P1) ──────────────────────────────────────────────
+
+
+SPECTRAL_PROFILES: dict[str, dict[str, Any]] = {
+    "fast": {
+        "semantic_weight": 0.0,
+        "cochange_weight": 0.0,
+        "use_call_graph": False,
+        "max_commits": 100,
+    },
+    "balanced": {
+        "semantic_weight": 0.3,
+        "cochange_weight": 0.4,
+        "use_call_graph": True,
+        "max_commits": 1000,
+    },
+    "thorough": {
+        "semantic_weight": 0.5,
+        "cochange_weight": 0.6,
+        "use_call_graph": True,
+        "max_commits": 5000,
+    },
+}
+
+
 @dataclass
 class SpectralConfig:
     """Configuration for spectral clustering.
@@ -258,6 +283,15 @@ class SpectralConfig:
     semantic_weight: float = 0.0
     cochange_weight: float = 0.0
     max_commits: int = 1000
+    profile: str | None = None
+
+    def __post_init__(self) -> None:
+        """Apply profile presets if specified."""
+        if self.profile is not None and self.profile in SPECTRAL_PROFILES:
+            preset = SPECTRAL_PROFILES[self.profile]
+            for k, v in preset.items():
+                if hasattr(self, k):
+                    setattr(self, k, v)
 
     @classmethod
     def from_dict(cls, args: dict[str, Any]) -> SpectralConfig:
@@ -1851,35 +1885,91 @@ def _build_cochange_adjacency(
     return adj
 
 
-# ── Cluster Naming ──────────────────────────────────────────────────────────
+# ── Cluster Naming with TF-IDF Fallback (P1) ─────────────────────────────────
+
+# RE_IGNORE — imported lazily in _tokenize_source
 
 
-def _derive_cluster_name(modules: list[str]) -> str:
+def _tokenize_source(text: str) -> list[str]:
+    """Extract identifier-like tokens from source code."""
+    import re
+    tokens = re.findall(r'[a-zA-Z_][a-zA-Z0-9_]{2,}', text)
+    STOPWORDS = frozenset({
+        "import", "from", "def", "class", "return", "if", "else", "elif",
+        "for", "while", "try", "except", "finally", "with", "as", "pass",
+        "break", "continue", "and", "or", "not", "in", "is", "None", "True",
+        "False", "self", "cls", "super", "raise", "yield", "lambda",
+        "pub", "fn", "let", "mut", "use", "mod", "struct", "enum", "impl",
+        "const", "static", "var", "func", "type", "interface", "package",
+        "require", "export", "default", "extends", "implements",
+        "public", "private", "protected", "static", "void", "int", "str",
+        "bool", "float", "double", "char", "string", "null", "undefined",
+        "new", "this", "typeof", "instanceof", "void", "assert",
+        "namespace", "include", "define", "ifndef", "endif",
+        "async", "await", "of", "case", "switch", "default",
+        "sizeof", "typedef", "template", "typename",
+        "__init__", "__str__", "__repr__", "__call__",
+        "println", "print", "format", "assert_eq",
+        "Some", "None", "Ok", "Err",
+    })
+    return [t for t in tokens if t not in STOPWORDS and len(t) > 2]
+
+
+def _extract_tfidf_keywords(module_texts: list[str], top_n: int = 3) -> list[str]:
+    """Extract top-N TF-IDF keywords from a list of module source texts.
+
+    Pure Python implementation — no scikit-learn dependency.
+    """
+    if not module_texts:
+        return []
+
+    n_docs = len(module_texts)
+    doc_tokens: list[Counter] = []
+    doc_sets: list[set[str]] = []
+    for text in module_texts:
+        tokens = _tokenize_source(text)
+        doc_tokens.append(Counter(tokens))
+        doc_sets.append(set(tokens))
+
+    term_scores: dict[str, list[float]] = defaultdict(list)
+    for i in range(n_docs):
+        total = sum(doc_tokens[i].values())
+        if total == 0:
+            continue
+        for term, count in doc_tokens[i].items():
+            tf = count / total
+            df = sum(1 for ds in doc_sets if term in ds)
+            idf = math.log((n_docs + 1) / (df + 1)) + 1
+            term_scores[term].append(tf * idf)
+
+    if not term_scores:
+        return []
+
+    avg_scores = {
+        term: sum(scores) / len(scores)
+        for term, scores in term_scores.items()
+    }
+    sorted_terms = sorted(avg_scores, key=avg_scores.__getitem__, reverse=True)
+    return sorted_terms[:top_n]
+
+
+def _derive_cluster_name(
+    modules: list[str],
+    module_texts: dict[str, str] | None = None,
+) -> str:
     """Derive a descriptive name for a cluster from its module paths.
 
-    Finds the longest common prefix of dot-delimited module paths.
-    Examples:
-        [ast_tools.tools.spectral, ast_tools.tools.dependency] → "ast_tools.tools"
-        [ast_tools.tools, ast_tools.database]                 → "ast_tools"
-        [frontend.app, frontend.components.button]             → "frontend"
-        [helpers]                                              → "helpers"
-        []                                                     → ""
-
-    Args:
-        modules: Sorted list of dot-delimited module paths.
-
-    Returns:
-        Common prefix as a descriptive cluster name.
+    Hybrid strategy:
+    1. Longest common prefix (LCP) for nested packages.
+    2. TF-IDF keywords from source text for flat structures.
+    3. First module name as ultimate fallback.
     """
     if not modules:
         return ""
     if len(modules) == 1:
         return modules[0]
 
-    # Split each module into parts
     parts_list = [m.split(".") for m in modules]
-
-    # Find longest common prefix
     common = parts_list[0]
     for parts in parts_list[1:]:
         i = 0
@@ -1889,17 +1979,28 @@ def _derive_cluster_name(modules: list[str]) -> str:
         if not common:
             break
 
-    return ".".join(common) if common else modules[0]
+    lcp = ".".join(common) if common else ""
+
+    if len(lcp) > 3:
+        return lcp
+
+    if module_texts:
+        cluster_texts = [module_texts.get(m, "") for m in modules]
+        keywords = _extract_tfidf_keywords(cluster_texts, top_n=1)
+        if keywords:
+            return keywords[0]
+
+    return lcp or modules[0]
 
 
 def _assign_cluster_names(
     clusters: list[ClusterAssignment],
+    module_texts: dict[str, str] | None = None,
 ) -> None:
-    """Assign descriptive names to all clusters, disambiguating duplicates.
+    """Assign names to clusters, disambiguating duplicates."""
+    for c in clusters:
+        c.name = _derive_cluster_name(c.modules, module_texts)
 
-    Scans for clusters that share the same derived name and appends
-    a distinguishing suffix (e.g. "tools", "tools_2", "tools_3").
-    """
     name_counts: dict[str, int] = {}
     for c in clusters:
         name_counts[c.name] = name_counts.get(c.name, 0) + 1
@@ -1910,9 +2011,6 @@ def _assign_cluster_names(
             seen[c.name] = seen.get(c.name, 0) + 1
             if seen[c.name] > 1:
                 c.name = f"{c.name}_{seen[c.name]}"
-        elif c.name == "":
-            # Fallback for clusters with no common prefix
-            c.name = f"cluster_{c.cluster_id}"
 
 
 # ── Public API ────────────────────────────────────────────────────────────────
@@ -1969,6 +2067,18 @@ def suggest_modules(
         use_call_graph = config.use_call_graph
         semantic_weight = config.semantic_weight
         cochange_weight = config.cochange_weight
+
+    # Apply profile if set (overrides any individual params)
+    if config is not None and config.profile is not None:
+        if config.profile in SPECTRAL_PROFILES:
+            preset = SPECTRAL_PROFILES[config.profile]
+            for k, v in preset.items():
+                if k == "semantic_weight":
+                    semantic_weight = v
+                elif k == "cochange_weight":
+                    cochange_weight = v
+                elif k == "use_call_graph":
+                    use_call_graph = v
 
     if not project_root:
         raise ValueError("project_root is required")
@@ -2129,8 +2239,21 @@ def suggest_modules(
             ClusterAssignment(cluster_id=cid, modules=[mod], size=1, name=mod)
         )
 
+    # Collect module source texts for TF-IDF cluster naming
+    module_texts: dict[str, str] = {}
+    for mod_name in module_names:
+        # Find the file for this module
+        for f in _iter_source_files(project_path):
+            if _file_to_module_name(f, project_path) == mod_name:
+                try:
+                    text = f.read_text(encoding="utf-8", errors="replace")
+                    module_texts[mod_name] = text[:2000]
+                except OSError:
+                    pass
+                break
+
     # Assign descriptive cluster names and disambiguate duplicates
-    _assign_cluster_names(clusters_out)
+    _assign_cluster_names(clusters_out, module_texts)
 
     # Step 9: Compute overall quality
     if connected_names:
