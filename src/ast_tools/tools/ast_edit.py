@@ -15,10 +15,15 @@ def _extract_method_python(
     new_method_name: str,
     new_method_params: Sequence[str] | None = None,
     indentation: str = "    ",
+    is_method: bool = False,
 ) -> cst.Module:
     """Extracts a block of code into a new Python method."""
     if new_method_params is None:
         new_method_params = []
+
+    # If extracting as a method, ensure 'self' is the first parameter
+    if is_method and "self" not in new_method_params:
+        new_method_params = ["self"] + list(new_method_params)
 
     # Use a visitor to collect statement positions via correct libcst metadata API
     class PosCollector(cst.CSTTransformer):
@@ -81,10 +86,15 @@ def _extract_method_python(
     call_args = [
         cst.Arg(value=cst.Name(p))
         for p in new_method_params
+        if p != "self"  # Don't pass self explicitly in the call
     ]
+    if is_method:
+        call_func = cst.Attribute(value=cst.Name("self"), attr=cst.Name(new_method_name))
+    else:
+        call_func = cst.Name(new_method_name)
     new_call = cst.Expr(
         value=cst.Call(
-            func=cst.Name(new_method_name),
+            func=call_func,
             args=call_args,
         )
     )
@@ -236,6 +246,58 @@ def _build_transformer(operation: str, params: dict):
 
         return RemoveTransformer()
 
+    elif operation == "inline_variable":
+        var_name = params["variable_name"]
+        assign_line = params.get("assign_line")
+
+        class InlineVarTransformer(cst.CSTTransformer):
+            METADATA_DEPENDENCIES = (cst.metadata.PositionProvider,)
+
+            def __init__(self):
+                self._assigned_expr = None
+                self._assign_line = assign_line
+
+            def leave_Assign(self, orig, upd):
+                if self._assign_line is None:
+                    return upd
+                try:
+                    pos = self.get_metadata(cst.metadata.PositionProvider, orig)
+                    if pos.start.line == self._assign_line:
+                        for target in upd.targets:
+                            if isinstance(target.target, cst.Name) and target.target.value == var_name:
+                                self._assigned_expr = upd.value
+                                break
+                except Exception:
+                    pass
+                return upd
+
+            def leave_Name(self, orig, upd):
+                if self._assigned_expr is None or upd.value != var_name:
+                    return upd
+                # Don't replace names at the assignment line (LHS target or RHS expression)
+                try:
+                    pos = self.get_metadata(cst.metadata.PositionProvider, orig)
+                    if pos.start.line == self._assign_line:
+                        return upd
+                except Exception:
+                    pass
+                return cst.ensure_type(self._assigned_expr.deep_clone(), cst.BaseExpression)
+
+            def on_leave(self, orig, upd):
+                """Filter out the assignment statement from module body."""
+                # Let specific leave_* methods fire first via super
+                result = super().on_leave(orig, upd)
+                if self._assigned_expr is not None and isinstance(orig, cst.SimpleStatementLine):
+                    try:
+                        pos = self.get_metadata(cst.metadata.PositionProvider, orig)
+                        if pos.start.line == self._assign_line:
+                            return cst.RemovalSentinel.REMOVE
+                    except Exception:
+                        pass
+                return result
+
+        return InlineVarTransformer()
+
     return None
 
 
@@ -284,8 +346,12 @@ def _tool_ast_edit(args: dict[str, Any]) -> dict[str, Any]:
         end_line = params.get("end_line", start_line)
         new_method_name = params.get("new_method_name", "extracted")
         new_method_params = params.get("new_method_params", [])
+        is_method = params.get("is_method", False)
         try:
-            new_tree = _extract_method_python(tree, start_line, end_line, new_method_name, new_method_params)
+            new_tree = _extract_method_python(
+                tree, start_line, end_line, new_method_name, new_method_params,
+                is_method=is_method,
+            )
         except ValueError as e:
             return {"error": str(e), "error_code": "NO_EXTRACTABLE", "tool": "ast_edit"}
         new_source = new_tree.code
