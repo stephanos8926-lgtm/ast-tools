@@ -428,7 +428,8 @@ def _fiedler_vector_scalable(
     """Compute Fiedler vector using the best available method.
 
     Uses scipy.sparse.linalg.eigsh (Lanczos) for large graphs (n >= 500),
-    falls back to power iteration for smaller graphs or when scipy unavailable.
+    falls back to power iteration for moderate graphs, and Nyström
+    approximation for extreme-scale (n > 5000 without scipy).
 
     Args:
         laplacian: N×N Laplacian matrix (dense numpy).
@@ -440,30 +441,169 @@ def _fiedler_vector_scalable(
     Returns:
         Tuple of (fiedler_vector, fiedler_value).
     """
-    # Small graphs or no scipy → use existing power iteration
-    if n < 500 or not SCIPY_AVAILABLE:
+    # Small graphs → use existing power iteration (fast, no dependencies)
+    if n < 500:
         return _fiedler_vector_power_iteration(laplacian, n_iter, tol, rng_seed)
 
-    # Large graph with scipy → use sparse eigsh (Lanczos)
+    # Large graph with scipy → use sparse eigsh (Lanczos, O(n^1.5))
+    if SCIPY_AVAILABLE:
+        try:
+            sparse_L = csr_matrix(laplacian)
+            # Find 2 smallest eigenvalues (k=2 → λ₁ ≈ 0, λ₂ = Fiedler)
+            eigenvalues, eigenvectors = scipy_eigsh(
+                sparse_L, k=2, which="SM", tol=tol, maxiter=n_iter, v0=None,
+            )
+            # Sort ascending (eigsh doesn't guarantee order for SM)
+            idx = np.argsort(eigenvalues)
+            eigenvalues = eigenvalues[idx]
+            eigenvectors = eigenvectors[:, idx]
+
+            fiedler_vec = eigenvectors[:, 1]
+            fiedler_val = float(eigenvalues[1])
+            # Bound
+            fiedler_val = max(0.0, min(fiedler_val, float(n)))
+            return fiedler_vec, fiedler_val
+        except Exception as e:
+            logger.warning(f"scipy eigsh failed ({e}), falling back to power iteration")
+            return _fiedler_vector_power_iteration(laplacian, n_iter, tol, rng_seed)
+
+    # No scipy: use Nyström for extreme scale, power iteration for moderate
+    if n > 5000:
+        logger.info(f"Using Nyström approximation for large graph (n={n})")
+        return _fiedler_vector_nystrom(laplacian, n, rng_seed=rng_seed)
+
+    return _fiedler_vector_power_iteration(laplacian, n_iter, tol, rng_seed)
+
+
+# ── Nyström Approximation (P3) ─────────────────────────────────────────────────
+
+
+def _nystrom_sample_indices(n: int, sample_size: int, rng: np.random.Generator) -> np.ndarray:
+    """Select sample indices for Nyström approximation.
+
+    Args:
+        n: Total number of nodes.
+        sample_size: Number of nodes to sample.
+        rng: NumPy random generator.
+
+    Returns:
+        Array of sampled indices (sorted).
+    """
+    if sample_size >= n:
+        return np.arange(n, dtype=int)
+    return np.sort(rng.choice(n, size=sample_size, replace=False))
+
+
+def _fiedler_vector_nystrom(
+    adjacency: np.ndarray,
+    n: int,
+    sample_size: int | None = None,
+    rng_seed: int = 42,
+) -> tuple[np.ndarray, float]:
+    """Approximate the Fiedler vector using Nyström extension.
+
+    For very large graphs (n > 1000), avoids building the full dense N×N
+    Laplacian by operating on a sampled submatrix.
+
+    The Nyström method:
+    1. Sample m nodes from the graph (m ≈ sqrt(n) or 10% of n)
+    2. Build the m×m sub-Laplacian L₁₁ (dense)
+    3. Compute eigendecomposition of L₁₁ (O(m³))
+    4. Extrapolate eigenvectors to all n nodes using Nyström extension
+
+    Args:
+        adjacency: N×N dense adjacency matrix (or sampled version).
+        n: Total number of nodes.
+        sample_size: Number of nodes to sample (default: sqrt(n) + 100).
+        rng_seed: RNG seed for reproducibility.
+
+    Returns:
+        Tuple of (fiedler_vector, fiedler_value) — approximations.
+    """
+    if sample_size is None:
+        sample_size = min(n, int(np.sqrt(n)) + 100)
+        sample_size = max(sample_size, 50)  # minimum reasonable sample
+
+    rng = np.random.default_rng(rng_seed)
+    sample_idx = _nystrom_sample_indices(n, sample_size, rng)
+
+    if sample_size >= n:
+        # Fallback to exact method
+        L = _normalized_laplacian(adjacency)
+        return _fiedler_vector_power_iteration(L)
+
+    # Complementary indices
+    all_idx = np.arange(n, dtype=int)
+    compl_idx = np.setdiff1d(all_idx, sample_idx)
+
+    # Build sub-matrices
+    A = adjacency[np.ix_(sample_idx, sample_idx)]  # m×m
+    B = adjacency[np.ix_(sample_idx, compl_idx)]    # m×(n-m)
+
+    # Degree computation
+    deg_sample = np.sum(A, axis=1) + np.sum(B, axis=1)
+    deg_compl = np.sum(adjacency[np.ix_(compl_idx, compl_idx)], axis=1) + np.sum(B.T, axis=1)
+    deg_all = np.concatenate([deg_sample, deg_compl])
+    deg_all = np.maximum(deg_all, 1e-10)
+
+    # Normalized Laplacian sub-matrices
+    # L = I - D^{-1/2} A D^{-1/2}
+    d_sqrt = np.sqrt(deg_all)
+    d_inv_sqrt_sample = 1.0 / d_sqrt[sample_idx]
+    d_inv_sqrt_compl = 1.0 / d_sqrt[compl_idx]
+
+    # L₁₁ = I - D₁^{-1/2} A D₁^{-1/2}
+    L11 = np.eye(sample_size) - d_inv_sqrt_sample[:, None] * A * d_inv_sqrt_sample[None, :]
+
+    # L₁₂ = -D₁^{-1/2} B D₂^{-1/2}
+    L12 = -d_inv_sqrt_sample[:, None] * B * d_inv_sqrt_compl[None, :]
+
     try:
-        sparse_L = csr_matrix(laplacian)
-        # Find 2 smallest eigenvalues (k=2 → λ₁ ≈ 0, λ₂ = Fiedler)
-        eigenvalues, eigenvectors = scipy_eigsh(
-            sparse_L, k=2, which="SM", tol=tol, maxiter=n_iter, v0=None,
-        )
-        # Sort ascending (eigsh doesn't guarantee order for SM)
-        idx = np.argsort(eigenvalues)
-        eigenvalues = eigenvalues[idx]
-        eigenvectors = eigenvectors[:, idx]
+        # Eigendecomposition of small L₁₁ (m×m, O(m³))
+        eigenvalues, eigenvectors = np.linalg.eigh(L11)
 
-        fiedler_vec = eigenvectors[:, 1]
-        fiedler_val = float(eigenvalues[1])
-        # Bound
+        # Sort ascending
+        idx_sort = np.argsort(eigenvalues)
+        eigenvalues = eigenvalues[idx_sort]
+        eigenvectors = eigenvectors[:, idx_sort]
+
+        # Nyström extension: U₂ = L₂₁ U₁ Σ⁻¹
+        # U₁ = eigenvectors of L₁₁ (m×m)
+        # Σ = eigenvalues of L₁₁ (diagonal)
+        k = min(sample_size, n)  # keep all eigenvectors
+
+        U1 = eigenvectors[:, :k]
+        sigma_inv = np.diag(1.0 / np.maximum(eigenvalues[:k], 1e-10))
+
+        # Extend to all nodes
+        U2 = L12.T @ U1 @ sigma_inv  # (n-m)×k
+
+        # Full approximate eigenvectors
+        U_full = np.vstack([U1, U2])  # n×k
+
+        # Second eigenvector (Fiedler approximation)
+        fiedler_vec = U_full[:, 1]
+        fiedler_val = float(eigenvalues[1]) if len(eigenvalues) > 1 else 1.0
+
+        # Normalize
+        norm = np.linalg.norm(fiedler_vec)
+        if norm > 1e-10:
+            fiedler_vec = fiedler_vec / norm
+
+        # Reorder back to original node ordering
+        reorder = np.argsort(np.concatenate([sample_idx, compl_idx]))
+        fiedler_vec = fiedler_vec[reorder]
         fiedler_val = max(0.0, min(fiedler_val, float(n)))
+
         return fiedler_vec, fiedler_val
+
     except Exception as e:
-        logger.warning(f"scipy eigsh failed ({e}), falling back to power iteration")
-        return _fiedler_vector_power_iteration(laplacian, n_iter, tol, rng_seed)
+        logger.warning(f"Nyström approximation failed ({e}), falling back")
+        L = _normalized_laplacian(adjacency)
+        return _fiedler_vector_power_iteration(L)
+
+
+# ── Partition Quality ──────────────────────────────────────────────────────────
 
 
 def _partition_quality(
@@ -2567,6 +2707,222 @@ def suggest_modules(
         isolated_modules=isolated_modules,
         resolutions=resolutions,
     )
+
+
+# ── Visualization Exports (P3) ────────────────────────────────────────────────
+
+
+def export_tree_json(result: SpectralResult) -> dict[str, Any]:
+    """Serialize the spectral clustering result to a JSON-compatible dict.
+
+    Includes partition tree as nested dict, cluster assignments, and
+    multi-resolution levels.
+
+    Args:
+        result: SpectralResult from ``suggest_modules``.
+
+    Returns:
+        JSON-serializable dict.
+    """
+    def _node_to_dict(node: PartitionNode | None) -> dict[str, Any] | None:
+        if node is None:
+            return None
+        return {
+            "id": node.id,
+            "depth": node.depth,
+            "fiedler_value": round(node.fiedler_value, 6) if node.fiedler_value else None,
+            "score": round(node.score, 6) if node.score else None,
+            "children": {
+                "left": _node_to_dict(node.left),
+                "right": _node_to_dict(node.right),
+            },
+            "modules": sorted(node.modules) if node.modules else [],
+        }
+
+    return {
+        "num_modules": result.num_modules,
+        "num_clusters": result.num_clusters,
+        "quality": round(result.quality, 6),
+        "algebraic_connectivity": round(result.algebraic_connectivity, 6),
+        "isolated_modules": result.isolated_modules,
+        "clusters": [
+            {
+                "cluster_id": c.cluster_id,
+                "name": c.name,
+                "modules": c.modules,
+                "size": c.size,
+                "cohesion": round(c.cohesion, 6),
+                "coupling": round(c.coupling, 6),
+            }
+            for c in result.clusters
+        ],
+        "partition_tree": _node_to_dict(result.partition_tree),
+        "resolutions": [
+            {
+                "name": r.name,
+                "num_clusters": r.num_clusters,
+                "quality": round(r.quality, 6),
+                "clusters": [
+                    {
+                        "cluster_id": c.cluster_id,
+                        "name": c.name,
+                        "modules": c.modules,
+                        "size": c.size,
+                    }
+                    for c in r.clusters
+                ],
+            }
+            for r in result.resolutions
+        ],
+    }
+
+
+def export_dot(result: SpectralResult) -> str:
+    """Export partition tree as a GraphViz DOT graph.
+
+    Renders the recursive bipartition tree as a binary tree where each
+    node represents a partition with its module count and Fiedler value.
+    Leaf nodes show the final cluster membership.
+
+    Args:
+        result: SpectralResult from ``suggest_modules``.
+
+    Returns:
+        DOT format string for visualization with graphviz/dot.
+    """
+    if result.partition_tree is None:
+        return "graph G { }"
+
+    lines = [
+        "digraph G {",
+        '  rankdir=TB;',
+        '  splines=ortho;',
+        '  node [shape=box, style=rounded, fontname="monospace"];',
+    ]
+
+    def _add_node_dot(node: PartitionNode | None) -> str | None:
+        if node is None:
+            return None
+
+        node_id = f"n{node.id.replace('.', '_')}"
+        label = f"{len(node.modules)} modules"
+        if node.fiedler_value is not None:
+            label += f"\\nλ₂={node.fiedler_value:.4f}"
+        if node.score is not None:
+            label += f"\\nQ={node.score:.4f}"
+        lines.append(f'  {node_id} [label="{label}"];')
+
+        if node.left:
+            left_id = _add_node_dot(node.left)
+            if left_id:
+                lines.append(f"  {node_id} -> {left_id};")
+        if node.right:
+            right_id = _add_node_dot(node.right)
+            if right_id:
+                lines.append(f"  {node_id} -> {right_id};")
+
+        return node_id
+
+    if result.partition_tree:
+        _add_node_dot(result.partition_tree)
+
+    lines.append("}")
+    return "\n".join(lines)
+
+
+def export_dendrogram_svg(result: SpectralResult, max_width: int = 800, max_height: int = 600) -> str:
+    """Generate an SVG dendrogram of the partition tree.
+
+    Renders the recursive bipartition tree as a dendrogram where each
+    split is shown with the Fiedler value. Leaf nodes show cluster names.
+
+    Args:
+        result: SpectralResult from ``suggest_modules``.
+        max_width: SVG width in pixels.
+        max_height: SVG height in pixels.
+
+    Returns:
+        SVG string.
+    """
+    if result.partition_tree is None:
+        return "<svg><text>No partition tree</text></svg>"
+
+    # Count leaves for layout
+    leaves = _collect_leaves(result.partition_tree)
+    n_leaves = len(leaves)
+
+    if n_leaves == 0:
+        return "<svg><text>No leaf clusters</text></svg>"
+
+    # Layout: horizontal dendrogram
+    leaf_width = max(20, max_width // max(n_leaves, 1))
+    level_height = max(40, max_height // (max(1, result.partition_tree.depth + 2)))
+
+    svg_parts = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{max_width}" height="{max_height}" '
+        f'viewBox="0 0 {max_width} {max_height}">',
+        '<style>text { font-family: monospace; font-size: 11px; }</style>',
+        f'<rect width="{max_width}" height="{max_height}" fill="#fafafa"/>',
+    ]
+
+    # Map leaf -> x position
+    leaf_x: dict[frozenset[str], int] = {}
+    for i, leaf in enumerate(sorted(leaves, key=lambda n: n.id)):
+        leaf_x[leaf.modules] = leaf_width // 2 + i * leaf_width
+
+    def _draw_node(node: PartitionNode, y: int) -> int:
+        """Draw a node and return its x position."""
+        if node.left is None and node.right is None:
+            x = leaf_x.get(node.modules, leaf_width // 2)
+            # Leaf label
+            name = next(
+                (c.name for c in result.clusters if frozenset(c.modules) == node.modules),
+                f"cluster_{node.id}",
+            )
+            svg_parts.append(
+                f'<text x="{x}" y="{y + 15}" text-anchor="middle" '
+                f'font-size="10">{name}</text>'
+            )
+            return x
+
+        children_x: list[int] = []
+        if node.left:
+            cx = _draw_node(node.left, y + level_height)
+            children_x.append(cx)
+        if node.right:
+            cx = _draw_node(node.right, y + level_height)
+            children_x.append(cx)
+
+        x = int(sum(children_x) / len(children_x))
+
+        # Draw vertical line from parent
+        svg_parts.append(f'<line x1="{x}" y1="{y}" x2="{x}" y2="{y + 15}" stroke="#333" stroke-width="1.5"/>')
+
+        # Draw horizontal lines to children
+        for cx in children_x:
+            svg_parts.append(
+                f'<line x1="{cx}" y1="{y + level_height}" x2="{cx}" y2="{y + 20}" '
+                f'stroke="#333" stroke-width="1.5"/>'
+            )
+        if len(children_x) == 2:
+            svg_parts.append(
+                f'<line x1="{children_x[0]}" y1="{y + 20}" x2="{children_x[1]}" '
+                f'y2="{y + 20}" stroke="#333" stroke-width="1.5"/>'
+            )
+
+        # Node label (Fiedler value)
+        if node.fiedler_value is not None:
+            svg_parts.append(
+                f'<text x="{x}" y="{y - 5}" text-anchor="middle" '
+                f'font-size="9" fill="#666">λ={node.fiedler_value:.2f}</text>'
+            )
+
+        return x
+
+    _draw_node(result.partition_tree, 30)
+
+    svg_parts.append("</svg>")
+    return "\n".join(svg_parts)
 
 
 # ── MCP Tool Interface ────────────────────────────────────────────────────────

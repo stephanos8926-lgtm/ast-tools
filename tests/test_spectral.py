@@ -688,3 +688,119 @@ class TestEdgeCases:
         (project / "helper.py").write_text("x = 1\n")
         result = suggest_modules(str(project))
         assert result.num_modules >= 1
+
+
+# ── Nyström Approximation Tests (P3) ─────────────────────────────────────────
+
+
+class TestNystrom:
+    """Nyström approximation for large-scale graphs."""
+
+    def test_nystrom_sample_indices(self) -> None:
+        from ast_tools.tools.spectral import _nystrom_sample_indices
+        rng = np.random.default_rng(42)
+        idx = _nystrom_sample_indices(100, 10, rng)
+        assert len(idx) == 10
+        assert len(set(idx)) == 10
+        assert all(idx[i] < idx[i + 1] for i in range(len(idx) - 1))
+
+    def test_nystrom_full_sample(self) -> None:
+        from ast_tools.tools.spectral import _nystrom_sample_indices
+        rng = np.random.default_rng(42)
+        idx = _nystrom_sample_indices(50, 100, rng)
+        assert len(idx) == 50
+        assert np.array_equal(idx, np.arange(50))
+
+    def test_nystrom_small_graph(self) -> None:
+        from ast_tools.tools.spectral import _fiedler_vector_nystrom
+        adj = np.array([[0, 1, 0], [1, 0, 1], [0, 1, 0]], dtype=np.float64)
+        v, val = _fiedler_vector_nystrom(adj, 3, sample_size=2)
+        assert val >= 0.0
+        assert val <= 3.0
+        assert len(v) == 3
+
+    def test_nystrom_two_clusters(self) -> None:
+        import numpy as np
+        from ast_tools.tools.spectral import _fiedler_vector_nystrom
+        adj = np.array([
+            [0, 1, 1, 0, 0],
+            [1, 0, 1, 0, 0],
+            [1, 1, 0, 0, 0],
+            [0, 0, 0, 0, 1],
+            [0, 0, 0, 1, 0],
+        ], dtype=np.float64)
+        v, val = _fiedler_vector_nystrom(adj, 5, sample_size=3)
+        assert len(v) == 5
+        assert val >= 0.0
+
+
+# ── Visualization Export Tests (P3) ──────────────────────────────────────────
+
+
+class TestExports:
+    """Visualization export functions."""
+
+    def test_export_json_basic(self, tmp_path: Path) -> None:
+        from ast_tools.tools.spectral import export_tree_json
+        project = tmp_path / "json_test"
+        project.mkdir()
+        (project / "main.py").write_text("import helper\n")
+        (project / "helper.py").write_text("x = 1\n")
+        result = suggest_modules(str(project))
+        js = export_tree_json(result)
+        assert "num_modules" in js
+        assert "num_clusters" in js
+        assert "clusters" in js
+        assert "quality" in js
+
+    def test_export_json_clusters(self, tmp_path: Path) -> None:
+        from ast_tools.tools.spectral import export_tree_json
+        project = tmp_path / "json_clusters"
+        project.mkdir()
+        (project / "a.py").write_text("import b\n")
+        (project / "b.py").write_text("import a\n")
+        result = suggest_modules(str(project))
+        js = export_tree_json(result)
+        for cluster in js["clusters"]:
+            assert "cluster_id" in cluster
+            assert "name" in cluster
+            assert "modules" in cluster
+            assert "size" in cluster
+
+    def test_export_dot_basic(self, tmp_path: Path) -> None:
+        from ast_tools.tools.spectral import export_dot
+        project = tmp_path / "dot_test"
+        project.mkdir()
+        (project / "main.py").write_text("import helper\n")
+        (project / "helper.py").write_text("x = 1\n")
+        result = suggest_modules(str(project))
+        dot = export_dot(result)
+        assert dot.startswith("digraph G {")
+        assert dot.endswith("}")
+
+    def test_export_dot_empty_tree(self) -> None:
+        from ast_tools.tools.spectral import export_dot, SpectralResult
+        result = SpectralResult(
+            clusters=[], partition_tree=None, num_modules=0, num_clusters=0,
+        )
+        dot = export_dot(result)
+        assert "graph G {" in dot or "digraph G {" in dot
+
+    def test_export_svg_basic(self, tmp_path: Path) -> None:
+        from ast_tools.tools.spectral import export_dendrogram_svg
+        project = tmp_path / "svg_test"
+        project.mkdir()
+        (project / "main.py").write_text("import helper\n")
+        (project / "helper.py").write_text("x = 1\n")
+        result = suggest_modules(str(project))
+        svg = export_dendrogram_svg(result)
+        assert "<svg" in svg
+        assert "</svg>" in svg
+
+    def test_export_svg_no_tree(self) -> None:
+        from ast_tools.tools.spectral import export_dendrogram_svg, SpectralResult
+        result = SpectralResult(
+            clusters=[], partition_tree=None, num_modules=0, num_clusters=0,
+        )
+        svg = export_dendrogram_svg(result)
+        assert "No partition tree" in svg
