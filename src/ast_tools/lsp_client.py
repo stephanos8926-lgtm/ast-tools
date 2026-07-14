@@ -459,6 +459,14 @@ class LSPClient:
             return result.get("items", [])
         return result
 
+    def resolve_completion_item(self, item: dict) -> dict | None:
+        """Resolve a completion item for full documentation.
+
+        Sends completionItem/resolve request to get enriched item details.
+        """
+        result = self._send_request("completionItem/resolve", item)
+        return result
+
     def apply_text_edits(self, file: str, edits: list[dict]) -> dict:
         """Apply LSP text edits to a file on disk.
 

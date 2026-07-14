@@ -411,13 +411,14 @@ def lsp_workspace_symbols(query: str) -> dict:
         release_lsp_client(client)
 
 
-def lsp_completion(file: str, line: int, col: int) -> dict:
+def lsp_completion(file: str, line: int, col: int, filter_text: str | None = None) -> dict:
     """Get code completions at a position.
 
     Args:
         file: File path.
         line: Line number (1-indexed).
         col: Column (0-indexed).
+        filter_text: Optional prefix to filter completions client-side.
 
     Returns:
         Dict with completion items (label, kind, detail, insertText).
@@ -432,9 +433,16 @@ def lsp_completion(file: str, line: int, col: int) -> dict:
                 "detail": item.get("detail", ""),
                 "documentation": item.get("documentation", ""),
                 "insert_text": item.get("insertText", item.get("label", "")),
+                "insert_text_format": item.get("insertTextFormat", 1),
             }
             for item in result
         ]
+        if filter_text:
+            fl = filter_text.lower()
+            items = [
+                it for it in items
+                if fl in it["label"].lower() or fl in it["detail"].lower()
+            ]
         return {"count": len(items), "items": items}
     except Exception as e:
         return {"error": str(e)}
@@ -442,7 +450,40 @@ def lsp_completion(file: str, line: int, col: int) -> dict:
         release_lsp_client(client)
 
 
-# ─── Utility Tools ────────────────────────────────────────────────────────
+def lsp_completion_detail(file: str, label: str) -> dict:
+    """Resolve full documentation for a specific completion item.
+
+    Args:
+        file: File path.
+        label: The label of the completion item to resolve.
+
+    Returns:
+        Dict with enriched completion item details (documentation, detail).
+    """
+    client = get_lsp_client(file)
+    try:
+        # First get completions, find the matching item, then resolve it
+        result = client.completion(file, 1, 0)
+        target = None
+        for item in result:
+            if item.get("label") == label:
+                target = item
+                break
+        if target is None:
+            return {"found": False, "message": f"No completion item with label '{label}'"}
+        resolved = client.resolve_completion_item(target)
+        if resolved:
+            return {
+                "found": True,
+                "label": resolved.get("label", label),
+                "detail": resolved.get("detail", ""),
+                "documentation": resolved.get("documentation", ""),
+            }
+        return {"found": False, "message": "Resolve returned no data"}
+    except Exception as e:
+        return {"error": str(e)}
+    finally:
+        release_lsp_client(client)
 
 
 def lsp_available_languages() -> dict:
@@ -639,8 +680,21 @@ def register_lsp_tools(registry: dict):
                 "file": {"type": "string", "description": "File path"},
                 "line": {"type": "integer", "description": "Line number (1-indexed)"},
                 "col": {"type": "integer", "description": "Column (0-indexed)"},
+                "filter_text": {"type": "string", "description": "Optional prefix filter"},
             },
             "required": ["file", "line", "col"],
+        },
+    }
+    registry["lsp_completion_detail"] = {
+        "description": "Resolve full documentation for a completion item",
+        "handler": lsp_completion_detail,
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "file": {"type": "string", "description": "File path"},
+                "label": {"type": "string", "description": "Completion item label"},
+            },
+            "required": ["file", "label"],
         },
     }
 
