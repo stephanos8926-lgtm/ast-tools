@@ -17,7 +17,7 @@ Added: exists in new but not in old
 from dataclasses import dataclass, field
 from enum import Enum
 
-from ast_tools.types import Symbol
+from ast_tools.symbols import Symbol
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Data Structures

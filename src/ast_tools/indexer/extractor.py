@@ -16,7 +16,7 @@ import ast
 import logging
 
 from ..embeddings import generate_embedding
-from ..types import Edge, EdgeKind, Symbol, SymbolKind
+from ..symbols import Edge, EdgeKind, Symbol, SymbolKind
 
 logger = logging.getLogger(__name__)
 
@@ -411,7 +411,7 @@ def extract_symbols_ts(source: str, lang: str) -> list[Symbol]:
     Returns:
         List of Symbol objects with .lang field set
     """
-    from ..ts_backend import ts_parse
+    from ast_tools.ts_backend import ts_parse
 
     tree = ts_parse(source, lang)
     if tree is None:
@@ -496,7 +496,7 @@ class TreeSitterSymbolExtractor:
         Returns:
             List of Symbol objects
         """
-        from ..ts_backend import _ensure_tree_sitter
+        from ast_tools.ts_backend import _ensure_tree_sitter
 
         ts = _ensure_tree_sitter()
         symbols = []

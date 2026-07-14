@@ -1,0 +1,17 @@
+{
+  "current_model_id": "rw-inference-bge",
+  "current_model_config": {
+    "provider": "remote",
+    "model_name": "bge-small-en-v1.5",
+    "dimension": 384,
+    "local_cache_dir": null,
+    "remote_config": null,
+    "api_base_url": null,
+    "description": "Remote BGE via RW_InferenceEngine",
+    "max_batch_size": 32,
+    "unique_id": "b9e2558d46e357a1"
+  },
+  "last_switched": 1784000310.2297745,
+  "index_built_for_model": "e4bfdf7bd2307dc0",
+  "pending_reindex": true
+}

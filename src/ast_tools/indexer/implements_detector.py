@@ -14,7 +14,7 @@ Usage:
 import ast
 import logging
 
-from ast_tools.types import Edge, EdgeKind
+from ast_tools.symbols import Edge, EdgeKind
 
 logger = logging.getLogger(__name__)
 

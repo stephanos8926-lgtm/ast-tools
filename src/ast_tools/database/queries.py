@@ -12,7 +12,7 @@ from datetime import datetime
 from typing import Any
 
 from ..embeddings import generate_embedding, insert_embedding, insert_embeddings_batch
-from ..types import Symbol, SymbolKind
+from ..symbols import Symbol, SymbolKind
 from .connection import retry_on_locked
 
 logger = logging.getLogger(__name__)

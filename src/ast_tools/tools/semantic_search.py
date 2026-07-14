@@ -10,7 +10,12 @@ from typing import Any
 
 from ..context import ContextInjector, MarkdownFormatter
 from ..database.connection import get_connection
-from ..embeddings import generate_embedding, search_similar
+from ..embeddings import (
+    generate_embedding,
+    search_similar,
+    get_embedding_provider,
+)
+from ..embeddings.provider import provider_rerank
 from ..reranker import RerankerConfig, apply_reranking  # New Import
 from ..utils.rrf import rrf_fuse
 
@@ -228,23 +233,59 @@ def hybrid_search_with_context(
     # Apply cross-encoder reranking if enabled
     reranker_confidence = 0.0
     if use_reranker and results:
-        reranker_config = RerankerConfig(
-            use_reranker=True,
-            max_candidates=min(len(results), 60),
-            top_k=min(k, 15),
-        )
-        # Convert to candidate format for reranker
-        candidates = [
-            {
-                "content": f"{r.get('name', '')} {r.get('signature', '')} {r.get('docstring', '')}",
-                **r,
-            }
-            for r in results
-        ]
-        reranked_candidates, reranker_confidence = apply_reranking(
-            query, candidates, reranker_config
-        )
-        results = reranked_candidates[:k]
+        try:
+            # Use remote inference if available, fallback to local reranker
+            reranker_confidence = 0.0
+            import asyncio
+            from ..embeddings import provider_rerank
+            
+            try:
+                loop = asyncio.get_event_loop()
+            except RuntimeError:
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+            
+            # Convert to candidate format for reranker
+            candidates = [
+                {
+                    "content": f"{r.get('name', '')} {r.get('signature', '')} {r.get('docstring', '')}",
+                    **r,
+                }
+                for r in results
+            ]
+            reranker_scores = loop.run_until_complete(
+                provider_rerank(query, candidates, top_k=min(k, 15))
+            )
+            
+            # Apply reranker scores
+            for i, r in enumerate(results):
+                if i < len(reranker_scores):
+                    r["rerank_score"] = reranker_scores[i]
+            
+            # Sort by rerank_score descending
+            results.sort(key=lambda x: x.get("rerank_score", 0), reverse=True)
+            results = results[:k]
+            
+        except Exception as e:
+            logger.warning(f"Remote reranking failed, falling back to local: {e}")
+            # Fallback to local reranker
+            reranker_config = RerankerConfig(
+                use_reranker=True,
+                max_candidates=min(len(results), 60),
+                top_k=min(k, 15),
+            )
+            # Convert to candidate format for reranker
+            candidates = [
+                {
+                    "content": f"{r.get('name', '')} {r.get('signature', '')} {r.get('docstring', '')}",
+                    **r,
+                }
+                for r in results
+            ]
+            reranked_candidates, reranker_confidence = apply_reranking(
+                query, candidates, reranker_config
+            )
+            results = reranked_candidates[:k]
 
     if not context_enabled or not results:
         return results, {

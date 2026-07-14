@@ -106,6 +106,14 @@ from .watcher import _tool_reindex_path, _tool_watch_add, _tool_watch_status
 from .fix_mcp import _tool_fix_code, _tool_fix_check, _tool_rerank_results
 from .llm_suggest_fix import _tool_llm_suggest_fix, _tool_llm_check_available
 from .spectral import _tool_suggest_modules
+from .switch_model import (
+    _tool_switch_embedding_model,
+    _tool_list_embedding_models,
+    _tool_get_embedding_model_info,
+    switch_embedding_model_tool,
+    list_embedding_models_tool,
+    get_embedding_model_info_tool,
+)
 
 # Core AST tools with schemas
 register_tool(
@@ -1428,4 +1436,22 @@ register_tool(
             "required": [],
         },
     },
+)
+
+register_tool(
+    "switch_embedding_model",
+    _tool_switch_embedding_model,
+    switch_embedding_model_tool,
+)
+
+register_tool(
+    "list_embedding_models",
+    _tool_list_embedding_models,
+    list_embedding_models_tool,
+)
+
+register_tool(
+    "get_embedding_model_info",
+    _tool_get_embedding_model_info,
+    get_embedding_model_info_tool,
 )

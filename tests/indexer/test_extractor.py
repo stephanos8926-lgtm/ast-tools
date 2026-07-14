@@ -8,7 +8,7 @@ from ast_tools.indexer.extractor import (
     SymbolExtractor,
     extract_symbols,
 )
-from ast_tools.types import EdgeKind, SymbolKind
+from ast_tools.symbols import EdgeKind, SymbolKind
 
 pytestmark = pytest.mark.integration
 

@@ -13,7 +13,7 @@ from ast_tools.indexer.diff import (
     is_symbol_modified,
     is_symbol_unchanged,
 )
-from ast_tools.types import Symbol, SymbolKind
+from ast_tools.symbols import Symbol, SymbolKind
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Fixtures

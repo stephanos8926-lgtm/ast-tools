@@ -16,7 +16,7 @@ from ast_tools.database import (
 )
 from ast_tools.database.connection import database_context
 from ast_tools.indexer.diff import compute_symbol_diff
-from ast_tools.types import Symbol, SymbolKind
+from ast_tools.symbols import Symbol, SymbolKind
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Fixtures

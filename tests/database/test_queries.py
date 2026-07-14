@@ -24,7 +24,7 @@ from ast_tools.database.queries import (
     update_file_cache_entry_hash,
 )
 from ast_tools.database.schema import init_schema
-from ast_tools.types import EdgeKind, FileCacheEntry, ResolutionState, Symbol, SymbolKind
+from ast_tools.symbols import EdgeKind, FileCacheEntry, ResolutionState, Symbol, SymbolKind
 
 pytestmark = pytest.mark.integration
 

@@ -430,7 +430,7 @@ class TestTreeSitterBackend:
 
     def test_ts_backend_module_exists(self):
         """ts_backend.py should exist and be importable."""
-        from ts_backend import ts_grep, ts_parse, ts_read
+        from ast_tools.ts_backend import ts_grep, ts_parse, ts_read
 
         assert callable(ts_parse)
         assert callable(ts_grep)
@@ -438,7 +438,7 @@ class TestTreeSitterBackend:
 
     def test_ts_parse_python(self):
         """ts_parse should parse Python source."""
-        from ts_backend import ts_parse
+        from ast_tools.ts_backend import ts_parse
 
         source = "def hello():\n    pass\n"
         tree = ts_parse(source, lang="python")
@@ -447,7 +447,7 @@ class TestTreeSitterBackend:
 
     def test_ts_grep_function_definition(self):
         """ts_grep should find function definitions."""
-        from ts_backend import ts_grep, ts_parse
+        from ast_tools.ts_backend import ts_grep, ts_parse
 
         source = "def hello():\n    pass\ndef world():\n    pass\n"
         tree = ts_parse(source, lang="python")
@@ -456,7 +456,7 @@ class TestTreeSitterBackend:
 
     def test_ts_grep_class_definition(self):
         """ts_grep should find class definitions."""
-        from ts_backend import ts_grep, ts_parse
+        from ast_tools.ts_backend import ts_grep, ts_parse
 
         source = "class Foo:\n    pass\n"
         tree = ts_parse(source, lang="python")
@@ -465,7 +465,7 @@ class TestTreeSitterBackend:
 
     def test_ts_read_extracts_functions(self):
         """ts_read should extract function names from parse tree."""
-        from ts_backend import ts_parse, ts_read
+        from ast_tools.ts_backend import ts_parse, ts_read
 
         source = "def hello():\n    pass\nclass Foo:\n    def bar(self):\n        pass\n"
         tree = ts_parse(source, lang="python")
@@ -476,7 +476,7 @@ class TestTreeSitterBackend:
 
     def test_ts_read_extracts_classes(self):
         """ts_read should extract class names from parse tree."""
-        from ts_backend import ts_parse, ts_read
+        from ast_tools.ts_backend import ts_parse, ts_read
 
         source = "class Foo:\n    pass\nclass Bar:\n    pass\n"
         tree = ts_parse(source, lang="python")

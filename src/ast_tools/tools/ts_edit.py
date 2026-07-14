@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 def ts_parse_ts(source: str, lang: str = "typescript"):
     """Parse TypeScript/TSX source code."""
-    from ts_backend import ts_parse
+    from ast_tools.ts_backend import ts_parse
 
     return ts_parse(source, lang)
 
@@ -160,7 +160,7 @@ def _replace_node(source: str, query: str, replacement: str, lang: str) -> dict:
     """Replace a node matched by tree-sitter query."""
     try:
         ts_lib = __import__("tree_sitter")
-        from ts_backend import _get_language
+        from ast_tools.ts_backend import _get_language
 
         language = _get_language(lang)
     except Exception as e:

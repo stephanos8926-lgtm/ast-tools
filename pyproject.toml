@@ -55,6 +55,14 @@ dev = [
     "tree-sitter-c>=0.24",
     "tree-sitter-cpp>=0.23",
     "tree-sitter-c-sharp>=0.23",
+    "tree-sitter-typescript>=0.23",
+    "tree-sitter-go>=0.25",
+    "tree-sitter-rust>=0.24",
+    "aiohttp>=3.14",
+    "lsprotocol>=2025.0",
+    "websocket-client>=1.9",
+    "pynvim>=0.6",
+    "pygls>=2.1",
 ]
 tree-sitter = [
     "tree-sitter>=0.23",

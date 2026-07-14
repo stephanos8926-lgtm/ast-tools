@@ -1105,7 +1105,7 @@ def _build_module_adjacency(
     # Pre-load ts_backend if needed
     _ts_available = False
     try:
-        import ts_backend
+        from ast_tools import ts_backend
         _ts_available = True
     except ImportError:
         pass

@@ -16,7 +16,7 @@ from ast_tools.database.queries import (
     search_symbols,
 )
 from ast_tools.database.schema import init_schema
-from ast_tools.types import Symbol, SymbolKind
+from ast_tools.symbols import Symbol, SymbolKind
 
 pytestmark = pytest.mark.integration
 
