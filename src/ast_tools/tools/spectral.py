@@ -686,23 +686,37 @@ def _resolve_go_import(
 ) -> set[Path]:
     """Resolve a Go import path to internal file(s).
 
-    Go imports are full paths like "github.com/user/project/pkg".
-    We check if the import path's last segment(s) match an internal directory.
+    Go imports are full paths like "github.com/user/project/pkg" or
+    "module_name/internal/pkg". We check if the import path's last segment(s)
+    match an internal directory. We also try stripping the first component
+    (module name) to handle module paths like "testproj/internal/db".
     """
     candidates: set[Path] = set()
 
-    # Try matching as a relative filesystem path
+    # Try 1: Direct match (for non-module or same-module imports)
     candidate = project_path / import_path
     if candidate.exists() and candidate.is_dir():
-        # Check for Go files in that directory
         for g in sorted(candidate.glob("*.go")):
             try:
                 candidates.add(g.relative_to(project_path))
             except ValueError:
                 candidates.add(g)
 
-    # Try just the last path component
+    # Try 2: Strip first path component (module name) - handles "module_name/internal/pkg"
     parts = import_path.split("/")
+    if len(parts) > 1:
+        subpath = "/".join(parts[1:])  # Skip module name
+        candidate = project_path / subpath
+        if candidate.exists() and candidate.is_dir():
+            for g in sorted(candidate.glob("*.go")):
+                try:
+                    candidates.add(g.relative_to(project_path))
+                except ValueError:
+                    candidates.add(g)
+            if candidates:
+                return candidates
+
+    # Try 3: Just the last path component
     for i in range(len(parts), 0, -1):
         subpath = "/".join(parts[-i:])
         candidate = project_path / subpath
