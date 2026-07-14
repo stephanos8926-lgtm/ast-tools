@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 class RemoteInferenceConfig:
     """Configuration for remote inference client."""
 
-    base_url: str = "http://localhost:3000"
+    base_url: str = "http://100.126.48.57:8300"
     timeout_seconds: float = 30.0
     max_retries: int = 3
     retry_delay_seconds: float = 1.0
@@ -38,7 +38,7 @@ class RemoteInferenceConfig:
     def from_env(cls) -> "RemoteInferenceConfig":
         """Create config from environment variables."""
         return cls(
-            base_url=os.environ.get("AST_TOOLS_REMOTE_INFERENCE_URL", "http://localhost:3000"),
+            base_url=os.environ.get("AST_TOOLS_REMOTE_INFERENCE_URL", "http://100.126.48.57:8300"),
             timeout_seconds=float(os.environ.get("AST_TOOLS_REMOTE_TIMEOUT", "30")),
             max_retries=int(os.environ.get("AST_TOOLS_REMOTE_MAX_RETRIES", "3")),
             retry_delay_seconds=float(os.environ.get("AST_TOOLS_REMOTE_RETRY_DELAY", "1.0")),
