@@ -470,7 +470,7 @@ class TestMCPServer:
         assert "list_symbols" in tool_names
         assert "index_status" in tool_names
         assert "refresh_index" in tool_names
-        assert len(tools) == 76, f"Expected 76 MCP tools, got {len(tools)}"
+        assert len(tools) == 77, f"Expected 77 MCP tools, got {len(tools)}"
 
     def test_call_tool_ast_grep(self, test_project):
         """Call ast_grep through the MCP server interface."""

@@ -1463,7 +1463,44 @@ register_tool(
 
 import sqlite3
 import json
+import time
+from datetime import datetime, timezone
 from ._tool_categories import TOOL_CATEGORIES
+
+# ─── Usage Tracking ─────────────────────────────────────────────────────────
+# Tracks per-tool call count, error count, and latency for smart ranking.
+TOOL_USAGE: dict[str, dict] = {}
+# Structure: {name: {"calls": int, "errors": int, "total_latency_ms": float, "last_called": float}}
+
+
+def _record_usage(name: str, success: bool, latency_ms: float = 0.0) -> None:
+    """Record a tool call for usage analytics."""
+    if name not in TOOL_USAGE:
+        TOOL_USAGE[name] = {"calls": 0, "errors": 0, "total_latency_ms": 0.0, "last_called": 0.0}
+    stats = TOOL_USAGE[name]
+    stats["calls"] += 1
+    stats["total_latency_ms"] += latency_ms
+    stats["last_called"] = time.time()
+    if not success:
+        stats["errors"] += 1
+
+
+def _usage_boost(name: str) -> float:
+    """Calculate ranking boost from usage stats. Range: -0.05 to +0.20."""
+    stats = TOOL_USAGE.get(name)
+    if not stats or stats["calls"] == 0:
+        return -0.02  # slight penalty for never-used tools
+    success_rate = (stats["calls"] - stats["errors"]) / max(stats["calls"], 1)
+    boost = success_rate * 0.15  # up to +0.15 for high success
+    if stats["calls"] > 50:
+        boost += 0.03  # frequently used
+    if stats["calls"] > 200:
+        boost += 0.02  # heavily used
+    # Penalty for stale tools (not called in 7 days)
+    days_since_last = (time.time() - stats["last_called"]) / 86400
+    if days_since_last > 7:
+        boost -= 0.05
+    return round(boost, 3)
 
 
 def _tool_search_tools(args: dict[str, Any]) -> dict[str, Any]:
@@ -1515,11 +1552,14 @@ def _tool_search_tools(args: dict[str, Any]) -> dict[str, Any]:
         for row in cursor:
             name, rank = row
             desc = TOOL_SCHEMAS.get(name, {}).get("description", "")
+            boost = _usage_boost(name)
             results.append({
                 "name": name,
                 "description": desc,
                 "category": TOOL_CATEGORIES.get(name, "OTHER"),
                 "score": round(float(rank), 4),
+                "boost": boost,
+                "boosted_score": round(float(rank) * (1 + boost), 4),
             })
 
         # If AND query returned nothing, try OR
@@ -1532,11 +1572,14 @@ def _tool_search_tools(args: dict[str, Any]) -> dict[str, Any]:
             for row in cursor:
                 name, rank = row
                 desc = TOOL_SCHEMAS.get(name, {}).get("description", "")
+                boost = _usage_boost(name)
                 results.append({
                     "name": name,
                     "description": desc,
                     "category": TOOL_CATEGORIES.get(name, "OTHER"),
                     "score": round(float(rank), 4),
+                    "boost": boost,
+                    "boosted_score": round(float(rank) * (1 + boost), 4),
                 })
     except sqlite3.OperationalError as e:
         return {"error": f"FTS5 query error: {e}", "results": []}
@@ -1560,14 +1603,19 @@ def _tool_call_tool(args: dict[str, Any]) -> dict[str, Any]:
         return {"error": f"Unknown tool: {name}.{hint}", "error_code": "UNKNOWN_TOOL"}
 
     # Prevent recursive dispatch
-    if name in ("search_tools", "call_tool", "tool_info"):
+    if name in ("search_tools", "call_tool", "tool_info", "tool_usage_stats"):
         return {"error": f"Cannot dispatch to meta-tool: {name}", "error_code": "INVALID_INPUT"}
 
     handler = TOOL_REGISTRY[name]
+    start = time.time()
     try:
         result = handler(tool_args)
+        latency_ms = (time.time() - start) * 1000
+        _record_usage(name, success=True, latency_ms=latency_ms)
         return result
     except Exception as e:
+        latency_ms = (time.time() - start) * 1000
+        _record_usage(name, success=False, latency_ms=latency_ms)
         return {"error": f"Tool '{name}' failed: {e}", "error_code": "TOOL_ERROR"}
 
 
@@ -1585,12 +1633,24 @@ def _tool_tool_info(args: dict[str, Any]) -> dict[str, Any]:
         return {"error": f"Unknown tool: {name}.{hint}", "error_code": "UNKNOWN_TOOL"}
 
     schema = TOOL_SCHEMAS.get(name, {})
+    usage = TOOL_USAGE.get(name, {})
+    stats = {}
+    if usage:
+        avg_latency = usage.get("total_latency_ms", 0) / max(usage.get("calls", 1), 1)
+        stats = {
+            "calls": usage.get("calls", 0),
+            "errors": usage.get("errors", 0),
+            "success_rate": round((usage["calls"] - usage["errors"]) / max(usage["calls"], 1), 4),
+            "avg_latency_ms": round(avg_latency, 1),
+            "boost": _usage_boost(name),
+        }
     return {
         "name": name,
         "description": schema.get("description", ""),
         "category": TOOL_CATEGORIES.get(name, "OTHER"),
         "inputSchema": schema.get("inputSchema", {"type": "object", "properties": {}}),
         "parameters": list(schema.get("inputSchema", {}).get("properties", {}).keys()),
+        "usage": stats,
     }
 
 
@@ -1634,3 +1694,54 @@ tool_info_tool = {
 register_tool("search_tools", _tool_search_tools, search_tools_tool)
 register_tool("call_tool", _tool_call_tool, call_tool_tool)
 register_tool("tool_info", _tool_tool_info, tool_info_tool)
+
+
+def _tool_tool_usage_stats(args: dict[str, Any]) -> dict[str, Any]:
+    """Get usage analytics for all tools."""
+    top = min(args.get("top", 20), 50)
+    sort_by = args.get("sort_by", "calls")  # calls, errors, success_rate, boost
+
+    stats = []
+    for name in sorted(TOOL_REGISTRY.keys()):
+        if name in ("search_tools", "call_tool", "tool_info", "tool_usage_stats"):
+            continue
+        usage = TOOL_USAGE.get(name, {})
+        calls = usage.get("calls", 0)
+        errors = usage.get("errors", 0)
+        avg_latency = usage.get("total_latency_ms", 0) / max(calls, 1)
+        success_rate = (calls - errors) / max(calls, 1) if calls else 0
+        stats.append({
+            "name": name,
+            "category": TOOL_CATEGORIES.get(name, "OTHER"),
+            "calls": calls,
+            "errors": errors,
+            "success_rate": round(success_rate, 3),
+            "avg_latency_ms": round(avg_latency, 1),
+            "boost": _usage_boost(name),
+        })
+
+    if sort_by == "calls":
+        stats.sort(key=lambda x: x["calls"], reverse=True)
+    elif sort_by == "errors":
+        stats.sort(key=lambda x: x["errors"], reverse=True)
+    elif sort_by == "success_rate":
+        stats.sort(key=lambda x: x["success_rate"])
+    elif sort_by == "boost":
+        stats.sort(key=lambda x: x["boost"])
+
+    return {"count": len(stats), "results": stats[:top]}
+
+
+tool_usage_stats_tool = {
+    "description": "Get usage analytics for all tools. Shows call counts, error rates, latency, and ranking boosts.",
+    "inputSchema": {
+        "type": "object",
+        "properties": {
+            "top": {"type": "integer", "default": 20, "description": "Number of results (max 50)"},
+            "sort_by": {"type": "string", "enum": ["calls", "errors", "success_rate", "boost"], "default": "calls", "description": "Sort field"},
+        },
+        "required": [],
+    },
+}
+
+register_tool("tool_usage_stats", _tool_tool_usage_stats, tool_usage_stats_tool)
