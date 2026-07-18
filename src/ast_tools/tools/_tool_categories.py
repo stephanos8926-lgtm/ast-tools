@@ -90,6 +90,12 @@ TOOL_CATEGORIES: dict[str, str] = {
     "lsp_available_languages": "LSP",
     "lsp_check_server": "LSP",
 
+    # ── CONTEXT (Hermes integration tools) ────────────────────────────────
+    "context_inject": "META",
+    "context_status": "META",
+    "token_status": "META",
+    "validate_usage": "META",
+
     # ── FIX ────────────────────────────────────────────────────────────────
     "fix_code": "FIX",
     "fix_check": "FIX",
@@ -105,4 +111,5 @@ TOOL_CATEGORIES: dict[str, str] = {
     "search_tools": "META",
     "call_tool": "META",
     "tool_info": "META",
+    "tool_usage_stats": "META",
 }
