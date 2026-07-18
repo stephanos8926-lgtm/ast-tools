@@ -99,8 +99,17 @@ server.notification_handlers[InitializedNotification] = _handle_initialized
 
 @server.list_tools()
 async def handle_list_tools() -> list[Tool]:
-    """Return list of all available tools."""
-    return list_tools()
+    """Return list of all available tools.
+
+    In discovery mode (AST_TOOLS_DISCOVERY_MODE=true), only meta-tools
+    (search_tools, call_tool, tool_info, tool_usage_stats) are exposed.
+    Individual tools are still callable through call_tool.
+    """
+    all_tools = list_tools()
+    if os.environ.get("AST_TOOLS_DISCOVERY_MODE", "").lower() in ("true", "1", "yes"):
+        meta_tools = {"search_tools", "call_tool", "tool_info", "tool_usage_stats"}
+        return [t for t in all_tools if t.name in meta_tools]
+    return all_tools
 
 
 @server.list_resources()
