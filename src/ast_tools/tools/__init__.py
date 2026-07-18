@@ -1455,3 +1455,182 @@ register_tool(
     _tool_get_embedding_model_info,
     get_embedding_model_info_tool,
 )
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# Tool Discovery System — search_tools, call_tool, tool_info
+# ══════════════════════════════════════════════════════════════════════════
+
+import sqlite3
+import json
+from ._tool_categories import TOOL_CATEGORIES
+
+
+def _tool_search_tools(args: dict[str, Any]) -> dict[str, Any]:
+    """Search available tools by natural language query.
+
+    Returns ranked tool names, descriptions, and categories.
+    """
+    query = args.get("query", "")
+    category = args.get("category")
+    top_k = min(args.get("top_k", 5), 10)
+
+    if not query:
+        # Return all tools, optionally filtered by category
+        results = []
+        for name in sorted(TOOL_REGISTRY.keys()):
+            if name in ("search_tools", "call_tool", "tool_info"):
+                continue
+            if category and TOOL_CATEGORIES.get(name) != category:
+                continue
+            schema = TOOL_SCHEMAS.get(name, {})
+            results.append({
+                "name": name,
+                "description": schema.get("description", ""),
+                "category": TOOL_CATEGORIES.get(name, "OTHER"),
+            })
+        results = results[:top_k]
+        return {"count": len(results), "results": results}
+
+    # Build ephemeral FTS5 index
+    conn = sqlite3.connect(":memory:")
+    conn.execute("CREATE VIRTUAL TABLE tool_idx USING fts5(name, description, category)")
+    for name in sorted(TOOL_REGISTRY.keys()):
+        if name in ("search_tools", "call_tool", "tool_info"):
+            continue
+        schema = TOOL_SCHEMAS.get(name, {})
+        desc = schema.get("description", "")
+        cat = TOOL_CATEGORIES.get(name, "OTHER")
+        if category and cat != category:
+            continue
+        conn.execute("INSERT INTO tool_idx VALUES (?, ?, ?)", (name, desc, cat))
+
+    # Query with BM25 ranking — try AND first, fall back to OR
+    try:
+        cursor = conn.execute(
+            "SELECT name, rank FROM tool_idx WHERE tool_idx MATCH ? ORDER BY rank LIMIT ?",
+            (query, top_k),
+        )
+        results = []
+        for row in cursor:
+            name, rank = row
+            desc = TOOL_SCHEMAS.get(name, {}).get("description", "")
+            results.append({
+                "name": name,
+                "description": desc,
+                "category": TOOL_CATEGORIES.get(name, "OTHER"),
+                "score": round(float(rank), 4),
+            })
+
+        # If AND query returned nothing, try OR
+        if not results:
+            or_query = " OR ".join(query.split())
+            cursor = conn.execute(
+                "SELECT name, rank FROM tool_idx WHERE tool_idx MATCH ? ORDER BY rank LIMIT ?",
+                (or_query, top_k),
+            )
+            for row in cursor:
+                name, rank = row
+                desc = TOOL_SCHEMAS.get(name, {}).get("description", "")
+                results.append({
+                    "name": name,
+                    "description": desc,
+                    "category": TOOL_CATEGORIES.get(name, "OTHER"),
+                    "score": round(float(rank), 4),
+                })
+    except sqlite3.OperationalError as e:
+        return {"error": f"FTS5 query error: {e}", "results": []}
+    finally:
+        conn.close()
+
+    return {"count": len(results), "results": results}
+
+
+def _tool_call_tool(args: dict[str, Any]) -> dict[str, Any]:
+    """Execute a discovered tool by name."""
+    name = args.get("name", "")
+    tool_args = args.get("arguments", {})
+
+    if not name:
+        return {"error": "Missing required parameter: name", "error_code": "INVALID_INPUT"}
+
+    if name not in TOOL_REGISTRY:
+        suggestion = find_similar_tool(name, max_results=1)
+        hint = f" Did you mean '{suggestion[0]}'?" if suggestion else ""
+        return {"error": f"Unknown tool: {name}.{hint}", "error_code": "UNKNOWN_TOOL"}
+
+    # Prevent recursive dispatch
+    if name in ("search_tools", "call_tool", "tool_info"):
+        return {"error": f"Cannot dispatch to meta-tool: {name}", "error_code": "INVALID_INPUT"}
+
+    handler = TOOL_REGISTRY[name]
+    try:
+        result = handler(tool_args)
+        return result
+    except Exception as e:
+        return {"error": f"Tool '{name}' failed: {e}", "error_code": "TOOL_ERROR"}
+
+
+def _tool_tool_info(args: dict[str, Any]) -> dict[str, Any]:
+    """Get full details about a specific tool."""
+    name = args.get("name", "")
+    include_examples = args.get("include_examples", False)
+
+    if not name:
+        return {"error": "Missing required parameter: name", "error_code": "INVALID_INPUT"}
+
+    if name not in TOOL_REGISTRY:
+        suggestion = find_similar_tool(name, max_results=1)
+        hint = f" Did you mean '{suggestion[0]}'?" if suggestion else ""
+        return {"error": f"Unknown tool: {name}.{hint}", "error_code": "UNKNOWN_TOOL"}
+
+    schema = TOOL_SCHEMAS.get(name, {})
+    return {
+        "name": name,
+        "description": schema.get("description", ""),
+        "category": TOOL_CATEGORIES.get(name, "OTHER"),
+        "inputSchema": schema.get("inputSchema", {"type": "object", "properties": {}}),
+        "parameters": list(schema.get("inputSchema", {}).get("properties", {}).keys()),
+    }
+
+
+search_tools_tool = {
+    "description": "Search available tools by natural language query. Returns ranked tool names, descriptions, and categories. Use this to discover which tool to call for a given task.",
+    "inputSchema": {
+        "type": "object",
+        "properties": {
+            "query": {"type": "string", "description": "Natural language query describing what you want to do"},
+            "category": {"type": "string", "enum": ["CODE_ANALYSIS", "SEARCH", "REFACTOR", "INDEX", "LSP", "GRAPH", "FIX", "CURATOR", "WATCH", "META"], "description": "Optional category filter"},
+            "top_k": {"type": "integer", "default": 5, "description": "Number of results (max 10)"},
+        },
+        "required": ["query"],
+    },
+}
+
+call_tool_tool = {
+    "description": "Execute a discovered tool by name. First use search_tools to find the right tool, then call it here with the required arguments.",
+    "inputSchema": {
+        "type": "object",
+        "properties": {
+            "name": {"type": "string", "description": "The exact tool name from search_tools results"},
+            "arguments": {"type": "object", "description": "Tool-specific arguments per the tool's schema"},
+        },
+        "required": ["name", "arguments"],
+    },
+}
+
+tool_info_tool = {
+    "description": "Get full details about a specific tool including its schema and category.",
+    "inputSchema": {
+        "type": "object",
+        "properties": {
+            "name": {"type": "string", "description": "The exact tool name"},
+            "include_examples": {"type": "boolean", "default": False, "description": "Include usage examples"},
+        },
+        "required": ["name"],
+    },
+}
+
+register_tool("search_tools", _tool_search_tools, search_tools_tool)
+register_tool("call_tool", _tool_call_tool, call_tool_tool)
+register_tool("tool_info", _tool_tool_info, tool_info_tool)
