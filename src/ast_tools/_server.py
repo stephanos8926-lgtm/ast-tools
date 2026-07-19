@@ -193,14 +193,21 @@ async def _idle_monitor(timeout_seconds: int, get_last_activity) -> None:
 
 
 async def _run_daemon_mode(config: dict[str, Any]) -> None:
-    """Run server in daemon mode — persistent stdio with watchdog.
+    """Run server in daemon mode — persistent Unix socket with watchdog.
 
-    Supports monitoring multiple project paths via `daemon.watch_paths`
-    config (or AST_TOOLS_DAEMON_WATCH_PATHS env var as comma-separated list).
-    Falls back to CWD if no paths specified.
+    Listens on a Unix domain socket (NDJSON framing), accepts MCP JSON-RPC
+    from multiple clients simultaneously, and maintains the index hot across
+    sessions. systemd manages the process lifecycle.
     """
-    socket_path = config["daemon"]["socket_path"]
+    import asyncio as asyncio_mod
+    import socket
+
+    socket_path = os.path.expanduser(config["daemon"]["socket_path"])
     logger.info("Starting daemon mode (socket: %s)", socket_path)
+
+    # Clean up stale socket from previous run
+    if os.path.exists(socket_path):
+        os.unlink(socket_path)
 
     # Start watchdog for multiple paths
     from ast_tools.watchdog.monitor import CodebaseWatcher
@@ -208,25 +215,118 @@ async def _run_daemon_mode(config: dict[str, Any]) -> None:
     watcher = CodebaseWatcher(config)
     if watcher.enabled:
         try:
-            # Use configured watch_paths or fall back to CWD
             watch_paths = config["daemon"].get("watch_paths", [])
             if not watch_paths:
                 watch_paths = [os.getcwd()]
                 logger.info("No watch_paths configured, using CWD: %s", watch_paths[0])
-            
             for path in watch_paths:
                 msg = watcher.start(path)
                 logger.info("Watchdog: %s", msg)
         except Exception as e:
             logger.warning("Watchdog failed to start: %s", e)
 
-    # Run stdio server persistently (systemd manages lifecycle)
-    async with stdio_server() as (read_stream, write_stream):
-        await server.run(
-            read_stream,
-            write_stream,
-            server.create_initialization_options(),
-        )
+    # Run server on Unix domain socket (NDJSON line protocol)
+    server_sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    server_sock.bind(socket_path)
+    server_sock.listen(5)
+    os.chmod(socket_path, 0o600)  # Owner-only access
+
+    logger.info("Daemon listening on %s", socket_path)
+
+    async def handle_client(reader, writer):
+        """Handle one MCP client connection over the socket."""
+        try:
+            while True:
+                line = await reader.readline()
+                if not line:
+                    break
+                request = json.loads(line.decode("utf-8").strip())
+                method = request.get("method")
+                req_id = request.get("id")
+
+                if method == "initialize":
+                    response = {
+                        "jsonrpc": "2.0",
+                        "id": req_id,
+                        "result": {
+                            "protocolVersion": "2024-11-05",
+                            "capabilities": {"tools": {"listChanged": False}},
+                            "serverInfo": {"name": "rw-ast-tools", "version": "0.2.0"},
+                        },
+                    }
+                elif method == "tools/list":
+                    from ast_tools.tools import list_tools
+
+                    tools = list_tools()
+                    response = {
+                        "jsonrpc": "2.0",
+                        "id": req_id,
+                        "result": {
+                            "tools": [
+                                {
+                                    "name": t.name,
+                                    "description": t.description,
+                                    "inputSchema": getattr(t, "inputSchema", {}),
+                                }
+                                for t in tools
+                            ]
+                        },
+                    }
+                elif method == "tools/call":
+                    from ast_tools.tools import get_tool_handler
+
+                    params = request.get("params", {})
+                    name = params.get("name")
+                    arguments = params.get("arguments", {})
+                    handler = get_tool_handler(name)
+                    result = await anyio.to_thread.run_sync(handler, arguments)
+                    response = {
+                        "jsonrpc": "2.0",
+                        "id": req_id,
+                        "result": {
+                            "content": [{"type": "text", "text": json.dumps(result)}]
+                        },
+                    }
+                else:
+                    response = {
+                        "jsonrpc": "2.0",
+                        "id": req_id,
+                        "error": {
+                            "code": -32601,
+                            "message": f"Method not found: {method}",
+                        },
+                    }
+
+                writer.write((json.dumps(response) + "\n").encode("utf-8"))
+                await writer.drain()
+        except Exception as e:
+            if not isinstance(e, (ConnectionResetError, BrokenPipeError)):
+                logger.error("Client handler error: %s", e)
+        finally:
+            try:
+                writer.close()
+                await writer.wait_closed()
+            except Exception:
+                pass
+
+    async def accept_loop():
+        """Accept client connections on the Unix socket."""
+        loop = asyncio_mod.get_event_loop()
+        server_sock.setblocking(False)
+        while True:
+            client_sock, _ = await loop.sock_accept(server_sock)
+            reader, writer = await asyncio_mod.open_unix_connection(sock=client_sock)
+            # Handle in background — concurrent clients
+            asyncio_mod.create_task(
+                handle_client(reader, writer)
+            )
+
+    try:
+        await accept_loop()
+    finally:
+        server_sock.close()
+        if os.path.exists(socket_path):
+            os.unlink(socket_path)
 
 
 # ─── Mode: Remote (Streamable HTTP) ──────────────────────────────────────
