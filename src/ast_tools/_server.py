@@ -209,7 +209,15 @@ async def _run_daemon_mode(config: dict[str, Any]) -> None:
     if os.path.exists(socket_path):
         os.unlink(socket_path)
 
-    # Start watchdog for multiple paths
+    # Create Unix socket FIRST (before watchdog — watchdog scan can block)
+    server_sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    server_sock.bind(socket_path)
+    server_sock.listen(5)
+    os.chmod(socket_path, 0o600)  # Owner-only access
+
+    logger.info("Daemon listening on %s", socket_path)
+
+    # Start watchdog AFTER socket is live (watchdog scan can block)
     from ast_tools.watchdog.monitor import CodebaseWatcher
 
     watcher = CodebaseWatcher(config)
@@ -224,14 +232,6 @@ async def _run_daemon_mode(config: dict[str, Any]) -> None:
                 logger.info("Watchdog: %s", msg)
         except Exception as e:
             logger.warning("Watchdog failed to start: %s", e)
-
-    # Run server on Unix domain socket (NDJSON line protocol)
-    server_sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-    server_sock.bind(socket_path)
-    server_sock.listen(5)
-    os.chmod(socket_path, 0o600)  # Owner-only access
-
-    logger.info("Daemon listening on %s", socket_path)
 
     async def handle_client(reader, writer):
         """Handle one MCP client connection over the socket."""
