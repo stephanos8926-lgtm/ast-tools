@@ -148,13 +148,13 @@ class MCPConfig:
 @dataclass
 class LLMConfig:
     """Configuration for LLM-assisted fix refinement."""
-    
+
     enabled: bool = True
     prefer_local: bool = True
     timeout_seconds: int = 30
     max_tokens: int = 2048
     temperature: float = 0.1
-    
+
     # Local LLM backends
     local_backend: str = "llama.cpp"  # "llama.cpp", "ollama", "vllm"
     local_model_path: str = "~/.cache/ast-tools/models/qwen2.5-coder-7b-instruct-q4_k_m.gguf"
@@ -162,13 +162,13 @@ class LLMConfig:
     local_n_ctx: int = 8192
     local_host: str = "127.0.0.1"
     local_port: int = 11434  # Ollama default
-    
+
     # Remote LLM providers
     remote_provider: str = "openrouter"  # "openrouter", "anthropic", "gemini"
     remote_model: str = "qwen/qwen-2.5-coder-32b-instruct"
     remote_fallback_chain: list[str] = field(default_factory=lambda: ["openrouter", "anthropic", "gemini"])
     remote_api_key_env: str = "OPENROUTER_API_KEY"
-    
+
     # Prompt template
     prompt_template: str = (
         "You are an expert code fixer. Given a diagnostic and code context, "
@@ -185,7 +185,7 @@ class LLMConfig:
 @dataclass
 class DiagnosticConfig:
     """Configuration for diagnostic publishing."""
-    
+
     enabled: bool = True
     debounce_ms: int = 300
     max_diagnostics_per_file: int = 100
@@ -197,7 +197,7 @@ class DiagnosticConfig:
 @dataclass
 class FormattingConfig:
     """Configuration for document formatting."""
-    
+
     enabled: bool = True
     range_formatting: bool = True
     format_on_save: bool = True
@@ -207,14 +207,14 @@ class FormattingConfig:
 @dataclass
 class LSPConfig:
     """Configuration for LSP server."""
-    
+
     enabled: bool = True
     host: str = "127.0.0.1"
     port: int = 8767
     code_action_kind: list[str] = field(
         default_factory=lambda: ["quickfix", "refactor", "source"]
     )
-    
+
     # New fields
     diagnostics: DiagnosticConfig = field(default_factory=DiagnosticConfig)
     formatting: FormattingConfig = field(default_factory=FormattingConfig)

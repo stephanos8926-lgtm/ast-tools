@@ -213,7 +213,7 @@ ast summary --format markdown
 
 **Output (concise):**
 ```
-ast-tools v0.1.2-dev — 82 source files, 55 tools, 51 test files
+|ast-tools v0.2.0 — 134 source files, 77 tools, 71 test files
 ```
 
 **Output (markdown):**
@@ -690,6 +690,6 @@ symbol = find_symbol_definition(conn, "AuthService")
 
 ---
 
-**Last Updated:** 2026-06-29  
-**Version:** CLI v1.0 (11 commands)  
+**Last updated:** 2026-07-31  
+**Version:** v0.2.0 (77 tools, 943 tests)
 **Maintained by:** Steven Page + Lucien (RapidWebs Lead Digital Architect)

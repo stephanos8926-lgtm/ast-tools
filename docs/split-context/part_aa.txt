@@ -1,0 +1,877 @@
+
+################################################################################
+AST-TOOLS DOCUMENTATION REVIEW CONTEXT
+################################################################################
+
+
+################################################################################
+DOCUMENT INDEX
+################################################################################
+
+docs/adrs/0009-reranker-integration.md
+docs/adrs/0010-architecture-governance-engine.md
+docs/adrs/0011-pypi-name-decision-and-publishing-pipeline.md
+docs/adrs/0012-server-architecture-multi-mode.md
+docs/archive/AUDIT_MEDIUM_20260628.md
+docs/archive/DISTRIBUTION_PACKAGE.md
+docs/archive/EASY_WINS_REVERSE_AUDIT.md
+docs/archive/EASY_WINS_SPEC_20260628.md
+docs/archive/embedding-relevance-scoring.md
+docs/archive/god-tier-enhancements.md
+docs/archive/KANBAN_SECURITY_PHASE0.md
+docs/archive/NEW_TOOL_CONCEPTS.md
+docs/archive/PHASE10A_PLAN.md
+docs/archive/PHASE10A_SPEC.md
+docs/archive/PHASE10A_SYNTHESIS.md
+docs/archive/PHASE9_COMPLETE.md
+docs/archive/PHASE_SUMMARIES.md
+docs/archive/PLUGIN_ENHANCEMENTS_SPEC.md
+docs/archive/PLUGIN_IMPLEMENTATION_PLAN.md
+docs/archive/PROJECT_STATE.md
+docs/archive/REFACTORING_JOURNAL.md
+docs/archive/RESEARCH_HERMES_MCP_CONTEXT_INJECTION.md
+docs/archive/SECURITY_AUDIT_CLI_DEADCODE_20260628.md
+docs/archive/semantic-database-research.md
+docs/archive/SESSION_STATE.md
+docs/archive/STATE.md
+docs/archive/WORKFLOW_SUMMARY_2026-07-24.md
+docs/AST_TOOLS_QUICKSTART.md
+docs/AUDITS_HISTORY.md
+docs/CLI_REFERENCE.md
+docs/COMPETITIVE_FEATURE_PARITY_20260628.md
+docs/DOCUMENTATION_INDEX.md
+docs/editors/neovim.md
+docs/editors/other.md
+docs/editors/vscode.md
+docs/editors/zed.md
+docs/ENHANCED_DEAD_CODE.md
+docs/MARKET_ANALYSIS_2026.md
+docs/plans/category-deployment-launch.md
+docs/plans/F4_VSCODE_EXT_PLAN.md
+docs/plans/F5_LLM_FIX_IMPL_PLAN.md
+docs/PLANS_HISTORY.md
+docs/plans/incremental-indexing-v1.md
+docs/plans/phase10-1-transitive-imports.md
+docs/plans/phase10a-repo-skeleton-file-related.md
+docs/plans/phase5-test-completion.md
+docs/plans/phase6f-true-6factor-rrf.md
+docs/plans/phase7-performance-optimization.md
+docs/plans/phase7-remaining.md
+docs/plans/phase-a-ship.md
+docs/plans/phase-a-tool-discovery.md
+docs/plans/phase-b-governance.md
+docs/plans/phase-c-killer-features.md
+docs/plans/phase-d-hermes-integration.md
+docs/plans/phase-d-launch.md
+docs/plans/server-architecture-redesign-v1.md
+docs/plans/testing-infrastructure-improvements.md
+docs/portal/index.html
+docs/portal/README.md
+docs/REPORTS_HISTORY.md
+docs/reports/incremental-indexing-synthesis.md
+docs/reports/phase6f-implementation-report.md
+docs/reports/server-architecture-completion.md
+docs/research/multilspy-integration-analysis.md
+docs/roadmap/adrs/ADR-001-config-directory-structure.md
+docs/roadmap/adrs/ADR-002-data-lifecycle-architecture.md
+docs/roadmap/adrs/ADR-003-monetization-boundary.md
+docs/roadmap/adrs/ADR-004-knowledge-graph-format.md
+docs/roadmap/adrs/ADR-005-multi-platform-agent-strategy.md
+docs/roadmap/adrs/ADR-006-backup-encryption-architecture.md
+docs/roadmap/phases/drafts/phase-0-foundation.md
+docs/roadmap/phases/drafts/phase-1-data-lifecycle.md
+docs/roadmap/phases/drafts/phase-2-sdk-knowledge-graph-docker.md
+docs/roadmap/phases/drafts/phase-3-backup-reporting-dashboard.md
+docs/roadmap/phases/drafts/phase-4-agent-ecosystem-multimachine.md
+docs/roadmap/phases/drafts/phase-5-monetization-advanced.md
+docs/roadmap/phases/final/phase-0-foundation.md
+docs/roadmap/phases/final/phase-1-data-lifecycle.md
+docs/roadmap/phases/final/phase-2-sdk-knowledge-graph-docker.md
+docs/roadmap/phases/final/phase-3-backup-reporting-dashboard.md
+docs/roadmap/phases/final/phase-4-agent-ecosystem-multimachine.md
+docs/roadmap/phases/final/phase-5-monetization-advanced.md
+docs/roadmap/phases/MASTER.SUMMARY.md
+docs/roadmap/planning/LONG_TERM.md
+docs/roadmap/planning/RISK_REGISTER.md
+docs/roadmap/planning/SHORT_TERM.md
+docs/roadmap/ROADMAP.md
+docs/SCOPE.md
+docs/SESSION_STATE.md
+docs/specs/audits/adversarial-trust-v2.md
+docs/specs/audits/forward-audit-comprehensive.md
+docs/specs/audits/reverse-audit-comprehensive.md
+docs/specs/audit-synthesis-v3.md
+docs/specs/category-b-governance.md
+docs/specs/category-c-autofix-and-reporter.md
+docs/specs/F4_IMPLEMENTATION_PLAN.md
+docs/specs/F4_LSP_SERVER_SPEC.md
+docs/specs/F4_PHASE1_IMPL_PLAN.md
+docs/specs/F4_PHASE1_LSP_CORE.md
+docs/specs/F4_PHASE2_CODE_ACTIONS.md
+docs/specs/F4_PHASE3_FORMATTING_SEMANTIC.md
+docs/specs/F4_PHASE4_EDITOR_INTEGRATION.md
+docs/specs/F4_PHASE5_POLISH_RELEASE.md
+docs/specs/F5_LLM_FIX_SYSTEM_SPEC.md
+docs/SPECS_HISTORY.md
+docs/specs/immutable-tool-cache-v3.md
+docs/specs/incremental-indexing-v1.md
+docs/specs/phase10-2-class-hierarchy-v1.md
+docs/specs/phase10-3-blast-radius-v2.md
+docs/specs/phase5-knowledge-graph-v1.md
+docs/specs/phase6-co-change-v1.md
+docs/specs/phase6f-true-6factor-rrf.md
+docs/specs/server-architecture-redesign-v1.md
+docs/specs/server-architecture-synthesis-v1.md
+docs/specs/spectral-clustering-improvements.md
+docs/specs/SYNTHESIS_2026-07-02.md
+docs/specs/tool-discovery-v1.md
+docs/specs/TOOLING_SPEC.md
+docs/STRATEGIC_RECOMMENDATIONS.md
+docs/TROUBLESHOOTING.md
+docs/USAGE_RULES.md
+
+################################################################################
+ARCHITECTURE DECISION RECORDS
+################################################################################
+
+
+================================================================================
+FILE: docs/adrs/0009-reranker-integration.md
+================================================================================
+
+
+# ADR-0009: Reranker Integration for ast-tools
+
+## Status
+Draft
+
+## Context
+The `ast-tools` project, with its 55 tools and over 330 tests, relies on the `semantic_search` function for code intelligence. This function currently uses a 6-factor RRF (Reciprocal Rank Fusion) for ranking, combining semantic similarity, recency, usage, kind, proximity, and call graph centrality. While effective, there's a recognized need to enhance the precision of the top-ranked results.
+
+## Decision
+To significantly improve the accuracy of the top-ranked results in `semantic_search`, a cross-encoder reranker will be introduced as a second stage. This reranker will process the top candidates identified by the initial RRF fusion, re-scoring them to produce a more refined, highly accurate top 5 results.
+
+## Technical Approach
+
+### Reranker Model
+- **Choice:** `sentence-transformers` library's `CrossEncoder` implementation.
+- **Model:** `'cross-encoder/ms-marco-MiniLM-L-6-v2'`
+- **Characteristics:**
+    - Optional dependency: Not strictly required for `ast-tools` to function, but needed for reranking.
+    - Performance: CPU-only, approximately 80MB model size. Expects ~5-10ms per pairwise comparison.
+
+### Integration into `semantic_search`
+- **New Parameter:** A `use_reranker` boolean parameter will be added to `semantic_search` (defaulting to `false` initially).
+- **Configuration:** A new section for reranker configuration will be added to `ast-tools`'s tool parameters, including:
+    - `reranker_model`: Specifies the model to use (defaults to the aforementioned MiniLM model).
+    - `reranker_top_k`: The number of top candidates to pass to the reranker (defaults to 20).
+- **Lazy Loading:** The reranker model and its associated logic will be loaded only on the first call to `semantic_search` when `use_reranker` is enabled.
+- **Model Download:** The HuggingFace Hub will be used for automatic model downloading.
+
+### File Structure Modifications
+- `src/ast_tools/reranker/__init__.py`: Exports for the new reranker functionality.
+- `src/ast_tools/reranker/cross_encoder.py`: Contains the `CrossEncoder` wrapper class, handling lazy loading, model caching, and timeouts.
+- `tests/test_reranker.py`: Comprehensive unit tests for the reranker functionality, following TDD principles.
+- `src/ast_tools/semantic_search.py`: The integration point where the reranker call is injected after the initial RRF fusion.
+
+### Interface Contracts
+#### `semantic_search` function signature:
+```python
+def semantic_search(
+    query: str,
+    k: int = 5,
+    use_reranker: bool = False,
+    reranker_model: str = "cross-encoder/ms-marco-MiniLM-L-6-v2",
+    reranker_top_k: int = 20,
+    # ... other existing parameters
+) -> SearchResults:
+    # ... existing RRF logic
+    if use_reranker:
+        # Initialize reranker if not already loaded
+        reranker = CrossEncoderReranker(model_name=reranker_model)
+        # Get top_k candidates from RRF
+        rerank_candidates = initial_results[:reranker_top_k]
+        # Rerank candidates
+        reranked_scores = reranker.score_pairs(query, rerank_candidates)
+        # Combine RRF scores with reranked scores and sort
+        final_results = combine_and_sort(initial_results, reranked_scores, k)
+        return final_results
+    else:
+        return initial_results[:k]
+```
+
+#### `CrossEncoderReranker` class (conceptual):
+```python
+class CrossEncoderReranker:
+    def __init__(self, model_name: str):
+        # Lazy load model and tokenizer from sentence-transformers
+        self.model_name = model_name
+        self.model = None
+        self.tokenizer = None
+        self.cache = {} # Optional: for caching model instances
+
+    def _load_model(self):
+        if self.model is None:
+            # Load model and tokenizer, handle potential download/caching
+            # Set up CPU usage
+            self.model = CrossEncoder(self.model_name, device='cpu')
+            self.tokenizer = AutoTokenizer.from_pretrained(self.model_name) # Example
+            self.cache[self.model_name] = self.model # Store for potential reuse
+
+    def score_pairs(self, query: str, candidates: list[SearchResult]) -> list[float]:
+        self._load_model()
+        # Prepare input pairs: [(query, candidate.content) for candidate in candidates]
+        # Use self.model.predict()
+        # Return scores
+        pass # Placeholder
+```
+
+### Test Plan
+- **Unit Tests (`tests/test_reranker.py`):**
+    - Test model loading (CPU device, lazy loading).
+    - Test scoring with mock data and edge cases (empty candidates, long queries/candidates).
+    - Test caching mechanism.
+    - Test timeout handling.
+- **Integration Tests (`tests/test_semantic_search.py`):**
+    - Test `semantic_search` with `use_reranker=True` and compare output against baseline (without reranker).
+    - Verify `reranker_top_k` parameter influences the reranker's input.
+    - Test default `reranker_model` and ability to specify a different one.
+    - Ensure performance impact adheres to CON constraints.
+- **End-to-End Tests:**
+    - Manual testing with diverse queries to subjectively evaluate the quality of top 5 results post-reranking.
+
+## Consequences
+
+### Positive
+- **Improved Accuracy:** Significantly more accurate top-5 ranking compared to RRF alone, leading to better user experience and code intelligence.
+- **Competitive Edge:** Addresses a gap in code-intelligence solutions, as no direct competitors are known to utilize rerankers for this purpose.
+
+### Negative
+- **Increased Latency:** Expect an additional ~100-200ms latency during the reranking pass for calls that enable the reranker.
+- **Disk Space:** Requires ~80MB for model cache storage.
+- **First-Call Download:** The initial invocation of `semantic_search` with `use_reranker=True` will incur a ~10-15 second delay due to model download.
+
+## Options Considered
+
+1.  **No reranker (keep 6-factor RRF only):**
+    *   **Pros:** Simplest implementation, no added latency or dependencies.
+    -   **Cons:** Inferior top-ranked result quality compared to a reranker; less competitive.
+
+2.  **Cross-encoder reranker on CPU (Chosen):**
+    *   **Pros:** Optimal balance between accuracy gains and performance impact. Manageable resource usage.
+    -   **Cons:** Adds latency, disk usage, and a one-time download cost.
+
+3.  **LLM-as-reranker:**
+    *   **Pros:** Potentially highest accuracy.
+    -   **Cons:** Prohibitively slow, too expensive for this use case, overkill for the problem.
+
+4.  **ColBERT late interaction:**
+    *   **Pros:** Faster than a cross-encoder, potentially better accuracy than RRF alone.
+    -   **Cons:** More complex integration than a standard cross-encoder, accuracy gains might not justify the complexity.
+
+
+
+================================================================================
+FILE: docs/adrs/0010-architecture-governance-engine.md
+================================================================================
+
+
+# ADR-0010: Architecture Governance Engine for ast-tools
+
+## Status
+
+Proposed
+
+## Context
+
+This document outlines the proposed Architecture Decision Record (ADR) for implementing an architecture governance engine within the `ast-tools` project. The need for such a system arises from the increasing complexity of managing codebases, especially those involving AI-generated code, and the competitive landscape where tools like SonarQube are already offering architecture management features. Enterprises are actively seeking solutions to govern AI-generated code at scale. `ast-tools` is well-positioned to address this gap, as it already possesses foundational capabilities such as import graph, call graph, class hierarchy analysis, transitive dependency tools, co-change analysis, and dead code detection.
+
+The primary gap identified is the absence of a mechanism to define and enforce architectural constraints (e.g., module A can import module B but not module C) across the entire codebase. This capability is crucial for effective architecture governance.
+
+## Decision
+
+We will build a three-layer architecture governance engine for `ast-tools`.
+
+### Layer 1: Architecture Definition DSL
+
+This layer will allow users to define architectural rules using a Domain-Specific Language (DSL), with YAML serving as the primary format. Key features include:
+
+-   **Rule Definition:** Users will define rules in a `governance.yaml` file.
+    -   Example: `"core": {"allow_import": ["utils", "models"], "deny_import": ["api", "external"]}`
+-   **Layer/Tagging:** Support for defining logical layers or tags for modules (e.g., `frontend`, `backend`, `core`, `shared`, `api`, `external`).
+-   **Import Controls:** Explicit allowlists and denylists for imports between defined layers.
+-   **Layer Boundary Definitions:** Mechanisms to clearly delineate the boundaries and dependencies between layers.
+
+### Layer 2: Scanner
+
+This layer will be responsible for analyzing the codebase and identifying violations of the defined architectural rules.
+
+-   **Import Graph Reverse-Engineering:** The scanner will automatically reconstruct the current import graph of the codebase.
+-   **Violation Detection:** It will compare the actual import graph against the intended architecture defined in the DSL.
+-   **Reporting Violations:** Violations will be reported with detailed context, including:
+    -   File path and line number.
+    -   The specific rule that was violated.
+    -   A suggestion for remediation.
+
+### Layer 3: Governance CLI
+
+A command-line interface (CLI) will provide user-friendly access to the governance engine's functionalities.
+
+-   `ast governance init`: Initializes a new `governance.yaml` file with a basic structure.
+-   `ast governance check`: Scans the current codebase against the `governance.yaml` file and reports all violations.
+-   `ast governance diff`: Compares the architectural rules between two points in the commit history (e.g., before and after a refactoring).
+-   `ast governance report`: Generates a human-readable (e.g., HTML) report summarizing violations, potentially with visualizations.
+-   `ast governance baseline`: Analyzes the current codebase structure and generates a `governance.yaml` file that reflects the existing architecture, serving as a starting point for defining stricter rules.
+
+## Implementation Plan
+
+The implementation will proceed in phases:
+
+-   **Phase 1 (2 days):** DSL Parser and YAML Schema. Develop the parser for the `governance.yaml` file and define a robust schema with validation.
+-   **Phase 2 (2 days):** Scanner Engine. Implement the core logic for reverse-engineering the import graph and comparing it against the defined rules.
+-   **Phase 3 (2 days):** CLI Commands. Develop the CLI commands for `init`, `check`, `report`, and `baseline`.
+-   **Phase 4 (1 day):** Governance Diff. Implement the functionality to compare architectural snapshots between branches or commits.
+-   **Phase 5 (1 day):** Reporting. Develop the HTML report generation, potentially integrating with libraries like D3.js, Sigma.js, or Mermaid for visualizations.
+
+## File Structure
+
+The following file structure is proposed within the `ast-tools` project:
+
+```
+src/
+└── ast_tools/
+    └── governance/
+        ├── __init__.py
+        ├── dsl_parser.py       # Parses and validates governance.yaml
+        ├── violation.py        # Defines Violation dataclass
+        ├── scanner.py          # Core scanning engine (import graph vs rules)
+        └── report.py           # Generates HTML reports
+tests/
+└── test_governance.py      # TDD tests for all governance components
+
+cli.py                      # Integration point for the 'ast governance' subcommand group
+```
+
+## Interface Contracts
+
+*   **`governance.yaml` Schema:** A well-defined schema for the YAML configuration, detailing layer definitions, `allow_import`, and `deny_import` structures.
+*   **`dsl_parser.py`:**
+    *   `parse_governance_file(path: str) -> Dict[str, Any]`: Parses and validates the YAML file.
+    *   `validate_layer_definitions(layers: Dict[str, Any]) -> bool`: Validates layer structure.
+*   **`violation.py`:**
+    *   `Violation(rule: str, file_path: str, line_num: int, message: str, suggestion: str)`: Dataclass for representing a violation.
+*   **`scanner.py`:**
+    *   `Scanner(governance_config: Dict[str, Any])`: Initializes the scanner with governance rules.
+    *   `scan(codebase_path: str) -> List[Violation]`: Performs the scan and returns a list of violations.
+    *   `_build_import_graph(codebase_path: str) -> Dict[str, Set[str]]`: Internal helper to build the import graph.
+*   **`report.py`:**
+    *   `generate_html_report(violations: List[Violation], output_path: str)`: Generates an HTML report.
+*   **`cli.py`:**
+    *   Subcommand group `governance` with subcommands `init`, `check`, `diff`, `report`, `baseline`.
+
+## Acceptance Criteria
+
+*   Users can define architectural rules using a clear YAML DSL.
+*   The engine can accurately parse and validate the `governance.yaml` file.
+*   The scanner can correctly build an import graph from a Python codebase.
+*   The scanner accurately identifies and reports violations based on defined rules.
+*   CLI commands (`init`, `check`, `baseline`) function as specified.
+*   The `diff` command provides a meaningful comparison between architectural states.
+*   A human-readable report is generated with violation summaries.
+
+## Test Plan
+
+*   Unit tests for `dsl_parser.py` covering valid and invalid YAML inputs, schema validation.
+*   Mocks for AST parsing and import graph generation to unit test `scanner.py`.
+*   Integration tests for the `scanner.py` with a sample project structure and defined `governance.yaml`.
+*   Unit tests for CLI commands using a testing framework (e.g., `pytest`).
+*   End-to-end tests simulating user workflows: init -> check -> report.
+*   Tests for the `diff` functionality comparing different versions of `governance.yaml` or codebase states.
+*   Tests for report generation, validating HTML output structure and content.
+
+
+
+================================================================================
+FILE: docs/adrs/0011-pypi-name-decision-and-publishing-pipeline.md
+================================================================================
+
+# ADR-0011: PyPI Name Decision + Publishing Pipeline
+
+**Date:** 2026-07-02
+
+**Status:** Proposed
+
+## Context
+
+The PyPI name `ast-tools` is taken by an unrelated toolbox (v0.1.8). A new name is required for public release. The importable package name (Python `import ast_tools`) and the CLI entry point (`ast`) remain unchanged — only the PyPI *distribution* name changes.
+
+## Candidates
+
+Six names were evaluated:
+
+| Candidate | Type | Availability (PyPI) | Conflicts / Closest Match | Descriptive | Short |
+|---|---|---|---|---|---|
+| `rw-ast-tools` | `-mcp` suffix | **404 — AVAILABLE** | No close conflicts | ✅ "ast" + "tools" + "mcp" | Moderately long |
+| `codegraph-mcp` | `-mcp` suffix | **404 — AVAILABLE** | `code-graph-mcp` exists (competitor) | ✅ | Moderately long |
+| `astrix` | Abstract | **200 — TAKEN** | `astrix-openclaw-scanner` (v0.1.3) | Partial | ✅ |
+| `codeintel-mcp` | `-mcp` suffix | **404 — AVAILABLE** | `code-intel-mcp` exists (competitor) | ✅ | Moderately long |
+| `elara` | Abstract | **200 — TAKEN** | `elara` (key-value DB, completely unrelated) | ❌ | ✅ |
+| `struct` | Abstract | **404 — AVAILABLE** | Collides with stdlib `struct` module | ❌ | ✅ |
+
+### Methodology
+
+Availability was checked via `curl -s -o /dev/null -w "%{http_code}" https://pypi.org/pypi/<name>/json`:
+- **HTTP 200** = package exists on PyPI (taken).
+- **HTTP 404** = package does not exist on PyPI (available).
+
+## Decision
+
+**Recommended PyPI name: `rw-ast-tools`**
+
+### Rationale
+
+1. **Available:** Confirmed 404 (not found) on PyPI — no naming conflict.
+2. **Descriptive:** The name communicates three things at a glance:
+   - `ast` — Abstract Syntax Tree / code analysis domain
+   - `tools` — it's a toolbox, not a library
+   - `mcp` — it's an MCP (Model Context Protocol) server
+3. **No close competitor conflicts:** Unlike `codegraph-mcp` (conflicts with `code-graph-mcp`, an actively maintained MCP + AST server) or `codeintel-mcp` (conflicts with `code-intel-mcp`), `rw-ast-tools` has no similarly-named package in the same space.
+2. **PyPI name ≠ CLI name:** The CLI entry points remain `ast-tools`, `ast-tools-server`, and `ast-tools-project` (defined in `[project.scripts]` in `pyproject.toml`). The PyPI distribution name has zero impact on daily CLI usage.
+5. **Migration clarity:** Adding `-mcp` makes it obvious this is a renamed successor to the original `ast-tools` package, easing discoverability for existing users.
+
+### Other candidates rejected
+
+- **`codegraph-mcp` / `codeintel-mcp`:** Both available, but `code-graph-mcp` and `code-intel-mcp` are already established packages in the same MCP code-analysis space. Publishing a near-identical name would cause user confusion.
+- **`astrix`:** Taken by an unrelated security scanner project.
+- **`elara`:** Taken by a key-value database. Also not descriptive of the project's purpose.
+- **`struct`:** Available but collides with Python's standard library `struct` module, causing poor search-engine discoverability and potential confusion.
+
+## Migration Path
+
+The PyPI name change involves only the distribution metadata. Source code imports (`import ast_tools`) and CLI invocation (`ast`) are unchanged.
+
+### 1. `pyproject.toml` — name field
+
+Changed:
+
+```toml
+[project]
+name = "rw-ast-tools"   # was: "ast-tools"
+```
+
+All other fields (version, description, dependencies, `[project.scripts]`) remain unchanged. The actual CLI entry points are:
+
+```toml
+[project.scripts]
+ast-tools = "ast_tools.cli:main"
+ast-tools-server = "ast_tools_server:main"
+ast-tools-project = "project_tools:cli_main"
+```
+
+### 2. Documentation updates
+
+| File | Change |
+|---|---|
+| `README.md` | Update install commands: `pip install rw-ast-tools` |
+| `pyproject.toml` | Done (above) |
+| `docs/` (all) | Audit for `ast-tools` → `rw-ast-tools` references |
+| `CONTRIBUTING.md` | Update any build/publish instructions referencing old name |
+
+### 3. No code changes required
+
+- **Import path:** `import ast_tools` — unchanged (the source tree stays `src/ast_tools/`)
+- **CLI:** `ast-tools`, `ast-tools-server`, `ast-tools-project` — unchanged (entry point names in `[project.scripts]`)
+- **Internal references:** Code uses the `ast_tools` package, not the PyPI name
+
+## Publishing Pipeline
+
+### 3-Step Workflow
+
+```bash
+# Step 1: Update package name in pyproject.toml
+#   name = "rw-ast-tools"   (already done)
+
+# Step 2: Build the package
+uv build
+
+# Step 3: Publish to PyPI
+uv publish --token $PYPI_TOKEN
+```
+
+The utility script `scripts/publish.sh` automates steps 2–3 with error handling.
+
+### `scripts/publish.sh`
+
+```bash
+#!/bin/bash
+set -e
+
+if [ -z "$PYPI_TOKEN" ]; then
+  echo "Error: PYPI_TOKEN environment variable is not set."
+  exit 1
+fi
+
+cd "$(dirname "$0")/.."
+
+echo "==> Building package with uv..."
+uv build
+
+echo "==> Publishing to PyPI..."
+uv publish --token "$PYPI_TOKEN"
+
+echo "Done. CLI remains: ast"
+```
+
+### Build Output
+
+`uv build` produces both a source distribution (`.tar.gz`) and a wheel (`.whl`) in `dist/`:
+
+```
+dist/ast_tools_mcp-0.1.0.tar.gz
+dist/ast_tools_mcp-0.1.0-py3-none-any.whl
+```
+
+Note that `uv` normalizes the package name internally (`rw-ast-tools` → `rw_ast_tools` in filenames), but the published name on PyPI is `rw-ast-tools`.
+
+### Prerequisites
+
+1. A PyPI API token with upload permissions for the `rw-ast-tools` project (create at https://pypi.org/manage/account/token/)
+2. `uv` installed (project build system)
+3. The `PYPI_TOKEN` environment variable set before running the publish script
+
+## Next Steps
+
+1. [ ] Merge this ADR and associated changes
+2. [ ] Register `rw-ast-tools` on PyPI (first `uv publish` creates the project automatically)
+3. [ ] Update all documentation references from `ast-tools` to `rw-ast-tools`
+4. [ ] Create a GitHub release matching the published version
+5. [ ] Add PyPI badge to README after first publish
+
+
+================================================================================
+FILE: docs/adrs/0012-server-architecture-multi-mode.md
+================================================================================
+
+# ADR-012: Multi-Mode Server Architecture
+
+**Status:** Proposed  
+**Date:** 2026-07-05  
+**Author:** Lucien  
+
+## Context
+
+The rw-ast-tools MCP server has three architectural constraints that limit its utility:
+
+1. **Hermes-locked plugins** — Core capabilities (context injection, token tracking, session intelligence) are implemented as Hermes hooks and inaccessible to other agents
+2. **Ephemeral lifecycle** — Server starts/stops per connection, wasting resources on cold starts and preventing persistent state
+3. **Single transport** — Only stdio, no HTTP/SSE for remote access or multi-client scenarios
+
+## Decision
+
+Adopt a **three-mode server architecture** with configurable transport and lifecycle:
+
+### Modes
+
+| Mode | Transport | Lifecycle | Primary Use |
+|------|-----------|-----------|-------------|
+| `timeout` (default) | stdio | Per-connection with idle TTL | Desktop agents (Claude Code, Codex) |
+| `daemon` | Unix socket via systemd | Persistent, auto-restart | Multi-agent workstations |
+| `remote` | Streamable HTTP | Persistent, secured | Server deployment, cross-machine |
+
+### Architectural Decoupling
+
+Extract Hermes plugin logic into `ast_tools.agent_integration.*` — pure functions importable by any framework. The Hermes plugin becomes a ~50-line thin shim.
+
+## Consequences
+
+**Positive:**
+- FORGE, Claude Code, Cursor can all use rw-ast-tools as a standard MCP server
+- Persistent daemon eliminates cold-start latency
+- Remote mode enables server-side deployment
+- Watchdog auto-indexing only in daemon mode (no wasted resources)
+- Backward compatible — timeout mode preserves current behavior
+
+**Negative:**
+- Increased complexity from 1 mode to 3
+- Need to manage systemd service lifecycle
+- Daemon mode requires ~130MB for embedding model in RAM
+- Auth infrastructure needed for remote mode
+
+**Neutral:**
+- Hermes plugin becomes thinner but requires migration
+- Watchdog disabled by default (only daemon mode)
+- Config system adds operational surface area
+
+## Alternatives Considered
+
+1. **Single daemon mode only** — Rejected: breaks backward compatibility for desktop agents
+2. **HTTP-only with supergateway** — Rejected: adds external dependency, less control
+3. **Keep Hermes hooks + add MCP tools** — Rejected: doesn't solve the agent-lock problem
+4. **Remain single-transport (stdio only)** — Rejected: `streamable-http` is the MCP spec's recommended transport for 2026+
+
+## References
+
+- MCP Spec 2025-06-18: Streamable HTTP is recommended transport
+- MCP Python SDK v2: Native `mcp.run(transport="streamable-http")` support
+- `mcp-stdio-bridge`, `MCP-Starter-Kit`, `local-mcp-server` — reference implementations using dual-transport architecture
+- "MCP in Production" (ilirivezaj.com): systemd user services with WatchdogSec for MCP servers
+
+################################################################################
+CURRENT PROJECT STATE
+################################################################################
+
+
+================================================================================
+FILE: docs/archive/PROJECT_STATE.md
+================================================================================
+
+# ast-tools — Project State & Summary
+
+**Last Updated:** 2026-07-23  
+**Status:** ✅ **COMPLETE** — All 5 phases done, 114 tests passing
+
+---
+
+## Executive Summary
+
+**ast-tools** is a fully modularized MCP server providing 11 structural code analysis and editing tools for Python, JavaScript, TypeScript, Rust, Go, Java, C, and C++.
+
+**Key Achievement:** Successfully extracted all tool implementations from a monolithic 1,348-line server file into a clean, maintainable package structure. Server reduced to 445 lines (67% reduction) — now just tool definitions + dispatcher.
+
+---
+
+## Project Structure
+
+```
+ast-tools/
+├── src/
+│   ├── ast_tools_server.py          # MCP server (445 lines) — thin wrapper
+│   ├── ast_tools/
+│   │   ├── tools/                   # Tool implementations (11 tools)
+│   │   │   ├── __init__.py          # Registry + helpers
+│   │   │   ├── ast_grep.py          # Structural search (ast-grep CLI)
+│   │   │   ├── ast_edit.py          # Surgical edits (libcst)
+│   │   │   ├── ast_read.py          # API surface extraction
+│   │   │   ├── structural_analysis.py  # Call graphs, refs, deps (jedi)
+│   │   │   ├── find_references.py   # Cross-file symbol usage
+│   │   │   ├── impact_analysis.py   # Change impact + risk assessment
+│   │   │   ├── module_imports.py    # Fan-in/fan-out import analysis
+│   │   │   ├── ast_generate_stub.py # .pyi stub generation
+│   │   │   ├── ast_refactor_extract_interface.py  # ABC/Protocol extraction
+│   │   │   ├── project_info.py      # Project manifest (project.json)
+│   │   │   └── codebase_summary.py  # Architecture overview (<500 tokens)
+│   │   └── utils/
+│   │       ├── file_utils.py        # find_python_files, is_test_file, etc.
+│   │       └── impact.py            # build_reverse_deps, classify_risk
+│   └── project_tools.py             # Project intelligence CLI (1,038 lines)
+├── tests/
+│   ├── conftest.py                  # Test fixtures (create_test_project)
+│   ├── test_e2e.py                  # E2E tests for core tools
+│   ├── test_phase3_polish.py        # Error codes, CLI polish tests
+│   └── test_project_tools.py        # Project info/impact analysis tests
+├── docs/
+│   ├── PHASE_SUMMARIES.md           # Phase 0-5 completion reports
+│   └── REFACTORING_JOURNAL.md       # Less-learned, gotchas
+├── pyproject.toml                   # Build config, deps, entry points
+└── pytest.ini                       # Test config
+```
+
+---
+
+## Tool Registry (11 Tools)
+
+| Tool | Purpose | Implementation |
+|------|---------|----------------|
+| `ast_grep` | Structural code search via AST patterns | `src/ast_tools/tools/ast_grep.py` |
+| `ast_edit` | Surgical AST-based edits (libcst) | `src/ast_tools/tools/ast_edit.py` |
+| `ast_read` | Extract API surface from files | `src/ast_tools/tools/ast_read.py` |
+| `ast_generate_stub` | Generate .pyi type stubs | `src/ast_tools/tools/ast_generate_stub.py` |
+| `ast_refactor_extract_interface` | Extract ABC/Protocol from class | `src/ast_tools/tools/ast_refactor_extract_interface.py` |
+| `structural_analysis` | Call graphs, type hierarchies, refs, deps | `src/ast_tools/tools/structural_analysis.py` |
+| `project_info` | Project manifest (project.json) | `src/ast_tools/tools/project_info.py` |
+| `codebase_summary` | High-level architecture overview | `src/ast_tools/tools/codebase_summary.py` |
+| `find_references` | Find all symbol usages across codebase | `src/ast_tools/tools/find_references.py` |
+| `impact_analysis` | Change impact + risk assessment | `src/ast_tools/tools/impact_analysis.py` |
+| `module_imports` | Module-level fan-in/fan-out import analysis | `src/ast_tools/tools/module_imports.py` |
+
+---
+
+## Test Coverage
+
+**114 tests** across 4 test files:
+- `test_e2e.py`: 32 tests (E2E tool + CLI tests)
+- `test_phase3_polish.py`: 17 tests (error codes, CLI polish, `__all__` filtering)
+- `test_project_tools.py`: 65 tests (project info, impact analysis, framework detection)
+
+**All tests passing ✅**
+
+Run with: `python3 -m pytest`
+
+---
+
+## Git History (6 Commits)
+
+```
+a45d137 (HEAD → master) refactor: Phase 5 complete — server cleanup and integration
+ee53c43 refactor: Phase 4 — extract module_imports tool
+09ed96b refactor: Phase 3 — extract impact_analysis + find_references
+884c16b refactor: Phase 2 — extract structural_analysis
+445d64f refactor: Phase 1 — extract ast_grep, ast_edit, ast_read
+826a0fa Initial: Monolithic server (1,348 lines)
+```
+
+**Diff stats:**
+- **Lines added:** 30
+- **Lines removed:** 939
+- **Net change:** -909 lines (67% reduction in server file)
+
+---
+
+## Architecture
+
+### Design Principles
+
+1. **Registry Pattern** — Tools register themselves in `TOOL_REGISTRY` dict
+2. **Thin Server** — Server only defines tool schemas + dispatches to handlers
+3. **Extracted Tools** — All tool logic in `src/ast_tools/tools/`
+4. **Shared Utils** — Common helpers in `src/ast_tools/utils/`
+5. **Test Isolation** — Each test creates isolated temp projects
+
+### Tool Registration
+
+```python
+# src/ast_tools/tools/__init__.py
+TOOL_REGISTRY: dict[str, Callable] = {}
+
+def register_tool(name: str):
+    def decorator(func: Callable) -> Callable:
+        TOOL_REGISTRY[name] = func
+        return func
+    return decorator
+```
+
+Each tool file uses `@register_tool("tool_name")` decorator.
+
+### Server Dispatcher
+
+```python
+@server.call_tool()
+async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
+    if name not in TOOL_REGISTRY:
+        return error_response("NOT_FOUND", available_tools=list_tool_names())
+    
+    handler = get_tool_handler(name)
+    result = await anyio.to_thread.run_sync(handler, arguments)
+    return success_response(result)
+```
+
+---
+
+## Development Workflow
+
+### Adding a New Tool
+
+1. Create `src/ast_tools/tools/new_tool.py`
+2. Implement handler function with `@register_tool("new_tool")`
+3. Add tool schema to `server.list_tools()` in `ast_tools_server.py`
+4. Write tests in `tests/test_new_tool.py`
+5. Run `python3 -m pytest` — all tests must pass
+
+### Running Tests
+
+```bash
+# All tests
+python3 -m pytest
+
+# Specific test file
+python3 -m pytest tests/test_e2e.py -v
+
+# Specific test
+python3 -m pytest tests/test_e2e.py::TestAstGrep::test_grep_function_definitions -v
+```
+
+### Linting
+
+```bash
+ruff check src/ tests/
+ruff format src/ tests/
+```
+
+---
+
+## Key Lessons Learned
+
+### What Went Well
+
+1. **Incremental Extraction** — One tool at a time, test after each
+2. **Registry Pattern** — Clean separation of concerns
+3. **Test-Driven** — 114 tests caught issues immediately
+4. **Shared Utils** — No code duplication across tools
+
+### Gotchas / Pitfalls
+
+1. **Circular Imports** — Map imports BEFORE extracting. Use local imports inside functions if needed.
+2. **Missing Helper Functions** — When extracting, check what helpers the tool uses. Move or re-export them.
+3. **Test Imports** — Tests importing from old locations need updating. Fix as you go.
+4. **Unused Imports** — Server file accumulates unused imports. Clean up at the end.
+5. **`patch` tool requires `path=` not `file=`** — Hermest tool quirk
+
+### Refactoring Pattern (Established)
+
+1. **Identify tool boundary** — What code belongs to this tool?
+2. **Check dependencies** — What helpers/utils does it need?
+3. **Create new file** — `src/ast_tools/tools/tool_name.py`
+4. **Copy + register** — Implement with `@register_tool()`
+5. **Update server** — Remove old code, import from new location
+6. **Fix tests** — Update test imports
+7. **Run tests** — Verify all pass
+8. **Commit** — One extraction = one commit
+
+---
+
+## Next Steps / Future Work
+
+### Potential Enhancements
+
+1. **TypeScript/JavaScript Support** — Tree-sitter backend already exists (`ts_backend.py`), needs integration
+2. **More Languages** — Kotlin, Swift, Ruby support via ast-grep
+3. **Caching** — Cache AST parses for large projects
+4. **Incremental Analysis** — Only re-analyze changed files
+5. **Performance Profiling** — Identify slow tools, optimize
+
+### Known Issues
+
+- **Pyright errors** in tool files (pre-existing, not blocking)
+- **jedi import** could not be resolved (environment issue, not code issue)
+- **libcst import** — removed from server, but pyright still flags it
+
+---
+
+## Usage (MCP Client)
+
+### Configure in Hermes
+
+```yaml
+# ~/.hermes/config.yaml
+mcp_servers:
+  ast-tools:
+    command: ["python3", "-m", "ast_tools_server"]
+    cwd: "/home/sysop/Workspaces/ast-tools"
+```
+
+### Example Tool Calls
+
+```python
+# Structural search
+mcp_ast_tools_ast_grep(pattern="def $FUNC($$$ARGS)", path="src/", lang="python")
+
+# Extract API surface
+mcp_ast_tools_ast_read(file="src/core/agent.py", include_private=True)
+
+# Find all usages of a symbol
+mcp_ast_tools_find_references(symbol="process_task", cwd="/path/to/project")
+
+# Analyze change impact
+mcp_ast_tools_impact_analysis(target="src/core/worker.py")
+```
+

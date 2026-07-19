@@ -19,7 +19,6 @@ Mode selection (in priority order):
 
 from __future__ import annotations
 
-import contextlib
 import json
 import logging
 import os
@@ -27,21 +26,18 @@ import signal
 import sys
 import time
 from typing import Any
+
 import anyio
-from anyio import create_task_group
 from mcp.server import Server
 from mcp.server.stdio import stdio_server
-from lsprotocol import types as lsp_types
-from mcp.types import TextContent, Tool, InitializedNotification
+from mcp.types import InitializedNotification, TextContent, Tool
 
-from ast_tools.config.unified import UnifiedConfig, load_unified_config
 from ast_tools.server_config import add_server_args, config_from_args
 from ast_tools.tools import (
-    list_tools,
     TOOL_REGISTRY,
-    TOOL_SCHEMAS,
     get_tool_handler,
     list_tool_names,
+    list_tools,
 )
 
 # Global activity tracking for idle timeout
@@ -255,6 +251,16 @@ async def _run_remote_mode(config: dict[str, Any]) -> None:
         # Create the ASGI handler
         asgi_app = StreamableHTTPASGIApp(session_manager)
 
+        # Monkey-patch MCP SDK to be lenient about Accept headers
+        # (Mistral, Cursor, etc. often omit Accept headers)
+        try:
+            from mcp.server.streamable_http import StreamableHTTPServerTransport
+            async def lenient_validate(self, request, scope, send):
+                return True
+            StreamableHTTPServerTransport._validate_accept_header = lenient_validate
+        except Exception:
+            pass
+
         # Wrap in Starlette with lifespan to run the session manager
         @asynccontextmanager
         async def lifespan(_app):
@@ -302,7 +308,6 @@ async def _run_legacy_http(host: str, port: int, auth_token: str) -> None:
             return web.json_response({"error": "Invalid JSON"}, status=400)
 
         # Forward to MCP server
-        from mcp.types import CallToolRequest, CallToolRequestParams, TextContent
 
         method = data.get("method")
         if method == "initialize":

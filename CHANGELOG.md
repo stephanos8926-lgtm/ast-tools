@@ -1,40 +1,96 @@
-# rw-ast-tools Changelog
+# Changelog
 
-All notable changes to the rw-ast-tools MCP server.
+All notable changes to rw-ast-tools will be documented in this file.
 
-## [v0.1.0] — 2026-07-05
-
-### ✨ Features
-- **Three server modes**: timeout (default), daemon, remote
-- **Unified Hermes plugin**: `rw-ast-tools` replaces 3 old plugins
-- **Agent integration package**: `ast_tools.agent_integration` — zero Hermes dependency
-- **New MCP tools**: `context_inject`, `context_status`, `token_status`, `validate_usage`, `session_intel`, `index_watch`
-- **Watchdog auto-indexer** (daemon mode only)
-- **Metrics store** with time-series SQLite
-- **systemd service** for persistent daemon mode
-- **Streamable HTTP** support for remote mode
-- **Config system**: CLI > env > file > defaults
-
-### 🔧 Fixes
-- **ast_tools_server.py**: Restored missing `main()` entry point (was accidentally deleted in Phase 5 server cleanup)
-- **GitHub MCP**: Added `GITHUB_TOKEN` env var to MCP server config (was unauthenticated)
-- **mcp_discovery_timeout**: Increased from 2.5s to 60s (ast-tools takes ~8s to load)
-- **context_file_max_chars**: Fixed quoted string `'250000'` → proper integer `250000`
-
-### 📚 Documentation
-- Full documentation audit: all docs reflect actual 57 tools, 770 tests
-- SESSION_STATE.md rewritten with accurate phase completion status
-- DOCUMENTATION_INDEX.md updated with correct metrics
-- README.md tool count corrected (55 → 57), new phase categories added
-- Global state file updated
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
-## [v0.0.1] — 2026-06-01
+## [v0.2.1] — 2026-07-18
+
+### 🐛 Bug Fixes & Code Quality
+- **Fixed 307 lint issues** across codebase (ruff --fix): removed unused variables, simplified nested conditionals, removed whitespace issues, fixed docstring character ambiguities (× → x, – → -)
+- **Eliminated duplicate set items** in `spectral.py` (static, void, default, None duplicates)
+- **Fixed missing newline at EOF** in `switch_model.py`
+- **All 943 tests passing** (2 skipped, 398 warnings — mostly pytest deprecation warnings)
+
+### 🔧 Plugin Improvements
+- **rw-ast-tools Hermes plugin** updated:
+  - `pre_llm_call` hook now calls `semantic_search` via MCP stdio for **project-specific context** (actual code symbols, not generic docs)
+  - Added **typo correction** ("Did you mean?") using `find_similar_tool()` from `dynamic_schemas.py`
+  - Replaced static ~1000-token docs with compact **300-token quick reference** from `generate_quick_reference()`
+  - Fixed `on_session_end` to pass `conversation_history` to `extract_modified_files()`
+
+### 📦 Configuration
+- **Hermes config**: `ast-tools` MCP server now runs in `--mode daemon` (persistent, systemd-managed) instead of `--mode timeout`
+- Requires gateway restart: `systemctl --user restart hermes-gateway` (from outside gateway process)
+
+### 📚 Documentation
+- Updated tool count references: **77 tools** (was 55/57 in various docs)
+- README.md refreshed with current feature list, architecture, and tool categories
+- All doc files now reflect actual schema v5, 943 tests, 77 tools
+
+---
+
+## [v0.2.0] — 2026-07-13
+
+### ✨ New Features
+- **Interactive HTML Documentation Portal** (`docs/portal/`): React-based interactive docs with live search, tool filtering, and mermaid diagram rendering
+- **Tool Discovery System (Phase A-D)**: 4 new meta-tools — `search_tools`, `call_tool`, `tool_info`, `tool_usage_stats` — for dynamic tool discovery and usage analytics
+- **Spectral Clustering (P3)**: TF-IDF cluster naming, multi-resolution clustering, parallel graph construction, incremental Laplacian, Nyström approximation
+- **LSP Phase 2**: Persistent LSP client cache, true diagnostics tracking, code actions, rename symbol, signature help, code completion, apply format
+
+### 🔧 Improvements
+- Added missing tool categories: `context_tools` + `tool_usage_stats` to tool registry
+- Dynamic tool schemas: `generate_quick_reference()` builds markdown from registered schemas
+- "Did you mean?" typo correction: `find_similar_tool()` uses difflib for tool name suggestions
+- LSP client improvements: reference counting, window/logMessage handling, full capability registration
+
+### 🐛 Fixes
+- Fixed LSP command name in config (`vscode` extension)
+- Relocated `ts_backend` into package, renamed `types` → `symbols` to avoid Python 3.14 stdlib conflict
+- Pointed remote inference defaults to `rw-server:8300`
+
+### 📚 Documentation
+- `docs/portal/`: Interactive HTML documentation portal
+- `docs/AST_TOOLS_QUICKSTART.md`: User guide & workflows
+- `docs/CLI_REFERENCE.md`: Complete 11-command CLI reference
+- `docs/DOCUMENTATION_INDEX.md`: Full documentation index
+
+---
+
+## [v0.1.1] — 2026-07-02
+
+### ✨ New Features
+- **Wave 2 Core Infrastructure**: Persistent aiosqlite connection pool with graceful fallback to thread pool when aiosqlite unavailable (externally-managed-environment)
+- **Security Sprint (P0)**: Path traversal validation across 5 tools, graceful degradation for missing `project_path`
+- **Enhanced Dead Code Detection**: 6 false-positive reduction strategies (>40% → <20% FP rate)
+  - Polymorphism tracking via `ImplementsDetector`
+  - Framework decorator detection (20+ decorators: Flask, FastAPI, Celery, Click, Django, Pytest)
+  - Entry point analysis with call graph tracing
+  - Tarjan's SCC algorithm for circular dead code
+  - `__all__` exports check
+  - Confidence scoring (High/Medium/Low with `alive_signals`)
+
+### 🔧 Improvements
+- Multi-machine deployment with `uv` venv pattern (bypasses PEP 668)
+- Incremental indexing: SHA256 content hashing, symbol-level diff engine
+- Watcher daemon: inotify-based, 100ms debounce, thread-safe queue
+- 6-factor RRF fusion: semantic (40%), recency (15%), usage (15%), kind (10%), proximity (10%), callgraph centrality (10%)
+
+### 🐛 Fixes
+- MCP server troubleshooting: ModuleNotFoundError when using system Python vs venv
+- Path traversal validation: handle missing `project_path` gracefully
+- Test fixture discipline: all test calls updated for new params
+
+---
+
+## [v0.1.0] — 2026-06-01
 
 ### Initial Release
-
-**Tools:** 11 core tools  
-**Schema:** v1 (basic symbols + embeddings)  
-**Tests:** 79 passing  
-**Server:** Monolithic 1,348-line `ast_tools_server.py`
+- **11 core tools**: `ast_grep`, `ast_read`, `ast_edit`, `ast_generate_stub`, `ast_refactor_extract_interface`, `ast_capsule`, `ast_query`, `semantic_search`, `search_symbols`, `find_symbol_definition`, `list_symbols`
+- **Schema v1**: Basic symbols + embeddings (384-dim all-MiniLM-L6-v2)
+- **79 tests** passing
+- **Monolithic server**: 1,348-line `ast_tools_server.py`
+- **MIT License**

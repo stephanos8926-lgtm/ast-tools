@@ -1,7 +1,7 @@
 # rw-ast-tools Troubleshooting Guide
 
-**Last updated:** 2026-07-05  
-**Version:** v0.1.0 (57 tools)
+**Last updated:** 2026-07-31  
+**Version:** v0.2.0 (77 tools, 943 tests)
 
 ---
 
@@ -454,7 +454,7 @@ mcp_ast_tools_semantic_search query="websocket" k=10
 ### v0.1.0 (2026-07-05)
 
 - **57 MCP tools** (was 55)
-- **770 tests** passing (was 304)
+- **943 tests** passing (was 304)
 - **Three server modes**: timeout (default), daemon, remote
 - **Unified Hermes plugin**: `rw-ast-tools` replaces 3 old plugins
 - **Agent integration package**: `ast_tools.agent_integration` (zero Hermes dependency)

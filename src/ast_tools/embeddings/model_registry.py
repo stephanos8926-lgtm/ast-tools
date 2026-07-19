@@ -10,15 +10,14 @@ import asyncio
 import hashlib
 import json
 import logging
-import os
 import time
-from dataclasses import dataclass, field
+from collections.abc import Callable
+from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from typing import Any, Callable, Optional
+from typing import Any
 
-from ..database.connection import get_connection
-from .provider import EmbeddingProvider, EmbeddingBackend, RemoteInferenceConfig
+from .provider import EmbeddingBackend, EmbeddingProvider, RemoteInferenceConfig
 
 logger = logging.getLogger(__name__)
 
@@ -42,10 +41,10 @@ class EmbeddingModelConfig:
     model_name: str
     dimension: int
     # Provider-specific config
-    local_cache_dir: Optional[str] = None
-    remote_config: Optional[RemoteInferenceConfig] = None
-    api_key: Optional[str] = None
-    api_base_url: Optional[str] = None
+    local_cache_dir: str | None = None
+    remote_config: RemoteInferenceConfig | None = None
+    api_key: str | None = None
+    api_base_url: str | None = None
     # Metadata
     description: str = ""
     max_batch_size: int = 32
@@ -72,7 +71,7 @@ class EmbeddingModelConfig:
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "EmbeddingModelConfig":
+    def from_dict(cls, data: dict[str, Any]) -> EmbeddingModelConfig:
         remote_config = None
         if data.get("remote_config") and data["remote_config"].get("base_url"):
             remote_config = RemoteInferenceConfig(base_url=data["remote_config"]["base_url"])
@@ -164,7 +163,7 @@ class ModelRegistryState:
         }, indent=2))
 
     @classmethod
-    def from_file(cls, path: Path) -> "ModelRegistryState | None":
+    def from_file(cls, path: Path) -> ModelRegistryState | None:
         if not path.exists():
             return None
         try:
@@ -182,7 +181,7 @@ class EmbeddingModelRegistry:
         project_root: Path,
         available_models: dict[str, EmbeddingModelConfig] | None = None,
         default_model: str = "bge-small-en-v1.5",
-        reindex_callback: Optional[Callable[[], Any]] = None,
+        reindex_callback: Callable[[], Any] | None = None,
     ):
         self.project_root = Path(project_root)
         self.available_models = available_models or DEFAULT_MODELS
@@ -194,8 +193,8 @@ class EmbeddingModelRegistry:
         self.state_file = self.state_dir / "model_registry.json"
 
         # Current state
-        self._state: Optional[ModelRegistryState] = None
-        self._current_provider: Optional[EmbeddingProvider] = None
+        self._state: ModelRegistryState | None = None
+        self._current_provider: EmbeddingProvider | None = None
         self._provider_lock = asyncio.Lock()
 
         # Load persisted state
@@ -357,7 +356,7 @@ def get_model_registry(
     project_root: Path | None = None,
     available_models: dict[str, EmbeddingModelConfig] | None = None,
     default_model: str = "bge-small-en-v1.5",
-    reindex_callback: Optional[Callable[[], Any]] = None,
+    reindex_callback: Callable[[], Any] | None = None,
 ) -> EmbeddingModelRegistry:
     """Get or create the global model registry."""
     global _global_registry

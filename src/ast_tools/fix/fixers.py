@@ -7,7 +7,7 @@ import subprocess
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Type
+from typing import Any
 
 
 @dataclass

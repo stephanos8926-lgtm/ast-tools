@@ -7,7 +7,6 @@ and co_change_diff tools wrapping GitMiner and hotspot detection.
 from __future__ import annotations
 
 import sqlite3
-from pathlib import Path
 from typing import Any
 
 

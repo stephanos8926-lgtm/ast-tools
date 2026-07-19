@@ -124,10 +124,10 @@ the Fiedler vector (2nd eigenvector) of the normalized graph Laplacian.
 
 from __future__ import annotations
 
+import concurrent.futures
 import hashlib
 import logging
 import math
-import concurrent.futures
 from collections import Counter, defaultdict, deque
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -2327,15 +2327,14 @@ def _tokenize_source(text: str) -> list[str]:
         "pub", "fn", "let", "mut", "use", "mod", "struct", "enum", "impl",
         "const", "static", "var", "func", "type", "interface", "package",
         "require", "export", "default", "extends", "implements",
-        "public", "private", "protected", "static", "void", "int", "str",
+        "public", "private", "protected", "void", "int", "str",
         "bool", "float", "double", "char", "string", "null", "undefined",
-        "new", "this", "typeof", "instanceof", "void", "assert",
+        "new", "this", "typeof", "instanceof", "assert",
         "namespace", "include", "define", "ifndef", "endif",
-        "async", "await", "of", "case", "switch", "default",
-        "sizeof", "typedef", "template", "typename",
+        "async", "await", "of", "case", "switch", "sizeof", "typedef", "template", "typename",
         "__init__", "__str__", "__repr__", "__call__",
         "println", "print", "format", "assert_eq",
-        "Some", "None", "Ok", "Err",
+        "Some", "Ok", "Err",
     })
     return [t for t in tokens if t not in STOPWORDS and len(t) > 2]
 

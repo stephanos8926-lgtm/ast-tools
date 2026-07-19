@@ -13,9 +13,7 @@ from ..database.connection import get_connection
 from ..embeddings import (
     generate_embedding,
     search_similar,
-    get_embedding_provider,
 )
-from ..embeddings.provider import provider_rerank
 from ..reranker import RerankerConfig, apply_reranking  # New Import
 from ..utils.rrf import rrf_fuse
 
@@ -237,14 +235,15 @@ def hybrid_search_with_context(
             # Use remote inference if available, fallback to local reranker
             reranker_confidence = 0.0
             import asyncio
+
             from ..embeddings import provider_rerank
-            
+
             try:
                 loop = asyncio.get_event_loop()
             except RuntimeError:
                 loop = asyncio.new_event_loop()
                 asyncio.set_event_loop(loop)
-            
+
             # Convert to candidate format for reranker
             candidates = [
                 {
@@ -256,16 +255,16 @@ def hybrid_search_with_context(
             reranker_scores = loop.run_until_complete(
                 provider_rerank(query, candidates, top_k=min(k, 15))
             )
-            
+
             # Apply reranker scores
             for i, r in enumerate(results):
                 if i < len(reranker_scores):
                     r["rerank_score"] = reranker_scores[i]
-            
+
             # Sort by rerank_score descending
             results.sort(key=lambda x: x.get("rerank_score", 0), reverse=True)
             results = results[:k]
-            
+
         except Exception as e:
             logger.warning(f"Remote reranking failed, falling back to local: {e}")
             # Fallback to local reranker

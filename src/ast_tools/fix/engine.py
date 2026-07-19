@@ -13,9 +13,13 @@ from rich.console import Console
 from rich.progress import BarColumn, Progress, SpinnerColumn, TaskProgressColumn, TextColumn
 
 from .config import FixConfig
-from .fixers import FixAction, FixerBase, get_fixer_for_language
+from .fixers import (
+    FixAction,
+    FixerBase,
+    get_fixer_for_language,
+    register_plugin_fixers,
+)
 from .fixers import FixerConfig as FixersFixerConfig
-from .fixers import register_plugin_fixers, plugin_manager
 
 console = Console()
 logger = logging.getLogger(__name__)

@@ -16,7 +16,7 @@
 
 ## Step 1: Enable Plugins in Hermes Config
 
-Add to `~/.hermes/config.yaml`:
+Add to your Hermes config file (typically `~/.hermes/config.yaml`):
 
 ```yaml
 plugins:
@@ -40,7 +40,7 @@ mcp_servers:
 ## Step 3: Install Plugin Files
 
 ```bash
-# Copy plugins from the ast-tools project to Hermes plugins dir
+# Copy plugins from the ast-tools project to your Hermes plugins directory
 cp -r path/to/ast-tools/hermes-plugins/ast-tools-context ~/.hermes/plugins/
 cp -r path/to/ast-tools/hermes-plugins/ast-tools-tokens ~/.hermes/plugins/
 cp -r path/to/ast-tools/hermes-plugins/ast-tools-project-context ~/.hermes/plugins/
@@ -82,7 +82,7 @@ User Query → pre_llm_call → Plugin Injectors → AST-Tools MCP → LLM
 | Problem | Fix |
 |---------|-----|
 | Plugin not loading | Check `~/.hermes/logs/` for errors, verify plugin dir exists |
-| MCP server not responding | Check `~/.hermes/logs/mcp-stderr.log`, verify path in config |
+| MCP server not responding | Check logs for errors, verify path in config |
 | Context not injecting | Enable verbose logging: `hermes config set log.level debug` |
 
 See `docs/TROUBLESHOOTING.md` for full troubleshooting guide.

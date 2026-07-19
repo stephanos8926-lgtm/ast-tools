@@ -88,10 +88,12 @@ from .enhanced_dead_code import _tool_dead_code_enhanced
 from .file_related import _tool_file_related_suggest
 from .find_references import _tool_find_references
 from .find_symbol_definition import _tool_find_symbol_definition
+from .fix_mcp import _tool_fix_check, _tool_fix_code, _tool_rerank_results
 from .impact_analysis import _tool_impact_analysis
 from .index_status import _tool_index_status
 from .knowledge_graph import kg_neighborhood, kg_query, kg_shortest_path
 from .list_symbols import _tool_list_symbols
+from .llm_suggest_fix import _tool_llm_check_available, _tool_llm_suggest_fix
 from .lsp_tools import register_lsp_tools
 from .module_imports import _tool_module_imports
 from .project_info import _tool_project_info
@@ -99,21 +101,19 @@ from .refresh_index import _tool_refresh_index
 from .repo_skeleton import _tool_repo_skeleton
 from .search_symbols import _tool_search_symbols
 from .semantic_search import _tool_semantic_search
+from .spectral import _tool_suggest_modules
 from .structural_analysis import _ast_find_callees, _ast_find_callers, _tool_structural_analysis
+from .switch_model import (
+    _tool_get_embedding_model_info,
+    _tool_list_embedding_models,
+    _tool_switch_embedding_model,
+    get_embedding_model_info_tool,
+    list_embedding_models_tool,
+    switch_embedding_model_tool,
+)
 from .transitive_analysis import _tool_transitive_dependents
 from .ts_edit import _tool_ts_edit
 from .watcher import _tool_reindex_path, _tool_watch_add, _tool_watch_status
-from .fix_mcp import _tool_fix_code, _tool_fix_check, _tool_rerank_results
-from .llm_suggest_fix import _tool_llm_suggest_fix, _tool_llm_check_available
-from .spectral import _tool_suggest_modules
-from .switch_model import (
-    _tool_switch_embedding_model,
-    _tool_list_embedding_models,
-    _tool_get_embedding_model_info,
-    switch_embedding_model_tool,
-    list_embedding_models_tool,
-    get_embedding_model_info_tool,
-)
 
 # Core AST tools with schemas
 register_tool(
@@ -1461,10 +1461,11 @@ register_tool(
 # Tool Discovery System — search_tools, call_tool, tool_info
 # ══════════════════════════════════════════════════════════════════════════
 
-import sqlite3
 import json
+import sqlite3
 import time
 from datetime import datetime, timezone
+
 from ._tool_categories import TOOL_CATEGORIES
 
 # ─── Usage Tracking ─────────────────────────────────────────────────────────

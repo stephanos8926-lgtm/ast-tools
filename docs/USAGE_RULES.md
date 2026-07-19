@@ -1,6 +1,7 @@
 # ⚠️ AST-TOOLS USAGE RULES — READ BEFORE EDITING
 
-**STOP:** If you are about to edit AST-Tools source code, read this first.
+**Last updated:** 2026-07-31  
+**Version:** v0.2.0 (77 tools, 943 tests)
 
 ---
 

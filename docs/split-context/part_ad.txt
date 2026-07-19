@@ -1,0 +1,877 @@
+    tool_key = tool_name.replace("mcp_ast_tools_", "")
+    budget = AST_TOOLS_TOKEN_BUDGETS.get(tool_key, AST_TOOLS_TOKEN_BUDGETS["default"])
+    
+    if estimated_tokens > budget:
+        logger.warning(
+            f"ast-tools tool {tool_name} exceeded token budget: "
+            f"{estimated_tokens} > {budget}"
+        )
+        # Could truncate result or suggest filtering
+
+def estimate_context_tokens(
+    session_id: str,
+    user_message: str,
+    conversation_history: list,
+    **kwargs
+) -> dict | None:
+    """
+    Estimate current context token usage.
+    
+    Injects warning when approaching compression threshold.
+    """
+    # Rough estimation (4 chars ≈ 1 token)
+    total_chars = sum(
+        len(msg.get("content", ""))
+        for msg in conversation_history
+        if isinstance(msg.get("content"), str)
+    )
+    
+    estimated_tokens = total_chars // 4
+    
+    # Get model context length (from config or default)
+    context_length = 262144  # Qwen3.5-397B-A17B
+    threshold = int(context_length * 0.50)  # 50% default
+    
+    usage_pct = (estimated_tokens / context_length) * 100
+    
+    if estimated_tokens >= threshold * 0.80:
+        # Warn at 80% of threshold (40% of total context)
+        return {
+            "context": (
+                f"\n\n⚠️ **Context Pressure:** Using ~{estimated_tokens:,} tokens "
+                f"({usage_pct:.1f}% of context window). "
+                f"Compression will fire at {threshold:,} tokens. "
+                f"Consider using `/compress` or focusing on recent context."
+            )
+        }
+    
+    return None
+```
+
+---
+
+## 7. Token Counting & Prevention Strategies
+
+### Strategy 1: Result Truncation
+
+**Goal:** Prevent single tool result from consuming excessive context
+
+```python
+def truncate_tool_result(result: str, max_tokens: int = 2000) -> str:
+    """Truncate tool result to max tokens."""
+    # Rough: 4 chars ≈ 1 token
+    max_chars = max_tokens * 4
+    
+    if len(result) <= max_chars:
+        return result
+    
+    # Truncate with head/tail strategy (70/20 split)
+    head_len = int(max_chars * 0.70)
+    tail_len = int(max_chars * 0.20)
+    
+    return (
+        result[:head_len] +
+        f"\n\n[... truncated {len(result) - head_len - tail_len} chars ...]\n\n" +
+        result[-tail_len:]
+    )
+```
+
+### Strategy 2: Progressive Context Injection
+
+**Goal:** Inject context incrementally, not all at once
+
+```python
+# Instead of full docs injection
+return {"context": full_docs}  # Can be 10K+ tokens
+
+# Use progressive injection
+def progressive_inject(query: str) -> dict:
+    """Inject context progressively based on relevance."""
+    # Phase 1: Quick summary (200 tokens)
+    summary = get_tool_summary()
+    
+    # Phase 2: On follow-up, inject details
+    # (stored in session memory, not LLM context)
+    
+    return {"context": summary}
+```
+
+### Strategy 3: Context7 Pagination
+
+**Goal:** Use Context7's pagination to avoid dumping all docs
+
+```python
+def query_context7_paginated(library_id: str, query: str, max_pages: int = 2):
+    """Query Context7 with pagination limits."""
+    context_parts = []
+    
+    for page in range(1, max_pages + 1):
+        docs = context7_query_docs(
+            libraryId=library_id,
+            query=query,
+            # Implicit pagination in Context7 response
+        )
+        
+        # Estimate tokens
+        if estimate_tokens(docs) > 1000:
+            break
+        
+        context_parts.append(docs)
+    
+    return "\n\n".join(context_parts)
+```
+
+### Strategy 4: Compression-Aware Injection
+
+**Goal:** Inject context only when compression headroom exists
+
+```python
+def compression_aware_inject(session_id: str, user_message: str) -> dict | None:
+    """Only inject context if compression headroom > threshold."""
+    
+    # Get current usage (from Hermes state)
+    current_tokens = get_session_token_usage(session_id)
+    context_length = 262144
+    compression_threshold = int(context_length * 0.50)
+    
+    # Check if we're near compression
+    if current_tokens >= compression_threshold * 0.90:
+        # Too close to compression, skip injection
+        return None
+    
+    # Safe to inject
+    context = build_context(user_message)
+    return {"context": context}
+```
+
+### Configuration for Token Management
+
+```yaml
+# ~/.hermes/config.yaml
+compression:
+  threshold: 0.50          # Compress at 50%
+  protect_last_n: 20       # Keep 20 messages
+  target_ratio: 0.20       # 20% of threshold as tail
+
+# Custom ast-tools token budgets
+ast_tools:
+  token_budgets:
+    ast_grep: 2000
+    structural_analysis: 4000
+    impact_analysis: 3000
+    default: 1000
+  truncation:
+    enabled: true
+    strategy: "head_tail"  # or "summary"
+  progressive_injection: true
+```
+
+---
+
+## 8. Implementation Checklist
+
+### Phase 1: Core Integration
+- [ ] Install ast-tools MCP server in Hermes config
+- [ ] Verify tool discovery (36 tools registered)
+- [ ] Test basic tool execution (ast_grep, ast_read)
+- [ ] Configure tool filtering (include/exclude list)
+
+### Phase 2: Hook Development
+- [ ] Create pre_llm_call hook for context injection
+- [ ] Implement ast-tools documentation builder
+- [ ] Add shell hook for pre_tool_call policy
+- [ ] Configure shell-hooks-allowlist.json
+
+### Phase 3: Context7 Integration
+- [ ] Add Context7 MCP server to config
+- [ ] Implement Context7 query integration in hook
+- [ ] Test documentation injection for common libraries
+- [ ] Add pagination/truncation logic
+
+### Phase 4: Token Management
+- [ ] Implement token tracking post_tool_call hook
+- [ ] Add compression-aware injection logic
+- [ ] Test with large results (truncate/stage)
+- [ ] Configure token budgets
+
+### Phase 5: Testing & Validation
+- [ ] Test end-to-end context injection flow
+- [ ] Verify compression triggers correctly
+- [ ] Test shell hook blocking scenarios
+- [ ] Measure token savings vs. overhead
+
+---
+
+## 9. Files to Create/Modify
+
+### Creation
+1. `~/.hermes/plugins/ast_tools_context/__init__.py` - Pre-LLM-call hook
+2. `~/.hermes/plugins/ast_tools_wrapper/__init__.py` - Tool wrapper
+3. `~/.hermes/plugins/ast_tools_tokens/__init__.py` - Token tracking
+4. `~/.hermes/shell-hooks/ast-tools-policy.sh` - Shell hook script
+5. `~/.hermes/shell-hooks-allowlist.json` - Shell hook allowlist
+
+### Modification
+1. `~/.hermes/config.yaml` - Add MCP servers, hooks, token config
+2. `/home/sysop/Workspaces/ast-tools/src/ast_tools_server.py` - Ensure proper result formatting
+
+---
+
+## 10. References
+
+- Hermes Hooks: https://hermes-agent.nousresearch.com/docs/user-guide/features/hooks
+- MCP Integration: https://hermes-agent.nousresearch.com/docs/user-guide/features/mcp
+- Context Compression: https://hermes-agent.nousresearch.com/docs/developer-guide/context-compression-and-caching
+- Memory Providers: https://hermes-agent.nousresearch.com/docs/developer-guide/memory-provider-plugin
+- TokRepo: https://tokrepo.com/llms.txt
+- Context7: https://github.com/upstash/context7
+- MCP Spec: https://modelcontextprotocol.io/specification/2025-11-25/server/tools
+
+================================================================================
+FILE: docs/plans/phase-d-hermes-integration.md
+================================================================================
+
+# Phase D — Hermes Integration: Discovery Mode
+
+## Goal
+Reduce the model's active tool list from 77 tools (~18K tokens) to 4 meta-tools (~800 tokens). The 73 individual tools remain registered and callable through `call_tool` — they're just not dumped into the LLM's context window.
+
+## What Needs to Change
+
+### 1. `src/ast_tools/_server.py` — Filter `list_tools()`
+Add a `DISCOVERY_MODE` flag. When enabled, `handle_list_tools()` returns only the 4 meta-tools. The 73 individual tools are still registered and callable through `call_tool`.
+
+**Trigger:** `AST_TOOLS_DISCOVERY_MODE=true` env var (not set in tests, so test suite unaffected).
+
+### 2. `~/.hermes/config.yaml` — Add env var to MCP server config
+```yaml
+mcp_servers:
+  ast-tools:
+    args:
+      - /home/sysop/Workspaces/ast-tools/src/ast_tools/_server.py
+    command: /home/sysop/Workspaces/ast-tools/.venv/bin/python3
+    connect_timeout: 60
+    timeout: 120
+    env:
+      AST_TOOLS_DISCOVERY_MODE: "true"
+```
+
+### 3. No other changes needed
+- `call_tool` dispatches to any registered tool regardless of discovery mode
+- `search_tools` searches the full tool registry regardless of discovery mode
+- Tests are unaffected (env var not set in test environment)
+
+## Token Impact
+
+| Mode | Tools in Context | Token Cost | Improvement |
+|------|-----------------|-----------|-------------|
+| Current (all tools) | 77 | ~18,000 | — |
+| Discovery mode | 4 | ~800 | 95% reduction |
+
+## Verification
+After deployment:
+1. `hermes` should list only 4 tools from ast-tools
+2. `call_tool("ast_grep", {...})` should still work
+3. `search_tools("find references")` should still return results
+4. All 943 tests should pass
+
+================================================================================
+FILE: docs/plans/phase-d-launch.md
+================================================================================
+
+# Phase D: Launch Prep
+
+**Effort:** 3 days
+**Depends on:** Phase A (PyPI publish must happen first)
+
+## Tasks
+
+| ID | Task | Effort | Status |
+|----|------|--------|--------|
+| D1 | Multi-agent onboarding docs (Claude, Gemini, Cursor, Cline, Hermes) | 1 day | 🔴 |
+| D2 | Ast-grep MCP adapter (optional compat layer) | 0.5 day | 🔴 |
+| D3 | PyPI v0.2.0 release + GitHub release note | 0.5 day | 🔴 |
+| D4 | Multi-arch build CI (aarch64) | 1 day | 🔴 |
+
+
+################################################################################
+TOOL DISCOVERY / INTELLIGENCE ARCHITECTURE
+################################################################################
+
+
+================================================================================
+FILE: docs/specs/tool-discovery-v1.md
+================================================================================
+
+# Tool Discovery System v1 — Code Mode for ast-tools
+
+**Status:** Draft · **Date:** 2026-07-18  
+**Authors:** Lucien (RapidWebs)  
+**Inspired by:** Cloudflare Code Mode, RAG-MCP, MCPProxy, Agent Tool Registry  
+
+---
+
+## 1. The Problem
+
+ast-tools currently registers **73 MCP tools** into the model context on every LLM call. This is approaching the degradation threshold documented across multiple benchmarks:
+
+| Source | Threshold | Degradation |
+|--------|-----------|-------------|
+| RAG-MCP (May 2025) | >15 tools | Accuracy drops from ~44% → 13.6% |
+| OpenAI docs | >128 tools | Hard ceiling, degradation before limit |
+| StackOne benchmarks | >50 tools | Top-1 accuracy drops below 30% |
+| MCPProxy analysis | >200 tools | BM25 loses discriminating power |
+
+**The math for ast-tools:**
+- 73 tools × ~250 tokens avg schema = ~18,250 tokens *before the user's request*
+- That's ~9% of a 200K context window gone before any real work
+- Semantic collisions: 73 descriptions with overlapping terms ("search", "analysis", "symbol", "reference")
+
+---
+
+## 2. Cloudflare's Solution: Code Mode
+
+**Blog:** https://blog.cloudflare.com/code-mode-mcp/  
+**Docs:** https://developers.cloudflare.com/agents/concepts/tools/  
+**GitHub:** https://github.com/cloudflare/mcp
+
+### Core Pattern
+
+Instead of registering every API endpoint as a tool (2,500 endpoints = 1.17M tokens), Cloudflare registers **3 meta-tools** (~1,000 tokens):
+
+```
+┌─────────────────────────────────────────────┐
+│  Model Context                              │
+│                                             │
+│  ┌─────────┐  ┌──────────┐  ┌───────────┐  │
+│  │  docs   │  │  search  │  │  execute  │  │
+│  └─────────┘  └──────────┘  └───────────┘  │
+│       │            │              │          │
+│       ▼            ▼              ▼          │
+│  ┌─────────────────────────────────────┐    │
+│  │         Sandboxed Worker            │    │
+│  │  ┌───────────────────────────────┐  │    │
+│  │  │  spec.paths filter by tag    │  │    │
+│  │  │  cloudflare.request({...})   │  │    │
+│  │  └───────────────────────────────┘  │    │
+│  └─────────────────────────────────────┘    │
+│         ▲                                   │
+│  ┌──────┴───────────┐                       │
+│  │  OpenAPI Spec    │   ~2M tokens           │
+│  │  (on server)     │   never in context     │
+│  └──────────────────┘                       │
+└─────────────────────────────────────────────┘
+```
+
+### How It Works
+
+1. Agent needs to do something with Cloudflare DNS
+2. Agent calls `search({ code: `async () => spec.paths.filter(p => p.tags.includes('DNS'))`})`
+3. Server runs the code in a sandbox, returns only the matching endpoints
+4. Agent inspects the result, finds the right endpoint and parameters
+5. Agent calls `execute({ code: `async () => cloudflare.request({ method: 'GET', path: '/...' })`})`
+
+The full API spec never enters the model context. The agent discovers what it needs by writing code against a typed representation.
+
+### Key Design Principles from Cloudflare
+
+1. **Fixed token footprint** — regardless of API size
+2. **Progressive discovery** — agent searches for what it needs, when it needs it
+3. **Server-side execution** — code runs in a sandbox, results are summarized
+4. **Zero agent-side changes** — new endpoints are automatically discoverable
+5. **Safe execution** — sandboxed isolate with no network access to credentials
+
+---
+
+## 3. Design for ast-tools
+
+### 3.1 Architecture
+
+```
+┌──────────────────────────────────────────────────┐
+│  Model Context (~800 tokens)                     │
+│                                                   │
+│  ┌──────────────┐  ┌────────────┐  ┌───────────┐│
+│  │ search_tools │  │ call_tool  │  │ tool_info ││
+│  └──────────────┘  └────────────┘  └───────────┘│
+│         │               │              │          │
+└─────────┼───────────────┼──────────────┼──────────┘
+          │               │              │
+          ▼               ▼              ▼
+┌──────────────────────────────────────────────────┐
+│              Tool Discovery Layer                 │
+│                                                   │
+│  ┌────────────────────────────────────────────┐   │
+│  │  Semantic Tool Registry                    │   │
+│  │  ┌────────┐ ┌──────────┐ ┌──────────────┐│   │
+│  │  │  FTS5  │ │  Vector  │ │  6-factor    ││   │
+│  │  │  index │ │  index   │ │  RRF fusion  ││   │
+│  │  └────────┘ └──────────┘ └──────────────┘│   │
+│  └────────────────────────────────────────────┘   │
+│         │             │             │              │
+│         ▼             ▼             ▼              │
+│  ┌────────────────────────────────────────────┐   │
+│  │  73 Registered Tools (on server)           │   │
+│  │  ast_grep, ast_read, impact_analysis, ... │   │
+│  └────────────────────────────────────────────┘   │
+│                                                   │
+│  ┌────────────────────────────────────────────┐   │
+│  │  Tool Categories (for routing)             │   │
+│  │  CODE_ANALYSIS | SEARCH | REFACTOR | ...  │   │
+│  └────────────────────────────────────────────┘   │
+│                                                   │
+│  ┌────────────────────────────────────────────┐   │
+│  │  Usage Analytics                            │   │
+│  │  call_count, error_rate, latency_p50...   │   │
+│  └────────────────────────────────────────────┘   │
+└──────────────────────────────────────────────────┘
+```
+
+### 3.2 The 3 Meta-Tools
+
+#### Tool 1: `search_tools`
+
+```json
+{
+  "name": "search_tools",
+  "description": "Search available tools by natural language query. Returns ranked tool names, descriptions, and schemas. Use this to discover which tool to call.",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "query": {
+        "type": "string",
+        "description": "Natural language query describing what you want to do"
+      },
+      "category": {
+        "type": "string",
+        "enum": ["CODE_ANALYSIS", "SEARCH", "REFACTOR", "INDEX", "LSP", "GRAPH", "META", "FIX"],
+        "description": "Optional category filter to narrow results"
+      },
+      "top_k": {
+        "type": "integer",
+        "default": 5,
+        "description": "Number of tool matches to return (max 10)"
+      }
+    },
+    "required": ["query"]
+  }
+}
+```
+
+**Returns:** Ranked list of matching tools with name, description, and parameter schema.
+
+#### Tool 2: `call_tool`
+
+```json
+{
+  "name": "call_tool",
+  "description": "Execute a discovered tool by name. First use search_tools to find the right tool, then call it here. The tool runs in the ast-tools MCP server and returns results.",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "name": {
+        "type": "string",
+        "description": "The exact tool name (from search_tools results)"
+      },
+      "arguments": {
+        "type": "object",
+        "description": "Tool-specific arguments per the schema returned by search_tools"
+      }
+    },
+    "required": ["name", "arguments"]
+  }
+}
+```
+
+#### Tool 3: `tool_info`
+
+```json
+{
+  "name": "tool_info",
+  "description": "Get full details about a specific tool including its complete schema, usage examples, and success rate.",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "name": {
+        "type": "string",
+        "description": "The exact tool name"
+      },
+      "include_examples": {
+        "type": "boolean",
+        "default": false,
+        "description": "Include usage examples from the tool's documentation"
+      }
+    },
+    "required": ["name"]
+  }
+}
+```
+
+### 3.3 Semantic Tool Registry
+
+Reuses ast-tools' existing infrastructure:
+
+| Component | What | Status |
+|-----------|------|--------|
+| **FTS5 index** | Keyword search over tool names + descriptions | ✅ Already built for codebase |
+| **Vector index** | Embedding search over tool descriptions | ✅ Already built for codebase |
+| **6-factor RRF** | Rank fusion: semantic (40%) + recency (15%) + usage (15%) + kind (10%) + proximity (10%) + centrality (10%) | ✅ Already built |
+| **Tool metadata** | Schema, category, usage stats | 🏗️ Need to add |
+| **Usage analytics** | call_count, error_rate, latency | 🏗️ Need to add |
+
+### 3.4 Tool Categories
+
+Every tool gets assigned a category at registration:
+
+| Category | Example Tools |
+|----------|--------------|
+| `CODE_ANALYSIS` | ast_grep, structural_analysis, find_references |
+| `SEARCH` | semantic_search, search_symbols, find_symbol_definition |
+| `REFACTOR` | ast_edit, ts_edit, ast_refactor_extract_interface |
+| `INDEX` | refresh_index, reindex_path, index_status |
+| `LSP` | lsp_definition, lsp_hover, lsp_completion |
+| `GRAPH` | kg_query, kg_neighborhood, kg_shortest_path |
+| `FIX` | fix_code, fix_check, llm_suggest_fix |
+| `META` | search_tools, call_tool, tool_info |
+| `CURATOR` | curator_audit, curator_summary, curator_status |
+| `WATCH` | watch_add, watch_status |
+
+### 3.5 Hybrid Search Pipeline
+
+```
+User Query: "find all references to this function"
+         │
+         ▼
+┌────────────────────┐
+│  Query Embedding   │
+│  (bge-small-en-v1.5) │
+└────────┬───────────┘
+         │
+    ┌────┴────┐
+    ▼         ▼
+┌────────┐ ┌────────┐
+│  FTS5  │ │ Vector │
+│ match  │ │  sim   │
+└────┬───┘ └───┬────┘
+     │         │
+     └────┬────┘
+          ▼
+┌─────────────────┐
+│  6-factor RRF   │
+│  + usage boost  │
+│  + recency      │
+└────────┬────────┘
+         ▼
+┌─────────────────┐
+│  Top-5 tools    │
+│  with schemas   │
+└─────────────────┘
+```
+
+### 3.6 Usage-Aware Ranking
+
+Track per tool:
+
+- `call_count` — how many times called
+- `success_count` — how many succeeded without error
+- `error_count` — how many threw
+- `avg_latency_ms` — average response time
+- `last_called` — timestamp of last use
+
+**Ranking boost formula:**
+
+```
+boost = 0
+if success_rate > 0.9: boost += 0.1
+if call_count > 100:   boost += 0.05
+if last_called < 7d:   boost += 0.03
+
+final_score = rrf_score * (1 + boost)
+```
+
+Downrank tools with:
+- Error rate > 20%
+- Never called in 30+ days
+
+---
+
+## 4. Implementation Phases
+
+### Phase A: Tool Registry Metadata (2-3 days)
+
+- [ ] Add `ToolMetadata` dataclass: name, description, schema, category, usage_stats
+- [ ] Annotate all 73 tools with categories in their registration
+- [ ] Build FTS5 + vector index over tool descriptions
+- [ ] Add `search_tools` MCP tool
+
+### Phase B: Dispatch Layer (2-3 days)
+
+- [ ] Build `ToolDispatcher` — validates tool name, resolves to handler, calls it
+- [ ] Add `call_tool` MCP tool with argument validation
+- [ ] Add `tool_info` MCP tool for full schema details
+- [ ] Usage tracking: log calls, successes, errors, latency
+
+### Phase C: Smart Ranking (1-2 days)
+
+- [ ] Integrate usage stats into RRF scoring
+- [ ] Auto-downrank failing tools
+- [ ] Category-aware boosting
+- [ ] Weekly staleness recalculation
+
+### Phase D: Agent Integration (1-2 days)
+
+- [ ] Update Hermes MCP config to use discovery layer
+- [ ] Add documentation and examples
+- [ ] Benchmark: 73 tools in context vs 3 meta-tools
+- [ ] Progressive disclosure: load tool schemas lazily
+
+**Total estimated effort: 6-10 days**
+
+---
+
+## 5. Behavior Changes
+
+### Before (current)
+```python
+# Every LLM call gets 73 tool schemas (~18K tokens)
+# Model sees ALL tools at all times
+ast_grep, ast_read, ast_edit, structural_analysis, ...
+```
+
+### After (with discovery layer)
+```python
+# Every LLM call gets 3 meta-tool schemas (~800 tokens)
+# Model calls search_tools("find references") → gets 3 relevant tools
+# Model calls call_tool("find_references", {...}) → gets results
+# The 70+ tool schemas never enter the context
+```
+
+### Migration Path
+
+1. Phase A+B: Both paths available simultaneously
+2. Phase C+D: Discovery layer becomes primary, direct tool exposure deprecated
+3. Eventually: Tools like `ast_grep` still exist on the server, but the model only sees them through the discovery layer
+
+---
+
+## 6. Risks and Mitigations
+
+| Risk | Likelihood | Impact | Mitigation |
+|------|-----------|--------|------------|
+| Discovery latency (embedding query) | Medium | Low | FTS5 fallback <1ms |
+| Tool mis-selection (wrong tool returned) | Medium | Medium | 6-factor RRF + usage stats |
+| Agent prefers direct tools (old patterns) | High | Low | Deprecate direct exposure gradually |
+| Ranking cold start (no usage data) | High | Low | Seed with keyword-based defaults |
+| sandbox complexity | Low | High | Start without sandbox: just dispatch |
+
+---
+
+## 7. Open Questions
+
+1. **Sandbox or no sandbox?** — Cloudflare runs code in a Dynamic Worker sandbox. For ast-tools, we can start without sandboxing (just dispatch calls) and add sandboxing later.
+
+2. **Gradual or cut-over?** — Should we keep all 73 tools registered AND add the 3 meta-tools, or remove the 73 and force agents through discovery? **Recommendation:** Both paths for Phase A+B, then cut over.
+
+3. **How does Hermes handle this?** — Hermes loads all MCP tool schemas into context. The discovery layer would need to be configured as the primary interface, with the 73 tools configured but hidden from the model's active tool list.
+
+4. **Recursive tools?** — `call_tool` could dispatch to itself. Add a guard: `call_tool` cannot dispatch to `call_tool`, `search_tools`, or `tool_info`.
+
+5. **Tool schema size optimization?** — Cloudflare uses ~400 tokens per meta-tool schema. For ast-tools, each tool schema averages ~250 tokens. We can provide minimal schemas in search results and full schemas only on `tool_info` requests.
+
+---
+
+## 8. References
+
+- [Cloudflare Code Mode Blog](https://blog.cloudflare.com/code-mode-mcp/)
+- [Cloudflare Agents — Tools Concept](https://developers.cloudflare.com/agents/concepts/tools/)
+- [Cloudflare MCP Server (GitHub)](https://github.com/cloudflare/mcp)
+- [RAG-MCP Paper (May 2025)](https://doi.org/10.3390/a19060447)
+- [MCPProxy — Beyond BM25](https://dev.to/algis/beyond-bm25-the-future-of-mcp-tool-discovery-57d7)
+- [Agent Tool Registry (NEO)](https://heyneo.com/blog/agent-tool-registry)
+- [Agent Patterns — Tool Registry](https://www.agentpatternscatalog.org/patterns/tool-agent-registry/)
+- [Machine Learning Mastery — Tool Selection Guide](https://machinelearningmastery.com/the-complete-guide-to-tool-selection-in-ai-agents/)
+- [StackOne MCP Benchmarks](https://stackone.com/)
+- [Stacklok MCP Optimizer](https://stacklok.com/)
+
+
+================================================================================
+FILE: docs/specs/TOOLING_SPEC.md
+================================================================================
+
+## Master Spec: All Remaining ast-tools Features
+
+**Current State:** 55 tools, 330+ tests, Phases 0-10 completed. 693 tests collected.
+
+---
+
+### Category A — Ship & Polish (1-2 days)
+
+*   **Goal:** Get ast-tools ready for public release.
+
+*   **Problem Statement:** The existing PyPI name "ast-tools" is taken, preventing a direct release. Additionally, critical bugs in the server environment and core functionalities need to be fixed to ensure a stable and professional first release. Documentation and release processes also require updates for an open-source audience.
+
+*   **Proposed Solution:**
+    1.  Address the PyPI name conflict by selecting and implementing a new package name.
+    2.  Rectify the broken server virtual environment and ensure seamless synchronization of source files.
+    3.  Update all relevant project files (`pyproject.toml`, documentation, README) to reflect the new name.
+    4.  Conduct a performance benchmark to establish baseline metrics.
+    5.  Implement CI/CD for automated publishing to PyPI.
+    6.  Revise the README for an OSS audience, focusing on onboarding and use cases beyond internal development.
+
+*   **Components List:**
+    *   Name selection utility/process.
+    *   Virtual environment repair scripts/instructions.
+    *   `rsync` or equivalent for server synchronization.
+    *   `pyproject.toml` modification tooling.
+    *   Documentation update scripts/manual process.
+    *   Benchmarking tool integration.
+    *   GitHub Actions for PyPI publishing.
+    *   README content generation.
+
+*   **Files to Create/Modify:**
+    *   `pyproject.toml` (package name, metadata)
+    *   `README.md` (rewrite for OSS)
+    *   `docs/` directory (update references to package name)
+    *   `.github/workflows/publish.yml` (new CI/CD for PyPI)
+    *   Server-side environment setup scripts (for fixing venv).
+    *   Potentially utility scripts for automated renaming if feasible.
+
+*   **Dependencies Between Categories:**
+    *   Category A must be completed before Category D can begin, as A focuses on release readiness and D is about launch preparation.
+
+*   **Acceptance Criteria:**
+    *   A new, available PyPI name is chosen and implemented.
+    *   The server virtual environment is functional.
+    *   Source files are successfully synchronized to the server.
+    *   The package can be built and published to PyPI under the new name.
+    *   The `README.md` is updated and reflects OSS best practices.
+    *   Benchmark results (time, token, latency) for indexing the Linux kernel are documented.
+    *   A GitHub Actions workflow successfully publishes a tagged release.
+
+*   **Test Strategy:**
+    *   Execute all existing unit and integration tests to ensure no regressions are introduced by bug fixes or renaming.
+    *   Perform manual tests for PyPI publishing workflow.
+    *   Verify server synchronization.
+    *   Run the benchmarking script and validate its output.
+    *   Test the GitHub Actions CI/CD pipeline by creating a test tag.
+
+---
+
+### Category B — Heavy Hitter: Architecture Governance Engine (5-7 days)
+
+*   **Goal:** Implement enterprise-grade import rule governance as detailed in ADR 0010.
+
+*   **Problem Statement:** Current import management lacks structured governance, leading to potential architectural drift, unmanageable dependencies, and security vulnerabilities. There's no systematic way to define, enforce, and report on desired import patterns.
+
+*   **Proposed Solution:** Develop a comprehensive system for defining, analyzing, and enforcing import rules. This includes parsing rule definitions, scanning code for violations, providing CLI tools for management, generating reports on governance status, and offering diff capabilities to track changes.
+
+*   **Components List:**
+    *   **B1: YAML Parser + Schema:** For defining import rules (e.g., allowed/disallowed imports, source/destination mappings).
+    *   **B2: Scanner Engine:** To traverse the codebase, parse Abstract Syntax Trees (ASTs), and identify import statements.
+    *   **B3: CLI Commands:** User-facing commands for rule definition, scanning, and reporting (e.g., `ast-tools governance scan`, `ast-tools governance rules add`).
+    *   **B4: Governance Diff:** Tool to compare current import structure against defined rules or previous states, highlighting violations.
+    *   **B5: HTML Report Generator:** Creates a visual, human-readable report of governance status, violations, and trends.
+
+*   **Files to Create/Modify:**
+    *   `ast_tools/governance/` directory (new module for governance features)
+        *   `rules.py` (YAML parsing, schema validation)
+        *   `scanner.py` (AST traversal, import analysis)
+        *   `cli.py` (command-line interface)
+        *   `diff.py` (governance diff logic)
+        *   `reporter.py` (HTML report generation)
+    *   `pyproject.toml` (add dependencies like `PyYAML`, potentially `jinja2` for reports)
+    *   `tests/governance/` (new test suite)
+    *   `docs/specs/governance.md` (detailed documentation for the governance engine)
+
+*   **Dependencies Between Categories:**
+    *   Category B is independent of A and C, but its components (specifically the scanner engine) might leverage or inform features in Category C (like auto-fixing).
+    *   Category B should ideally be developed in parallel with C, but delivered alongside D2 (Ast-grep MCP optional adapter) for launch.
+
+*   **Acceptance Criteria:**
+    *   Users can define import governance rules in YAML format.
+    *   The scanner correctly identifies import statements across various Python constructs.
+    *   CLI commands allow users to scan a project, add/remove rules, and view governance status.
+    *   The governance diff tool accurately highlights deviations from defined rules.
+    *   An HTML report is generated, clearly visualizing policy compliance and violations.
+
+*   **Test Strategy:**
+    *   Unit tests for the YAML parser and schema validation.
+    *   Unit tests for the AST-based scanner, covering various import scenarios (absolute, relative, aliased, dynamic).
+    *   Integration tests for CLI commands, simulating user interactions.
+    *   Tests for the diff algorithm, using predefined rule sets and code states.
+    *   End-to-end tests generating HTML reports from sample projects with varying rule compliance.
+    *   Focus on edge cases: complex/nested imports, various Python versions, different project structures.
+
+---
+
+### Category C — 2 Killer Features (3-4 days)
+
+*   **Goal:** Introduce high-impact features that differentiate ast-tools significantly.
+
+*   **Problem Statement:** To make ast-tools truly compelling and indispensable, it needs advanced capabilities beyond basic code analysis. Specifically, automated code correction and enhanced search/ranking mechanisms would provide immense value.
+
+*   **Proposed Solution:**
+    *   **C1: Auto-fix Pipeline (`ast fix` command):** Develop a command that automates the process of validating syntax, applying lints, suggesting/applying fixes, and reformatting code. This will leverage existing linting tools and ast-tools' own analysis capabilities.
+    *   **C2: Reranker Integration:** Integrate a cross-encoder model on top of the existing 6-factor RRF (Ranked-Retrieval Fusion) to improve the relevance and quality of search results, especially for complex queries.
+    *   **C3: Architecture HTML Dashboard:** Create an interactive visualization of the project's import architecture using libraries like D3.js or Sigma.js, comparing actual imports against intended architecture.
+
+*   **Components List:**
+    *   **C1:**
+        *   Core `ast fix` command logic.
+        *   Integration with linters (e.g., Ruff, Flake8).
+        *   AST modification functions for applying fixes.
+        *   Code reformatting integration (e.g., Black, isort).
+        *   User interaction/confirmation mechanism for fixes.
+    *   **C2:**
+        *   Cross-encoder model integration (loading, inference).
+        *   RRF scoring modification to include cross-encoder output.
+        *   Search query processing pipeline updates.
+    *   **C3:**
+        *   Data extraction for actual vs. intended imports.
+        *   Graph data structure generation.
+        *   Frontend implementation (HTML, JavaScript) using D3.js/Sigma.js.
+        *   API endpoints or data files to feed the dashboard.
+
+*   **Files to Create/Modify:**
+    *   `ast_tools/fix/` (new module for auto-fix)
+        *   `__init__.py`
+        *   `pipeline.py`
+        *   `linters.py`
+        *   `formatter.py`
+    *   `ast_tools/search/reranker.py` (new module for cross-encoder integration)
+    *   `ast_tools/dashboard/` (new module for architecture dashboard)
+        *   `generator.py`
+        *   `templates/dashboard.html`
+        *   `static/js/graph.js` (D3.js/Sigma.js logic)
+    *   `ast_tools/code_analysis/graph.py` (potential updates for intended architecture representation)
+    *   `pyproject.toml` (add dependencies: ML libraries for reranker, JS charting libraries)
+    *   `tests/fix/`, `tests/search/reranker/`, `tests/dashboard/` (new test suites)
+    *   `docs/specs/auto_fix.md`, `docs/specs/reranker.md`, `docs/specs/dashboard.md`
+
+*   **Dependencies Between Categories:**
+    *   Category C is independent of A and B.
+    *   C1 (Auto-fix) could potentially benefit from or inform the scanner in Category B.
+    *   C3 (Dashboard) benefits from robust import analysis, similar to what Category B aims to govern.
+
+*   **Acceptance Criteria:**
+    *   The `ast fix` command can be invoked, correctly identifies linting errors, and applies fixes for common issues (e.g., unused imports, formatting, simple syntax errors).
+    *   The reranker demonstrably improves the quality of search results compared to RRF alone, validated by sample queries.
+    *   The Architecture HTML Dashboard loads and displays an interactive graph, allowing exploration of import relationships.
+    *   The dashboard accurately reflects the project's current import structure and allows for comparison with an intended architecture.
+
+*   **Test Strategy:**
+    *   **C1:** Create a diverse set of test Python files with known linting errors and syntax issues. Verify that `ast fix` correctly identifies, suggests, and applies fixes, and that the code remains valid and formatted. Test with various combinations of linters and formatters.
+    *   **C2:** Develop a benchmark dataset of search queries and expected results. Evaluate the reranked results against the baseline RRF results using relevance metrics. Test with different cross-encoder models if applicable.
+    *   **C3:** Generate sample project structures with defined intended architectures. Ensure the dashboard renders correctly, is interactive, and accurately visualizes the import graph. Test with varying graph complexities.
+
+---
+
+### Category D — Launch Prep (1-2 days)
+
+*   **Goal:** Finalize all aspects required for a successful public launch of ast-tools v0.2.0.
+
+*   **Problem Statement:** Beyond core feature development and bug fixing, a successful public launch requires comprehensive documentation for diverse users, streamlined deployment, and broad compatibility.
+
+*   **Proposed Solution:**
+    *   **D1: Multi-agent Onboarding Docs:** Create clear, concise documentation tailored for different AI agent/IDE environments (Claude Code, Gemini CLI, Cursor, Cline, Windsurf) to facilitate their integration and use of ast-tools.
+    *   **D2: Ast-grep MCP Optional Adapter:** Develop an adapter or integration layer enabling ast-tools to work alongside or utilize `ast-grep`, providing users with more options for static analysis. This is crucial for leveraging existing ecosystems.

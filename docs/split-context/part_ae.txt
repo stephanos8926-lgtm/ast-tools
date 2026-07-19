@@ -1,0 +1,877 @@
+    *   **D3: PyPI Publish v0.2.0:** Officially publish version 0.2.0 to PyPI, incorporating all features and fixes from A, B, and C.
+    *   **D4: Multi-arch Build:** Ensure the tool can be built and distributed for multiple architectures (x86_64, aarch64) and potentially as a static binary for wider compatibility (e.g., Windows).
+
+*   **Components List:**
+    *   **D1:** Documentation guides, tutorials, example snippets for each target agent.
+    *   **D2:** An optional Python package or a set of compatible APIs/functions that bridge ast-tools and ast-grep.
+    *   **D3:** Final packaging scripts, release notes, versioning management.
+    *   **D4:** Build system configuration (e.g., `pyproject.toml` build settings, Dockerfiles for cross-compilation) to support x86_64, aarch64, and possibly Windows static builds.
+
+*   **Files to Create/Modify:**
+    *   `docs/onboarding/` (new directory for multi-agent docs)
+    *   `ast_tools/adapters/astgrep.py` (new file for adapter)
+    *   `CONTRIBUTING.md` (update with adapter info)
+    *   `pyproject.toml` (update build settings for multi-arch)
+    *   `Dockerfile` (add multi-arch build targets)
+    *   Release scripts for v0.2.0.
+    *   Update `README.md` and `docs/` to reference v0.2.0 and adapter information.
+
+*   **Dependencies Between Categories:**
+    *   Category D is entirely dependent on the completion of Category A (as A ensures release readiness).
+    *   D2 specifically relies on the robust scanner developed in Category B, and potentially the auto-fix pipeline from Category C.
+    *   D3 requires successful completion of A, B, and C.
+
+*   **Acceptance Criteria:**
+    *   Onboarding documentation is clear, accurate, and covers all specified agents.
+    *   The ast-grep adapter functions correctly, allowing ast-tools to interoperate with ast-grep.
+    *   Version 0.2.0 is successfully published to PyPI.
+    *   Binaries or installable packages for ast-tools are successfully built for x86_64 and aarch64 architectures. (Windows static binary availability is a stretch goal).
+
+*   **Test Strategy:**
+    *   **D1:** Review by target audience representatives (if possible) or peer review for clarity and completeness.
+    *   **D2:** Integration tests pairing ast-tools with ast-grep in various scenarios.
+    *   **D3:** Successful installation from PyPI, verification of version number.
+    *   **D4:** Build process validation on target architectures. Install and run basic tool commands on each architecture to confirm functionality.
+
+---
+
+### Dependency Graph:
+
+```
+   +-----------------+
+   | Category A:     |
+   | Ship & Polish   |
+   +-------+---------+
+           | (A before D)
+   +-------+---------+
+   | Category D:     |
+   | Launch Prep     |
+   +-------+---------+
+
+   +-----------------+     +-----------------+
+   | Category B:     | --> | Category D (D2) |
+   | Arch Governance |     +-----------------+
+   +-----------------+
+           | (B informs D2)
+           |
+   +-----------------+     +-----------------+
+   | Category C:     | --> | Category D (D2) |
+   | Killer Features |     +-----------------+
+   +-----------------+
+           | (C informs D2)
+           |
+ (B and C are independent of each other and A)
+```
+*Note: Category B and C are developed independently of each other and Category A. However, Category B's scanner and potentially Category C's auto-fix pipeline are prerequisites for the ast-grep adapter in D2. Category A must complete before Category D begins.*
+
+
+================================================================================
+FILE: docs/specs/incremental-indexing-v1.md
+================================================================================
+
+# Spec: Incremental Indexing (Phase 8)
+
+**Version:** 1.0  
+**Author:** Lucien  
+**Date:** 2026-06-30  
+**Mode:** MEDIUM  
+
+---
+
+## Problem Statement
+
+### Current State
+The semantic index (`refresh_index`) already does **file-level** incremental indexing:
+- Computes SHA256 hash of each file
+- Skips files whose hash hasn't changed
+- Only re-indexes modified files
+
+### The Gap
+When a file **has** changed, the current implementation:
+1. **Deletes ALL symbols** for that file (`DELETE FROM symbols WHERE file_path = ?`)
+2. **Re-inserts ALL symbols** from scratch
+
+**Problems:**
+1. **Symbol ID instability** — Unchanged symbols get new IDs, breaking:
+   - Callgraph edges (reference old symbol IDs)
+   - Embeddings (orphaned vectors pointing to deleted IDs)
+   - Usage tracking (history lost)
+2. **Embedding waste** — Embeddings for unchanged symbols are regenerated
+3. **Edge churn** — All edges for the file are deleted/recreated, even if only one function changed
+4. **Audit trail loss** — `indexed_at` timestamps reset for unchanged symbols
+
+### Use Cases
+- **Large codebases** (100+ files): Only 2-3 files change per edit session, but 100% get re-indexed
+- **CI pipelines**: Full index takes 5-10 min, incremental should take seconds
+- **Long-running projects**: Preserve symbol history across months of development
+
+---
+
+## Goals
+
+| ID | Priority | Goal |
+|----|----------|------|
+| **G1** | P0 | Symbol-level diff: Only insert/delete/update changed symbols per file |
+| **G2** | P0 | Preserve symbol IDs for unchanged symbols (edges, embeddings intact) |
+| **G3** | P1 | Preserve embeddings for unchanged symbols (no regeneration) |
+| **G4** | P1 | Preserve callgraph edges for unchanged symbol pairs |
+| **G5** | P2 | CLI command for incremental indexing (`ast index --incremental`) |
+| **G6** | P2 | Index statistics showing files/symbols added/skipped/removed |
+| **G7** | P3 | Multi-repo support: Index multiple projects into one database |
+
+---
+
+## Compatibility / Behavior Rules
+
+### Backward Compatibility
+- Existing `refresh_index` tool continues to work (full re-index)
+- Existing database schema unchanged (no migrations needed)
+- Existing tools (`ast_grep`, `semantic_search`, `ast_read`) unaffected
+
+### Edge Cases
+1. **File renamed** → Treat as new file (new path = new symbol IDs)
+2. **File deleted** → Remove all symbols, edges, embeddings for that file
+3. **File unchanged** → Skip entirely (current behavior, preserved)
+4. **File partially changed** (e.g., one function modified) → Only update that function's symbol
+5. **Symbol moved to different file** → Treat as delete + insert (different file_path)
+6. **Symbol renamed** → Treat as delete + insert (different name)
+7. **Concurrent edits** → Database locking prevents corruption (already handled)
+
+### Error Handling
+- If diff computation fails → Fall back to full re-index for that file
+- Log warnings for fallback cases
+- Never leave database in partial state (transaction per file)
+
+---
+
+## File Manifest
+
+| File | Action | Description |
+|------|--------|-------------|
+| `src/ast_tools/indexer/diff.py` | **NEW** | Symbol-level diff engine (compare old vs new symbols) |
+| `src/ast_tools/tools/refresh_index.py` | **MODIFY** | Add incremental update path (use diff engine) |
+| `src/ast_tools/tools/index_status.py` | **NEW** | Index status tracking (added/removed/changed counts) |
+| `src/ast_tools/cli.py` | **MODIFY** | Add `ast index` command |
+| `tests/test_diff.py` | **NEW** | Unit tests for diff engine |
+| `tests/test_incremental_index.py` | **NEW** | Integration tests for incremental indexing |
+
+---
+
+## Acceptance Criteria
+
+### Must Have (P0)
+- [ ] `diff.py` module with `compute_symbol_diff(old_symbols, new_symbols)` function
+- [ ] Diff returns: `added`, `removed`, `modified`, `unchanged` symbol lists
+- [ ] `refresh_index` uses diff when `incremental=True` (default)
+- [ ] Unchanged symbols retain their IDs
+- [ ] Modified symbols: Update in-place (preserve ID, update signature/docstring)
+- [ ] Removed symbols: Delete symbol + edges + embeddings
+- [ ] Added symbols: Insert new symbol + edges + embeddings
+
+### Should Have (P1)
+- [ ] Embeddings preserved for unchanged symbols (no regeneration)
+- [ ] Edges preserved for unchanged symbol pairs
+- [ ] Index statistics: `symbols_added`, `symbols_removed`, `symbols_modified`, `symbols_unchanged`
+- [ ] Fallback to full re-index if diff fails
+
+### Nice to Have (P2)
+- [ ] CLI command: `ast index --incremental` (default), `ast index --full`
+- [ ] CLI command: `ast index --status` (show index statistics)
+- [ ] CLI command: `ast index --prune` (remove symbols for deleted files)
+
+### Performance Targets
+- Incremental index of 100-file project with 1 file changed: **< 5 seconds** (vs 30-60s full re-index)
+- Memory usage: **< 100MB** for diff computation on large projects
+- Database size: No growth from unchanged symbols
+
+---
+
+## Technical Approach
+
+### Diff Algorithm
+```python
+def compute_symbol_diff(
+    old_symbols: list[Symbol],
+    new_symbols: list[Symbol]
+) -> DiffResult:
+    """
+    Compare symbol lists and classify each symbol as:
+    - unchanged: name + file_path + signature + docstring match
+    - modified: name + file_path match, but signature/docstring changed
+    - removed: exists in old but not in new
+    - added: exists in new but not in old
+    
+    Matching key: (file_path, qualified_name)
+    """
+```
+
+### Incremental Update Flow
+```
+1. Find all files in project
+2. For each file:
+   a. Compute content hash
+   b. If hash unchanged → skip (existing behavior)
+   c. If hash changed or new:
+      - Parse file → get new symbols
+      - Get old symbols from DB
+      - Compute diff
+      - Apply diff in transaction:
+        * DELETE removed symbols (cascade: edges, embeddings)
+        * UPDATE modified symbols (preserve ID, update content)
+        * INSERT new symbols
+        * Leave unchanged symbols alone
+3. Update file_cache
+4. Return statistics
+```
+
+### Database Queries
+- No schema changes needed
+- Use existing `DELETE ... WHERE id = ?` for removed
+- Use existing `UPDATE ... WHERE id = ?` for modified
+- Use existing `INSERT ... ON CONFLICT` for new
+
+---
+
+## Rollback Plan
+- Each phase committed separately
+- If incremental path fails → `refresh_index` falls back to old full-reindex behavior
+- Feature flag: `incremental=False` forces full re-index (escape hatch)
+
+---
+
+## Out of Scope
+- Multi-repo support (Phase 9)
+- Real-time file watching (already in watcher daemon)
+- Remote/cloud indexing
+- Symbol-level diff across file renames (future enhancement)
+
+
+================================================================================
+FILE: docs/specs/phase5-knowledge-graph-v1.md
+================================================================================
+
+# Phase 5: Knowledge Graph Completion — SPEC
+
+**Date:** 2026-07-02
+**Author:** Lucien
+**Mode:** MEDIUM (new reusable capability, MCP server extension)
+**Status:** ✅ COMPLETE (2026-07-02)  
+**Tests:** 35 tests passing (15 graph_engine + 20 tools)  
+**Note:** Original 60-test target was overly ambitious; actual coverage validates all 6 GraphEngine methods plus 3 MCP tools with edge cases for each
+
+## Executive Summary
+
+**Goal:** Build a formal knowledge graph query layer on top of existing schema v5 infrastructure (edges, knn_graph, dependency_metrics tables), with 3 MCP tools for graph traversal.
+
+**Why Now:**
+- Schema v5 already stores edges and dependency metrics — no query layer exists
+- `knn_builder.py` and `dependency_metrics.py` provide the data pipeline but zero consumer API
+- Agents constantly need "what symbols are related to X?" beyond simple import analysis
+- Market differentiation: no other MCP code tool has a proper KG query layer
+
+**Impact:**
+- Transform ast-tools from search-based to graph-based code intelligence
+- Enable multi-hop reasoning: "what depends on Y through Z?"
+- Paves the way for Phase 6 (co-change analysis) — KG query layer is a prerequisite
+
+## Architecture
+
+```
+src/ast_tools/kg/               # New package — graph engine
+├── __init__.py                  # Exports
+└── graph_engine.py              # GraphEngine class
+
+src/ast_tools/tools/knowledge_graph.py  # MCP tools wrapping GraphEngine
+
+tests/kg/
+└── test_graph_engine.py
+
+tests/tools/
+└── test_knowledge_graph.py
+```
+
+Schema already provides:
+- `symbols` table: all indexed symbols with IDs
+- `edges` table: (source_symbol_id, target_symbol_id, edge_type, weight, metadata)
+- `knn_graph` table: (symbol_id, neighbor_id, similarity, rank)
+- `dependency_metrics` table: (symbol_id, fan_in, fan_out, spof_score, centrality)
+
+## Components
+
+### Component 1: GraphEngine (`src/ast_tools/kg/graph_engine.py`)
+
+```python
+class GraphEngine:
+    """Graph query engine over the symbols + edges tables."""
+
+    def __init__(self, db_path: str):
+        """Connect to SQLite database."""
+
+    def get_neighborhood(self, symbol_id: str, max_depth: int = 2, max_nodes: int = 50) -> dict:
+        """Get all symbols within N hops of the starting symbol.
+        Returns {symbols: [...], edges: [...], root_symbol: str}"""
+
+    def shortest_path(self, from_id: str, to_id: str, max_depth: int = 10) -> dict | None:
+        """Find shortest path between two symbols using bidirectional BFS.
+        Returns {path: [symbol_id, ...], distance: int, nodes: [...], edges: [...]}"""
+
+    def get_centrality_hotspots(self, top_n: int = 10) -> list[dict]:
+        """Return symbols with highest PageRank/centrality scores.
+        Returns [{symbol_id, name, file, centrality, fan_in, fan_out}, ...]"""
+
+    def get_clusters(self, min_size: int = 3) -> list[dict]:
+        """Find weakly connected components (clusters) via union-find.
+        Returns [{cluster_id, size, symbols: [{id, name, file}, ...]}, ...]"""
+
+    def bfs(self, start_id: str, depth_limit: int = 3) -> dict:
+        """BFS traversal returning nodes at each depth level.
+        Returns {levels: {0: [str], 1: [str], ...}, nodes: [...], edges: [...]}"""
+```
+
+### Component 2: MCP Tools (`src/ast_tools/tools/knowledge_graph.py`)
+
+Three tools wrapping GraphEngine:
+
+**`kg_query`** — Natural language KG query
+- Input: `query` (str), `max_depth` (int=2), `max_nodes` (int=50)
+- Uses semantic_search to find starting symbol, then neighborhood traversal
+- Returns: unified context with both search results and graph neighborhood
+
+**`kg_shortest_path`** — Find shortest path
+- Input: `from_symbol` (str), `to_symbol` (str), `max_depth` (int=10)
+- Returns: path with nodes and edges, or "no path found"
+
+**`kg_neighborhood`** — Symbol neighborhood
+- Input: `symbol` (str), `max_depth` (int=2), `max_nodes` (int=50)
+- Returns: all related symbols within N hops, organized by depth level
+
+### Files to Create
+
+| File | Est LOC | Purpose |
+|------|---------|---------|
+| `src/ast_tools/kg/__init__.py` | 20 | Package init |
+| `src/ast_tools/kg/graph_engine.py` | 400 | GraphEngine class |
+| `src/ast_tools/tools/knowledge_graph.py` | 250 | 3 MCP tools |
+| `tests/kg/__init__.py` | 0 | Empty |
+| `tests/kg/test_graph_engine.py` | 200 | Graph engine tests |
+| `tests/tools/test_knowledge_graph.py` | 200 | MCP tool tests |
+
+### Files to Modify
+
+| File | Purpose |
+|------|---------|
+| `src/ast_tools/tools/__init__.py` | Register 3 new tools |
+| `docs/SESSION_STATE.md` | Track progress |
+
+## Acceptance Criteria
+
+- [ ] GraphEngine can load all edges from existing SQLite database
+- [ ] `get_neighborhood` returns correct symbols within 1-3 hops
+- [ ] `shortest_path` finds shortest path between connected symbols
+- [ ] `shortest_path` returns None for disconnected symbols
+- [ ] `get_centrality_hotspots` returns top-N symbols by PageRank
+- [ ] `get_clusters` identifies weakly connected components
+- [ ] BFS traversal respects depth_limit
+- [ ] All 3 MCP tools registered and respond with correct schema
+- [ ] `kg_query` handles "symbol not found" gracefully
+- [ ] Tests pass with no regressions in existing suite
+- [ ] Total tests >= 60 across both test files
+
+
+================================================================================
+FILE: docs/specs/phase10-2-class-hierarchy-v1.md
+================================================================================
+
+# Phase 10.2 — Class Hierarchy Analysis
+
+**Goal:** Add an MCP tool that analyzes class hierarchies — parent/child chains, MRO computation, interface detection (ABC/Protocol), and method override tracking.
+
+**Architecture:** Single new tool file `class_hierarchy.py` + test file, following the same pattern as `transitive_analysis.py`.
+
+**Tech Stack:** Python stdlib only (`ast`, `pathlib`, `typing`, `collections`).
+
+---
+
+## Interface Contract
+
+### Input
+```python
+{
+    "target": str,          # Class name or "file:ClassName"
+    "file": str,            # Optional — file containing the class
+    "workspace": str,       # Optional — project root
+    "max_depth": int,       # Default 10
+}
+```
+
+### Output
+```python
+{
+    "class": str,
+    "file": str,
+    "bases": ["Base1", "Base2"],       # Direct parents
+    "mro": ["Child", "Parent", "object"],  # Full MRO
+    "subclasses": ["Sub1", "Sub2"],     # Classes that inherit from this
+    "interfaces": ["ABC", "Protocol"],  # ABC/Protocol inheritance
+    "methods": {
+        "own": ["method_a"],
+        "inherited": [{"name": "method_b", "from": "Base1"}],
+        "overrides": [{"name": "method_c", "from": "Base1"}]
+    },
+    "metrics": {
+        "depth": 3,
+        "num_methods": 5,
+        "num_overrides": 1,
+        "is_abstract": False,
+        "is_final": False,
+        "has_concrete_methods": True
+    }
+}
+```
+
+### Tool Name
+`class_hierarchy` — registered as `_tool_class_hierarchy`
+
+---
+
+## Implementation
+
+### File: `src/ast_tools/tools/class_hierarchy.py`
+
+Core functions:
+1. `_resolve_target(target, file_path, workspace)` — Find the class definition
+2. `_extract_classes(file_path)` — Parse file and return all class AST nodes
+3. `_compute_mro(class_node, all_classes)` — C3 linearization
+4. `_find_methods(node)` — Extract methods from a class node
+5. `_detect_interface(bases)` — Check for ABC/Protocol
+6. `_find_subclasses(class_name, workspace)` — Scan workspace for classes that inherit from this
+7. `_tool_class_hierarchy(params)` — Main handler
+
+Key implementation details:
+- Parse files with `ast.parse()`
+- Build a name→class_node map for the file first
+- For cross-file references, search workspace by scanning Python files
+- MRO uses C3 algorithm (same as Python's)
+- Track method categories: own (defined in this class), inherited (defined in parent, visible here), overrides (defined in parent, redefined here)
+
+### File: `tests/tools/test_class_hierarchy.py`
+
+Test classes:
+- `TestTargetResolution` — Finding class definitions by name/file
+- `TestMROResolution` — Computing C3 linearization
+- `TestMethodAnalysis` — Own vs inherited vs overridden
+- `TestInterfaceDetection` — ABC/Protocol detection
+- `TestSubclassDetection` — Finding classes that inherit
+- `TestClassHierarchyIntegration` — Full end-to-end on real ast-tools classes (GraphEngine, etc.)
+
+---
+
+## Verification
+
+```bash
+pytest tests/tools/test_class_hierarchy.py -v --tb=short
+# Expected: ALL PASSING
+
+python3 -c "from ast_tools.tools.class_hierarchy import _tool_class_hierarchy; print('import OK')"
+```
+
+================================================================================
+FILE: docs/specs/phase10-3-blast-radius-v2.md
+================================================================================
+
+# Phase 10.3 — Blast Radius v2
+
+**Goal:** Combine transitive import analysis + class hierarchy + call graph into a unified blast radius MCP tool with confidence scoring and per-axis breakdown.
+
+**Architecture:** New tool file `blast_radius_v2.py` that calls existing functions from `transitive_analysis.py`, `class_hierarchy.py`, and `structural_analysis.py`. Does not duplicate — delegates.
+
+---
+
+## Interface Contract
+
+### Input
+```python
+{
+    "target": str,          # Required — file path, symbol name, or class name
+    "cwd": str,             # Optional — project root (default: ".")
+    "max_depth": int,       # Optional — traversal depth (default: 5)
+    "include_imports": bool,# Optional — include import graph axis (default: True)
+    "include_hierarchy": bool, # Optional — include class hierarchy axis (default: True)
+    "include_callers": bool,   # Optional — include call graph axis (default: True)
+}
+```
+
+### Output
+```python
+{
+    "target": "ast_tools.tools.GraphEngine",
+    "target_kind": "class",          # "file", "class", "function", "module"
+    "target_file": "/abs/path.py",
+
+    "summary": {
+        "total_affected": 18,
+        "distinct_files": 7,
+        "risk": "medium",              # none/low/medium/high/critical
+        "confidence": 0.85,            # 0.0-1.0
+    },
+
+    "axes": {
+        "import_graph": {
+            "affected": 8,
+            "risk": "medium",
+            "confidence": 0.95,
+            "details": ["module_a", "module_b", ...],
+        },
+        "class_hierarchy": {
+            "affected": 3,
+            "risk": "low",
+            "confidence": 0.90,
+            "details": ["SubClass1", "SubClass2"],
+        },
+        "call_graph": {
+            "affected": 7,
+            "risk": "medium",
+            "confidence": 0.75,
+            "details": ["function_x in file_y", ...],
+        },
+    },
+
+    "by_file": [
+        {"file": "src/ast_tools/kg/graph_engine.py", "reasons": ["import_graph", "class_hierarchy"]},
+    ],
+
+    "recommendations": [
+        "Class has 3 subclasses — test each before making changes",
+        "Module is imported by 8 files — consider deprecation path",
+    ],
+}
+```
+
+---
+
+## Implementation
+
+### File: `src/ast_tools/tools/blast_radius_v2.py`
+
+#### Functions
+
+1. **`_resolve_target(target, cwd)`** — Determine if target is file, class, function, or module. Returns kind + resolved paths.
+2. **`_axis_import_graph(target, cwd, max_depth)`** — Call `_tool_transitive_dependents()` or the underlying `_build_import_graph` BFS. Returns affected list + risk.
+3. **`_axis_class_hierarchy(target, file_path, cwd)`** — If target is a class, call class_hierarchy internals. Returns affected subclasses + interface chain.
+4. **`_axis_call_graph(target, file_path, cwd)`** — If target is a function/symbol, call `_ast_find_callers` from structural_analysis. Returns affected callers.
+5. **`_combine_axes(results)`** — Union of all affected files, aggregate risk scoring, confidence computation.
+6. **`_compute_confidence(axis_results)`** — Each axis has inherent confidence: import_graph=0.95 (AST-parsed, reliable), class_hierarchy=0.90 (AST-parsed, cross-file edge cases), call_graph=0.75 (jedi-based, may be incomplete).
+7. **`_generate_recommendations(result)`** — Heuristic recommendations based on patterns (e.g., "Class has N subclasses", "Module is imported by N files").
+8. **`_tool_blast_radius_v2(params)`** — Main handler, wires everything together.
+
+#### Key implementation rules
+- **Delegate, don't duplicate** — import and call existing functions from transitive_analysis, class_hierarchy, structural_analysis
+- **Graceful degradation** — if an axis fails (e.g., class_hierarchy for a non-class target), skip it with a note rather than error
+- **Deduplicate** — same file appearing via multiple axes should be counted once in `by_file` but the reasons should accumulate
+- **Risk scoring**: none(0) < low(1-3) < medium(4-9) < high(10-19) < critical(20+)
+- **Aggregate risk** = highest non-zero axis risk, unless all low → medium if 2+ axes active
+- **Confidence** = weighted average of axis confidences (weighted by affected count per axis)
+
+### File: `tests/tools/test_blast_radius_v2.py`
+
+Test classes:
+- `TestTargetResolution` — file path, class name, function name, symbol
+- `TestImportGraphAxis` — mock/reuse transitive analysis
+- `TestClassHierarchyAxis` — mock/reuse class hierarchy functions
+- `TestCallGraphAxis` — mock/reuse caller analysis
+- `TestAxesCombination` — deduplication, union, risk aggregation
+- `TestConfidenceScoring` — weighted average, axis skipping
+- `TestRecommendations` — heuristic generation
+- `TestIntegration` — full end-to-end on real ast-tools files
+
+### Do NOT modify `__init__.py` — I will handle registration.
+
+---
+
+## Verification
+
+```bash
+pytest tests/tools/test_blast_radius_v2.py -v --tb=short
+python3 -c "from ast_tools.tools.blast_radius_v2 import _tool_blast_radius_v2; print('OK')"
+pytest tests/tools/test_class_hierarchy.py tests/tools/test_transitive_analysis.py tests/test_project_tools.py -q --tb=short
+```
+
+################################################################################
+SERVER ARCHITECTURE
+################################################################################
+
+
+================================================================================
+FILE: docs/specs/server-architecture-redesign-v1.md
+================================================================================
+
+# SPEC: rw-ast-tools Server Architecture Redesign
+
+> **Version:** v1  
+> **Date:** 2026-07-05  
+> **Author:** Lucien  
+> **Status:** Draft  
+
+---
+
+## 1. Problem Statement
+
+The rw-ast-tools MCP server currently has three architectural problems:
+
+### 1.1 Hermes-Locked Hooks
+Three Hermes plugins (`ast-tools-context`, `ast-tools-tokens`, `ast-tools-codebase-index`) bind critical functionality to Hermes Agent's plugin/hook system. Other agents (FORGE, Claude Code, Cursor, etc.) cannot use context injection, token tracking, or session intelligence because these only exist as Hermes hooks.
+
+### 1.2 Ephemeral Server Lifecycle
+The MCP server is launched per-connection via stdio transport. Every tool call on a cold server incurs a startup penalty (~0.5-2s). The server cannot maintain state between connections, and there's no mechanism for persistent background tasks (index watching, metric collection).
+
+### 1.3 No Multi-Transport Support
+Only stdio transport is supported. No HTTP/SSE for remote access, no persistent daemon mode, no configuration flexibility.
+
+---
+
+## 2. Solution Architecture
+
+### 2.1 Three-Server-Mode Design
+
+```python
+# Transport selection (in priority order):
+# 1. --mode CLI flag          highest priority
+# 2. AST_TOOLS_MODE env var   runtime override
+# 3. config.yaml setting      default
+
+MODE_OPTIONS = Literal["timeout", "daemon", "remote"]
+
+# Default mode: "timeout" (stdio, idle-timeout based)
+# Daemon mode: systemd user service, Unix socket
+# Remote mode: Streamable HTTP with auth
+```
+
+| Mode | Transport | Lifecycle | Use Case |
+|------|-----------|-----------|----------|
+| **timeout** (default) | stdio | Per-connection, idle TTL | Desktop CLI agents (Claude Code, Codex) |
+| **daemon** | stdio over Unix socket | systemd service | Multi-agent workstations, persistent index |
+| **remote** | Streamable HTTP | systemd service + auth | Server deployment, multi-machine mesh |
+
+### 2.2 Module Extraction: `ast_tools.agent_integration`
+
+Move Hermes hook logic into the rw-ast-tools package as standalone, importable modules:
+
+```
+src/ast_tools/agent_integration/
+├── __init__.py              # Public API
+├── context_builder.py       # Build context blocks from queries (was pre_llm_call hook)
+├── token_tracker.py         # Token budget tracking + pressure warnings (was token plugin)
+├── error_correction.py      # Common tool usage error detection (was error correction)
+└── session_intel.py         # Session intelligence + metrics (was on_session_end hook)
+```
+
+**Each module:** Zero Hermes dependency. Pure functions. Testable with pytest.
+
+**The `context_inject` MCP tool** (`tools/context_tools.py`) becomes a real implementation calling `agent_integration.context_builder.build_context()`.
+
+### 2.3 Thin Hermes Plugin (Replacement)
+
+Replace 3 plugins → 1 plugin (`rw-ast-tools`) that imports from `ast_tools.agent_integration`:
+
+```
+~/.hermes/plugins/rw-ast-tools/
+├── plugin.yaml
+└── __init__.py          # 50 lines, just wiring
+```
+
+```python
+def register(ctx):
+    from ast_tools.agent_integration import context_builder
+    ctx.register_hook("pre_llm_call", lambda **kw: 
+        {"context": context_builder.build_context(kw["user_message"])})
+    # ... same pattern for other hooks
+```
+
+### 2.4 Agent-Facing MCP Tools
+
+New tools that were previously only accessible via hooks:
+
+| Tool | Source | What it does |
+|------|--------|-------------|
+| `context_inject` | Was Hermes hook | Returns formatted AST-tools context block for a query |
+| `token_status` | Was Hermes tracker | Returns current token usage and budget pressure |
+| `validate_usage` | Was error correction | Pre-validates a tool call against known error patterns |
+| `session_intel` | Was on_session_end hook | Returns codebase intelligence snapshot |
+| `index_watch` (enhanced) | Was codebase-index plugin | Manage file watcher for auto-indexing |
+
+### 2.5 Config System
+
+```
+~/.config/rw-ast-tools/config.yaml          # User config
+-- OR --
+$PROJECT_ROOT/.ast-tools/config.yaml        # Per-project config
+```
+
+```yaml
+server:
+  mode: "timeout"             # timeout | daemon | remote
+  timeout_seconds: 900        # Idle TTL for timeout mode (default 15min)
+  
+daemon:
+  socket_path: "~/.cache/rw-ast-tools/server.sock"
+  watchdogs: true             # Enable per-codebase watcher threads
+  max_codebases: 10
+  
+remote:
+  host: "127.0.0.1"
+  port: 8100
+  auth_token: ""              # Empty = no auth (local only)
+  tls_cert: ""
+  tls_key: ""
+
+watchdog:
+  enabled: true
+  debounce_ms: 100
+  auto_index: true
+  metrics_ttl_hours: 168      # 7 days of metric snapshots
+```
+
+### 2.6 CLI + Env Overrides
+
+```bash
+# Mode override (highest priority)
+ast-tools-server --mode daemon
+ast-tools-server --mode remote --port 8100 --auth-token "sk-..."
+
+# Env var (medium priority)
+AST_TOOLS_MODE=daemon ast-tools-server
+
+# Config file (lowest priority — used when nothing else set)
+```
+
+### 2.7 systemd Service (Daemon Mode)
+
+```
+~/.config/systemd/user/rw-ast-tools.service
+```
+
+```ini
+[Unit]
+Description=rw-ast-tools MCP Server (Persistent Daemon)
+Documentation=https://github.com/stephanos8926-lgtm/ast-tools
+
+[Service]
+Type=simple
+ExecStart=%h/.local/bin/ast-tools-server --mode daemon
+Restart=on-failure
+RestartSec=5
+WatchdogSec=120
+StartLimitBurst=5
+StartLimitIntervalSec=300
+MemoryMax=1G
+
+[Install]
+WantedBy=default.target
+```
+
+### 2.8 Watchdog Companion (Daemon Mode Only)
+
+When `server.mode=daemon` and `watchdog.enabled=true`:
+
+- Single `watchdog.observer` thread with routing dispatch
+- Per-codebase state tracked as data (not threads)
+- Metrics snapshots to SQLite time-series table
+- Only active in persistent daemon mode (not timeout/remote)
+
+---
+
+## 3. File Manifest
+
+### New Files
+
+| File | Purpose |
+|------|---------|
+| `src/ast_tools/agent_integration/__init__.py` | Public API exports |
+| `src/ast_tools/agent_integration/context_builder.py` | Context block builder (extracted from Hermes plugin) |
+| `src/ast_tools/agent_integration/token_tracker.py` | Token budget tracking |
+| `src/ast_tools/agent_integration/error_correction.py` | Common error pattern detection |
+| `src/ast_tools/agent_integration/session_intel.py` | Codebase intelligence |
+| `src/ast_tools/server/modes/__init__.py` | Mode router |
+| `src/ast_tools/server/modes/timeout.py` | Stdio + idle TTL mode |
+| `src/ast_tools/server/modes/daemon.py` | Unix socket daemon |
+| `src/ast_tools/server/modes/remote.py` | Streamable HTTP server |
+| `src/ast_tools/config.py` | Config loader (file + env + CLI) |
+| `src/ast_tools/watchdog/monitor.py` | Inotify-based auto-indexer |
+| `src/ast_tools/watchdog/metrics_store.py` | Time-series SQLite store |
+| `~/.hermes/plugins/rw-ast-tools/plugin.yaml` | New thin plugin |
+| `~/.hermes/plugins/rw-ast-tools/__init__.py` | Plugin wiring |
+| `~/.config/systemd/user/rw-ast-tools.service` | systemd unit |
+| `tests/test_agent_integration/` | Tests for extracted modules |
+| `tests/test_server_modes/` | Tests for mode-specific behavior |
+| `tests/test_config.py` | Config loading tests |
+| `tests/test_watchdog/` | Watchdog + metrics tests |
+
+### Modified Files
+
+| File | Change |
+|------|--------|
+| `src/ast_tools/_server.py` | Add mode router, config loader, CLI arg parsing |
+| `src/ast_tools/tools/context_tools.py` | Full implementation (was placeholder) |
+| `src/ast_tools/tools/__init__.py` | Register new tools |
+| `src/ast_tools/cli.py` | Add `--mode` / `--port` / `--auth-token` flags |
+| `pyproject.toml` | Add `uvicorn` dep, `[project.scripts]` entry for `ast-tools-server` |
+| `hermes-plugins/` | Remove 3 old plugins, add 1 new |
+
+### Deleted Files
+
+| File | Reason |
+|------|--------|
+| `hermes-plugins/ast-tools-context/` | Replaced by rw-ast-tools plugin |
+| `hermes-plugins/ast-tools-tokens/` | Replaced by rw-ast-tools plugin |
+| `hermes-plugins/ast-tools-codebase-index/` | Replaced by rw-ast-tools plugin |
+
+---
+
+## 4. Dependencies
+
+| Dependency | Version | For |
+|-----------|---------|-----|
+| `uvicorn` | ≥0.30 | HTTP server for remote mode |
+| `watchdog` | ≥4.0 | File watcher for daemon mode |
+
+Existing deps unchanged: `mcp>=1.0`, `anyio>=4.0`, `sqlite-vec>=0.1.0`, `sentence-transformers>=2.2.0`
+
+---
+
+## 5. Acceptance Criteria
+
+- [ ] `ast_tools.agent_integration.*` modules are pure functions with no Hermes dependency
+- [ ] All 3 Hermes plugins replaced by single `rw-ast-tools` thin plugin
+- [ ] Hermes retains EXACT same functionality after plugin swap
+- [ ] Server starts in 3 modes via `--mode` CLI flag
+- [ ] Mode selectable via `AST_TOOLS_MODE` env var
+- [ ] Config file at `~/.config/rw-ast-tools/config.yaml`
+- [ ] Timeout mode: server exits after N seconds idle
+- [ ] Daemon mode: systemd service, auto-restart on crash
+- [ ] Daemon mode: watchdog auto-indexes codebases in background
+- [ ] Daemon mode: metrics snapshots collected per codebase
+- [ ] Remote mode: Streamable HTTP with optional bearer auth
+- [ ] `context_inject` MCP tool fully implemented (not placeholder)
+- [ ] `token_status` MCP tool added
+- [ ] 731+ existing tests continue to pass
+- [ ] New tests for agent_integration, server modes, config
+- [ ] FORGE agent can add rw-ast-tools as MCP server and use all 63+ tools
+- [ ] Old plugins disabled, new plugin registered and verified
+
+---
+
+## 6. Rollback Plan
+
+| Issue | Rollback |
+|-------|----------|
+| New plugin breaks hooks | Re-enable old plugins, disable new |
+| Server mode change breaks client | Default to timeout mode (preserves current behavior) |
+| Config parsing error | Fallback to hardcoded defaults |
+| Watchdog consumes too much RAM | Disable watchdog in config |
+| Remote mode auth broken | Modes are independent — remote mode fails, timeout/daemon unaffected |
+
+================================================================================
+FILE: docs/specs/server-architecture-synthesis-v1.md
+================================================================================
+
+# SYNTHESIS: Server Architecture Redesign Plan

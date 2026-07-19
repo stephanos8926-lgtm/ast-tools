@@ -6,7 +6,7 @@
 
 ## What is rw-ast-tools?
 
-rw-ast-tools is an MCP server with **57 structural code analysis tools** organized across 13 categories (core AST, project intelligence, symbol search, structural analysis, dependency analysis, index management, LSP integration, agent integration, code validation, TypeScript editing, knowledge graph, co-change analysis, and curator). It understands your code's syntax tree, not just text patterns. Think of it as "code intelligence" — it knows the difference between a function call and a variable named the same thing.
+rw-ast-tools is an MCP server with **77 structural code analysis tools** organized across 10 categories (core AST, project intelligence, symbol search, structural analysis, dependency analysis, index management, LSP integration, agent integration, code validation, TypeScript editing, knowledge graph, co-change analysis, and curator). It understands your code's syntax tree, not just text patterns. Think of it as "code intelligence" — it knows the difference between a function call and a variable named the same thing.
 
 **Package name:** `rw-ast-tools` (PyPI)  
 **MCP server command:** `ast-tools-server`

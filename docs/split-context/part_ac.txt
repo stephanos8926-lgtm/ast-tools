@@ -1,0 +1,877 @@
+
+## Tool Selection Table
+
+| Task | ✅ Use | ❌ Not This |
+|------|--------|-------------|
+| Find all functions matching pattern | `ast_grep` | `search_files` (regex) |
+| Get file's API surface | `ast_read` | `read_file` (line-by-line) |
+| Rename Python function/class | `ast_edit` | `patch` / `sed` / `awk` |
+| Find callers/callees of symbol | `structural_analysis` | `grep` |
+| What breaks if I change X | `impact_analysis` | Manual tracing |
+| Cross-file symbol references | `find_references` | `grep` |
+| Module imports (fan-in/fan-out) | `module_imports` | `grep` + manual |
+| Project overview (<500 tokens) | `codebase_summary` | Reading every entry point |
+| Edit non-Python (JSON, YAML) | `patch` or `write_file` | `ast_edit` |
+| Edit Python (syntax-safe) | `ast_edit` | `patch` / `sed` / `awk` |
+| General text search in files | `search_files` | `ast_grep` (overkill) |
+
+---
+
+## Performance Notes
+
+- **ast_grep:** Fast (CLI, compiled), uses ast-grep binary
+- **ast_edit:** Moderate (libcst parsing), thread-pooled with `anyio.to_thread.run_sync`
+- **structural_analysis:** Slow (jedi semantic analysis), thread-pooled
+- **impact_analysis:** Moderate (AST parsing + graph traversal), thread-pooled
+- **project_info:** Slow (scans entire project), cached via project.json
+
+**All tools run in threads** to avoid blocking async event loop.
+
+---
+
+## Testing Strategy
+
+### Test Categories
+
+1. **E2E Tests** (`test_e2e.py`)
+   - Tool functionality with temp projects
+   - CLI commands
+   - MCP server protocol
+
+2. **Polish Tests** (`test_phase3_polish.py`)
+   - Error codes (NOT_FOUND, SYNTAX_ERROR, etc.)
+   - CLI help/version flags
+   - `__all__` filtering
+
+3. **Project Tests** (`test_project_tools.py`)
+   - Framework detection (pytest, unittest)
+   - Entry point detection
+   - Language detection
+   - Dependency graph
+   - Impact analysis
+   - Find references
+
+### Test Fixture
+
+```python
+@pytest.fixture
+def test_project(tmp_path):
+    """Create a test project and return its path."""
+    return create_test_project(str(tmp_path))
+```
+
+`create_test_project()` from `conftest.py` creates:
+- `src/core/agent.py`
+- `src/core/worker.py`
+- `src/api/handlers.py`
+- `tests/test_agent.py`
+
+### Running Tests
+
+```bash
+# All tests (fast, ~5-10s)
+python3 -m pytest
+
+# Verbose
+python3 -m pytest -v
+
+# Specific file
+python3 -m pytest tests/test_e2e.py -v
+
+# Specific test
+python3 -m pytest tests/test_e2e.py::TestAstGrep::test_grep_function_definitions -v
+
+# Coverage
+python3 -m pytest --cov=ast_tools --cov-report=html
+```
+
+---
+
+## Git Hygiene
+
+### Commit Messages
+
+```
+refactor: Phase 1 — extract ast_grep, ast_edit, ast_read
+refactor: Phase 2 — extract structural_analysis
+refactor: Phase 3 — extract impact_analysis + find_references
+refactor: Phase 4 — extract module_imports
+refactor: Phase 5 — server cleanup and integration
+```
+
+### Branch Strategy
+
+- Work on `master` (fast iterations, tests always passing)
+- One commit per phase
+- No feature branches (refactoring is linear)
+
+### Pre-Commit Checklist
+
+```bash
+# Check for uncommitted changes
+git status
+
+# Run tests
+python3 -m pytest
+
+# Lint
+ruff check src/ tests/
+
+# Format
+ruff format src/ tests/
+
+# Stage + commit
+git add -A
+git commit -m "refactor: ..."
+```
+
+---
+
+## Future Enhancements
+
+### Short-Term
+
+1. **TypeScript backend** — Integrate `ts_backend.py` (Tree-sitter, already exists)
+2. **Documentation** — Auto-generate from tool docstrings
+3. **Caching** — Cache AST parses for large projects
+4. **Incremental analysis** — Only re-analyze changed files
+
+### Long-Term
+
+1. **More languages** — Kotlin, Swift, Ruby via ast-grep
+2. **Performance** — Profile slow tools, optimize
+3. **Remote server** — Deploy as HTTP endpoint
+4. **Plugin system** — Allow custom tools
+
+---
+
+## Contact / Ownership
+
+**Project:** ast-tools  
+**Owner:** Steven Albert Page, RapidWebs Enterprise, LLC  
+**Location:** `~/Workspaces/ast-tools/`  
+**Status:** Production-ready (2026-07-23)
+
+---
+
+**End of Journal**
+
+################################################################################
+HERMES / AGENT INTEGRATION
+################################################################################
+
+
+================================================================================
+FILE: docs/archive/RESEARCH_HERMES_MCP_CONTEXT_INJECTION.md
+================================================================================
+
+# Hermes + MCP Context Injection Research
+
+## Executive Summary
+
+Research into Hermes Agent's context injection mechanisms, MCP tool response formatting, memory/compression integration, and TokRepo/Context7 patterns for the ast-tools MCP server integration.
+
+**Key Findings:**
+1. Hermes has two critical hooks for context injection: `pre_tool_call` (blocking) and `pre_llm_call` (context injection)
+2. MCP tools append context via structured tool results with `content` array and optional `structuredContent`
+3. Hermes compression system manages context window at 50% threshold (configurable)
+4. TokRepo capability discovery uses `tokrepo_resolve_capability` → `tokrepo_discover` → `tokrepo_verify` pattern
+5. Context7 injects documentation via MCP `query-docs` tool that returns documentation in `content` array
+
+---
+
+## 1. Pre-Tool-Call Hook Patterns
+
+### Hook Systems Overview
+
+Hermes has 3 hook systems:
+
+| System | Location | Use Case |
+|--------|----------|----------|
+| Gateway hooks | `~/.hermes/hooks/<name>/HOOK.yaml + handler.py` | Gateway-only lifecycle events |
+| Plugin hooks | Python plugin with `ctx.register_hook()` | CLI + Gateway, tool interception |
+| Shell hooks | `hooks:` block in `~/.hermes/config.yaml` | CLI + Gateway, shell scripts |
+
+### Pre-Tool-Call Hook
+
+**Fires:** Before ANY tool executes (built-in + MCP + plugin tools)
+**Location:** `model_tools.py` inside `handle_function_call()`, before tool handler runs
+**Frequency:** Once per tool call (if model calls 3 tools in parallel, fires 3 times)
+
+**Return Value Shapes:**
+```python
+# Block tool execution
+{"action": "block", "message": "Reason for blocking"}
+
+# Observer-only (most hooks)
+None  # or any other return value is ignored
+```
+
+**Callback Signature:**
+```python
+def pre_tool_call_handler(tool_name: str, args: dict, session_id: str, tool_call_id: str, **kwargs):
+    # Can block based on tool name, arguments, session context
+    if tool_name == "terminal" and session_id not in ADMIN_SESSIONS:
+        return {"action": "block", "message": "Terminal access restricted"}
+    return None
+```
+
+**Dispatch Flow:**
+```
+Model tool_call 
+  ↓
+run_agent.py agent loop
+  ↓
+model_tools.handle_function_call(name, args, task_id, user_task)
+  ↓
+[Plugin pre-hook] → invoke_hook("pre_tool_call", ...)
+  ↓
+registry.dispatch(name, args, **kwargs)
+  ↓
+Tool handler execution
+  ↓
+[Plugin post-hook] → invoke_hook("post_tool_call", ...)
+```
+
+### Pre-LLM-Call Hook (Context Injection)
+
+**Fires:** Once per turn, BEFORE tool-calling loop begins
+**Location:** `run_agent.py`, after context compression, before main `while` loop
+**Return Value:** `{"context": "text"}` or plain string → appended to user message
+
+**Callback Signature:**
+```python
+def pre_llm_call_handler(session_id: str, user_message: str, 
+                         conversation_history: list, 
+                         is_first_turn: bool, model: str, platform: str, **kwargs):
+    # Retrieve context from external source (memory, RAG, etc.)
+    context = retrieve_relevant_context(user_message, session_id)
+    if context:
+        return {"context": context}
+    return None
+```
+
+**Where Context is Injected:**
+- Appended to USER MESSAGE (not system prompt)
+- Preserves prompt cache (system prompt stays identical across turns)
+- Multiple plugins: contexts joined with double newlines
+
+---
+
+## 2. MCP Tool Response Formatting
+
+### MCP Specification Tool Result
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 5,
+  "result": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Tool result text"
+      },
+      {
+        "type": "image",
+        "data": "base64-encoded-data",
+        "mimeType": "image/png"
+      }
+    ],
+    "structuredContent": {
+      "key": "value",
+      "machineReadable": "data"
+    },
+    "isError": false
+  }
+}
+```
+
+### Content Array
+
+**Text Content:**
+```python
+from mcp.types import TextContent
+
+result = CallToolResult(
+    content=[
+        TextContent(type="text", text="Human-readable result")
+    ]
+)
+```
+
+**Structured Content:**
+- Returned in `structuredContent` field as JSON object
+- SHOULD also serialize to `TextContent` for backwards compatibility
+- Hermes bug #5874: Previously dropped `structuredContent`, now fixed
+
+### Error Handling
+
+```python
+try:
+    result = perform_operation()
+    return CallToolResult(
+        content=[TextContent(type="text", text=f"Success: {result}")]
+    )
+except Exception as error:
+    return CallToolResult(
+        isError=True,
+        content=[TextContent(type="text", text=f"Error: {str(error)}")]
+    )
+```
+
+### Hermes MCP Adapter
+
+**Tool Result Processing** (`tools/mcp_tool.py`):
+```python
+# After calling MCP tool
+result = await session.call_tool(tool_name, arguments)
+
+# Build result for agent
+if result.isError:
+    return json.dumps({"error": result.content[0].text})
+else:
+    # Hermes joins all text blocks
+    text = "\n".join(block.text for block in result.content if hasattr(block, 'text'))
+    # Now preserves structuredContent too
+    return text
+```
+
+**Tool Naming:**
+- MCP tools prefixed: `mcp_<server>_<tool>`
+- Example: `filesystem.read_file` → `mcp_filesystem_read_file`
+- Hyphens/dots replaced with underscores
+
+---
+
+## 3. Hermes Compression/Memory Integration
+
+### Dual Compression System
+
+**1. Agent ContextCompressor (Primary)**
+- **Threshold:** 50% of context window (configurable)
+- **Token Source:** API-reported `prompt_tokens` from last turn
+- **Location:** `agent/context_compressor.py`
+- **Fires:** Inside agent tool loop
+
+**2. Gateway Session Hygiene (Safety Net)**
+- **Threshold:** 85% of context window
+- **Fires:** Between turns, before agent processes message
+- **Purpose:** Catch sessions that escaped agent compressor
+
+### Configuration
+
+```yaml
+compression:
+  enabled: true
+  threshold: 0.50              # Compress at 50% of context_window
+  target_ratio: 0.20           # Keep 20% of threshold as recent tail
+  protect_last_n: 20           # Minimum 20 messages preserved
+  protect_first_n: 3           # System prompt + first exchange
+  codex_gpt55_autoraise: true  # Raise to 85% for gpt-5.5 on Codex OAuth
+
+auxiliary:
+  compression:
+    provider: openrouter
+    model: openrouter/owl-alpha
+    timeout: 120
+```
+
+### Compression Algorithm
+
+**4-Phase Process:**
+1. **Prune old tool results** (cheap, no LLM call)
+2. **Protect head messages** (system prompt + first exchange)
+3. **Find tail boundary** by token budget (~20K tokens)
+4. **Summarize middle turns** with structured LLM prompt
+
+**Token Budget Calculation:**
+```python
+threshold_tokens = context_length * threshold  # 262144 * 0.50 = 131072
+tail_budget = threshold_tokens * target_ratio  # 131072 * 0.20 = 26214
+```
+
+### Memory Provider Integration
+
+**Memory Provider ABC** (`agent/memory_provider.py`):
+```python
+class MemoryProvider(ABC):
+    def prefetch(query: str, *, session_id: str) -> str:
+        """Called before each API call - return recalled context"""
+    
+    def sync_turn(user_content: str, assistant_content: str, 
+                  *, session_id: str, messages: list):
+        """Called after each turn - persist conversation (NON-BLOCKING)"""
+    
+    def on_pre_compress(messages: list):
+        """Called before compression - save insights before discard"""
+    
+    def on_session_end(messages: list):
+        """Called on session end - final extraction/flush"""
+```
+
+**Active Providers:**
+- Built-in: MEMORY.md (2200 chars) + USER.md (1375 chars)
+- External: Honcho, Mem0, Supermemory, ByteRover, etc. (one active at a time)
+- Configuration: `memory.provider: "honcho"` in config.yaml
+
+---
+
+## 4. TokRepo Capability Discovery
+
+### Discovery Pattern
+
+**Atomic 3-Step Lifecycle:**
+1. **FIND:** `tokrepo_find_for_task(task)` → Top-N ranked assets
+2. **INSTALL:** `tokrepo_install_plan(uuid)` → `tokrepo_verify(uuid)` → `tokrepo_codex_install(uuid)`
+3. **HARVEST:** `tokrepo_harvest(changed=True)` → Package reusable artifacts
+
+### Capability Resolution
+
+```python
+# Planning-time discovery
+tokrepo_resolve_capability(
+    task="Add MCP context injection tool wrapper",
+    target="codex",
+    constraints={"kind": "mcp_config", "policy": "allow"},
+    environment={"frameworks": ["python", "mcp"]},
+    min_fit=70,
+    min_trust=70
+)
+```
+
+**Response:**
+```json
+{
+  "selected_asset": {
+    "uuid": "...",
+    "slug": "...",
+    "kind": "mcp_config",
+    "title": "...",
+    "fit_score": 85,
+    "trust_score_v2": 92,
+    "policy_decision": "allow"
+  }
+}
+```
+
+### Install Safety Flow
+
+**4-Step Atomic Install:**
+1. `tokrepo_install_plan(uuid)` → Returns plan with preconditions, risk profile, rollback
+2. `tokrepo_verify(uuid)` → Content hash, trust_score_v2, evidence_bundle, SBOM-lite
+3. `tokrepo_codex_install(uuid, dry_run=false, confirm=true)` → Apply install
+4. `tokrepo_rollback(session_id)` → Escape if verify/apply fails
+
+**Policy Decisions:**
+- `allow` → Install directly
+- `confirm` → Requires explicit user approval
+- `stage_only` → Write to `~/.codex/tokrepo/staged/` instead of activating
+- `deny` → Block installation
+
+---
+
+## 5. Context7 Documentation Injection
+
+### MCP Tools
+
+**Two Tools:**
+1. `resolve-library-id` → Maps library name to Context7 ID
+   ```json
+   {
+     "libraryName": "next.js",
+     "query": "How to create middleware with JWT"
+   }
+   → {
+     "libraryId": "/vercel/next.js",
+     "name": "Next.js",
+     "description": "...",
+     "versions": ["v14.3.0", "v14.2.0"]
+   }
+   ```
+
+2. `query-docs` → Retrieves documentation
+   ```json
+   {
+     "libraryId": "/vercel/next.js",
+     "query": "Create middleware that checks JWT in cookies"
+   }
+   → Documentation text + code examples in content array
+   ```
+
+### Integration Pattern
+
+**Via Pre-LLM-Call Hook:**
+```python
+def context7_injector(session_id: str, user_message: str, **kwargs):
+    # Detect library mentions (React, Next.js, MongoDB, etc.)
+    libraries = extract_library_mentions(user_message)
+    
+    if not libraries:
+        return None
+    
+    # Query Context7 for relevant docs
+    context_parts = []
+    for lib_name in libraries:
+        library_id = resolve_library(lib_name)
+        docs = query_docs(library_id, user_message)
+        context_parts.append(f"## {lib_name} Documentation\n\n{docs}")
+    
+    if context_parts:
+        return {"context": "\n\n".join(context_parts)}
+    return None
+```
+
+### Configuration
+
+**MCP Server Setup:**
+```yaml
+mcp_servers:
+  context7:
+    url: "https://mcp.context7.com/mcp"
+    headers:
+      CONTEXT7_API_KEY: "your-api-key"
+    tools:
+      include:
+        - resolve-library-id
+        - query-docs
+    timeout: 60
+```
+
+---
+
+## 6. Integration Architecture for ast-tools
+
+### Proposed Architecture
+
+```
+┌─────────────────────────────────────────────────┐
+│              ast-tools MCP Server                │
+├─────────────────────────────────────────────────┤
+│  26 Tools:                                       │
+│  - ast_grep, ast_read, ast_edit                 │
+│  - structural_analysis, impact_analysis         │
+│  - semantic_search, module_imports              │
+│  - ... (36 total across all toolsets)            │
+└────────────────┬────────────────────────────────┘
+                 │ MCP Protocol
+                 │
+                 ▼
+┌─────────────────────────────────────────────────┐
+│           Hermes MCP Adapter                     │
+│  (tools/mcp_tool.py)                            │
+├─────────────────────────────────────────────────┤
+│  - Discovers ast-tools tools                    │
+│  - Prefixes: mcp_ast_tools_<tool>               │
+│  - Calls tools via stdio/HTTP                   │
+│  - Formats results for LLM                      │
+└────────────────┬────────────────────────────────┘
+                 │
+        ┌────────┴────────┐
+        │                 │
+        ▼                 ▼
+┌───────────────┐  ┌───────────────┐
+│ pre_tool_call │  │  post_tool_call│
+│ Hook          │  │  Hook          │
+├───────────────┤  ├───────────────┤
+│ - Block policy│  │ - Auto-format │
+│ - Rate limit  │  │ - Log results │
+│ - Inject ctx  │  │ - Cache       │
+└───────────────┘  └───────────────┘
+```
+
+### Context Injector Components
+
+#### Component 1: Pre-LLM-Call Hook for Context Injection
+
+**File:** `~/.hermes/plugins/ast_tools_context/__init__.py`
+
+```python
+from hermes_cli.plugins import PluginContext
+
+def register(ctx: PluginContext):
+    """Register ast-tools context injection hook."""
+    ctx.register_hook("pre_llm_call", inject_ast_tools_context)
+    
+def inject_ast_tools_context(
+    session_id: str,
+    user_message: str,
+    conversation_history: list,
+    is_first_turn: bool,
+    model: str,
+    platform: str,
+    **kwargs
+) -> dict | None:
+    """
+    Inject ast-tools documentation into LLM context when relevant.
+    
+    Detects when user is asking about:
+    - AST manipulation
+    - Code structure analysis
+    - Symbol references
+    - Dependency analysis
+    - Structural search
+    """
+    # Keywords that trigger context injection
+    ast_keywords = [
+        "ast", "abstract syntax tree", "parse", "code structure",
+        "symbol", "reference", "dependency", "import analysis",
+        "structural", "code search", "ast-grep", "ast-edit"
+    ]
+    
+    # Check if query is relevant
+    if not any(kw in user_message.lower() for kw in ast_keywords):
+        return None
+    
+    # Retrieve context (from docs, previous sessions, or Context7)
+    context = build_ast_tools_context(user_message)
+    
+    if context:
+        return {"context": context}
+    return None
+
+def build_ast_tools_context(query: str) -> str:
+    """Build context string for ast-tools capabilities."""
+    # Pattern 1: Static documentation
+    # Pattern 2: Dynamic Context7 query
+    # Pattern 3: Memory-based recall
+    
+    # For now, use static documentation
+    return """
+## AST-Tools Capabilities
+
+When working with code structure, you have access to these structural analysis tools:
+
+**Core Tools:**
+- `ast_grep`: Structural code search using AST patterns (find code by structure, not text)
+- `ast_read`: Extract structural context (imports, classes, functions, variables)
+- `ast_edit`: Surgical AST-based modifications (lossless, preserves formatting)
+- `ast_generate_stub`: Generate .pyi stub files
+
+**Analysis Tools:**
+- `structural_analysis`: Call graphs, type hierarchies, symbol references
+- `impact_analysis`: Determine what breaks if you change a file/symbol
+- `module_imports`: Import dependency analysis (fan-in/fan-out)
+- `find_references`: Cross-file symbol usage search
+
+**Search Tools:**
+- `semantic_search`: Hybrid vector + FTS5 semantic search
+- `search_symbols`: Full-text search of indexed symbols
+- `find_symbol_definition`: Find symbol by qualified name
+- `list_symbols`: List all symbols in a file
+
+**Index Management:**
+- `refresh_index`: Index/re-index a project (incremental)
+- `index_status`: Get index statistics
+
+**Usage Pattern:**
+1. For structural search: Use `ast_grep` with patterns like `def $FUNC($$$ARGS)`
+2. For reading code structure: Use `ast_read <file>` to get structured breakdown
+3. For editing: Use `ast_edit <file> <operation>` with libcst-based operations
+4. For impact analysis: Use `impact_analysis` before making changes
+"""
+```
+
+#### Component 2: Shell Hook for Pre-Tool-Call Validation
+
+**File:** `~/.hermes/shell-hooks/ast-tools-policy.sh`
+
+```bash
+#!/bin/bash
+# AST-Tools Hook Script - Pre-Tool-Call Policy Enforcement
+# Location: ~/.hermes/shell-hooks-allowlist.json must include this path
+
+# Input via stdin (JSON):
+# {
+#   "event": "pre_tool_call",
+#   "tool_name": "mcp_ast_tools_ast_grep",
+#   "args": {"pattern": "...", "path": "..."},
+#   "session_id": "...",
+#   "tool_call_id": "..."
+# }
+
+set -euo pipefail
+
+# Read input JSON
+input=$(cat)
+
+# Parse tool name
+tool_name=$(echo "$input" | jq -r '.tool_name // ""')
+args=$(echo "$input" | jq -c '.args // {}')
+session_id=$(echo "$input" | jq -r '.session_id // ""')
+
+# Policy 1: Block dangerous patterns in ast_grep
+if [[ "$tool_name" == *"ast_grep"* ]]; then
+    # Check for patterns that could match sensitive files
+    pattern=$(echo "$args" | jq -r '.pattern // ""')
+    path=$(echo "$args" | jq -r '.path // ""')
+    
+    # Block patterns that might expose secrets
+    if [[ "$pattern" == *"password"* ]] || [[ "$pattern" == *"secret"* ]] || [[ "$pattern" == *"key"* ]]; then
+        echo '{"action": "block", "message": "Pattern may expose sensitive code structures"}'
+        exit 0
+    fi
+    
+    # Block searches in sensitive directories
+    if [[ "$path" == *".env"* ]] || [[ "$path" == *"/secrets/"* ]] || [[ "$path" == *"credentials"* ]]; then
+        echo '{"action": "block", "message": "Cannot search in sensitive directories"}'
+        exit 0
+    fi
+fi
+
+# Policy 2: Rate limiting for structural_analysis (expensive)
+if [[ "$tool_name" == *"structural_analysis"* ]]; then
+    # Check rate limit (would need external state storage)
+    # For now, just log
+    echo "[ast-tools-hook] structural_analysis called in session $session_id" >&2
+fi
+
+# Policy 3: Validate ast_edit dry_run for mutations
+if [[ "$tool_name" == *"ast_edit"* ]]; then
+    operation=$(echo "$args" | jq -r '.operation // ""')
+    dry_run=$(echo "$args" | jq -r '.dry_run // false')
+    
+    # Warn if mutation without dry_run
+    if [[ "$operation" == *"remove"* ]] || [[ "$operation" == *"replace"* ]]; then
+        if [[ "$dry_run" != "true" ]]; then
+            echo "[ast-tools-hook] WARNING: Mutation operation without dry_run" >&2
+            # Could inject context suggesting dry_run=true
+        fi
+    fi
+fi
+
+# Default: allow
+echo '{}'
+```
+
+**Shell Hooks Allowlist:** `~/.hermes/shell-hooks-allowlist.json`
+```json
+{
+  "allowed": [
+    "/home/sysop/.hermes/shell-hooks/ast-tools-policy.sh"
+  ]
+}
+```
+
+**Config Update:** `~/.hermes/config.yaml`
+```yaml
+hooks:
+  pre_tool_call:
+    - "/home/sysop/.hermes/shell-hooks/ast-tools-policy.sh"
+```
+
+#### Component 3: MCP Tool Wrapper with Context Injection
+
+**File:** `~/.hermes/plugins/ast_tools_wrapper/__init__.py`
+
+```python
+from hermes_cli.plugins import PluginContext
+import json
+
+def register(ctx: PluginContext):
+    """Register ast-tools MCP tool wrapper."""
+    
+    # Register post_tool_call hook for result enhancement
+    ctx.register_hook("post_tool_call", enhance_ast_tools_result)
+    
+def enhance_ast_tools_result(
+    tool_name: str,
+    params: dict,
+    result: str,
+    session_id: str,
+    **kwargs
+):
+    """
+    Enhance ast-tools results with additional context.
+    
+    Appends relevant tips, related tools, or follow-up suggestions.
+    """
+    if not tool_name.startswith("mcp_ast_tools_"):
+        return
+    
+    try:
+        # Try to parse result
+        result_data = json.loads(result)
+    except:
+        result_data = {"raw": result}
+    
+    # Enhance based on tool
+    enhancements = []
+    
+    if "ast_grep" in tool_name:
+        count = result_data.get("count", 0) if isinstance(result_data, dict) else 0
+        if count > 50:
+            enhancements.append(
+                f"\n\n**Tip:** Found {count} matches. Consider refining your pattern "
+                f"or using `limit` parameter. Related: `ast_read` for detailed structure."
+            )
+    
+    elif "ast_edit" in tool_name:
+        if result_data.get("success"):
+            enhancements.append(
+                "\n\n**Suggestion:** Use `ast_read` to verify the edit, or "
+                "`impact_analysis` to check for downstream effects."
+            )
+        else:
+            enhancements.append(
+                "\n\n**Tip:** Edit failed. Try `dry_run=true` first to preview changes, "
+                "or check file syntax with `ast_read`."
+            )
+    
+    elif "structural_analysis" in tool_name:
+        enhancements.append(
+            "\n\n**Related tools:** "
+            "`find_references` for cross-file symbol usage, "
+            "`impact_analysis` for change impact, "
+            "`module_imports` for dependency graphs."
+        )
+    
+    if enhancements:
+        enhanced = json.dumps({
+            **result_data,
+            "_enhancements": enhancements
+        }, indent=2)
+        # Return modified result (hook is observer-only, so log it)
+        # Actual injection would need different mechanism
+        pass
+```
+
+#### Component 4: Token Counting/Prevention Strategy
+
+**File:** `~/.hermes/plugins/ast_tools_tokens/__init__.py`
+
+```python
+from hermes_cli.plugins import PluginContext
+import json
+import logging
+
+logger = logging.getLogger(__name__)
+
+def register(ctx: PluginContext):
+    """Register token management hooks."""
+    
+    # Track tool usage
+    ctx.register_hook("post_tool_call", track_ast_tools_usage)
+    
+    # Pre-LLM call token estimation
+    ctx.register_hook("pre_llm_call", estimate_context_tokens)
+
+# Token budgets for ast-tools results
+AST_TOOLS_TOKEN_BUDGETS = {
+    "ast_grep": 2000,           # Max tokens for grep results
+    "structural_analysis": 4000, # Complex analysis can be verbose
+    "impact_analysis": 3000,
+    "semantic_search": 2500,
+    "ast_read": 1500,
+    "default": 1000
+}
+
+def track_ast_tools_usage(tool_name: str, params: dict, result: str, **kwargs):
+    """Track token usage for ast-tools."""
+    if not tool_name.startswith("mcp_ast_tools_"):
+        return
+    
+    # Estimate result tokens (rough: 4 chars ≈ 1 token)
+    result_chars = len(result)
+    estimated_tokens = result_chars // 4
+    

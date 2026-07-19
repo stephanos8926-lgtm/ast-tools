@@ -1,140 +1,354 @@
 # rw-ast-tools
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/downloads/)
-[![Code style: Ruff](https://img.shields.io/badge/code%20style-Ruff-261230.svg)](https://github.com/astral-sh/ruff)
-[![Tests](https://img.shields.io/badge/tests-770%20passing-brightgreen.svg)](https://github.com/stephanos8926-lgtm/ast-tools)
-[![MCP](https://img.shields.io/badge/MCP-server-7C3AED.svg)](https://modelcontextprotocol.io)
+**Structural Code Analysis & Editing MCP Server** — 77 tools for AST-based code intelligence, semantic search, and surgical Python/TypeScript editing.
 
-Structural code analysis and editing MCP server — **57 tools** for Python, TypeScript, JavaScript, Rust, Go, Java, C, C++, and more.
-
-**rw-ast-tools** gives LLMs the ability to search, read, edit, and analyze code structurally, not as text. Built on tree-sitter parsing for accuracy across 20+ languages, with a hybrid semantic + keyword search engine powered by sqlite-vec.
-
-## Features
-
-- **57 MCP tools** across 13 categories — structural search, semantic analysis, code editing, dependency analysis, class hierarchy, blast radius, knowledge graphs, co-change analysis, and more
-- **Three server modes** — `timeout` (stdio + idle TTL, default), `daemon` (systemd + file watcher), `remote` (Streamable HTTP + auth)
-- **Agent-agnostic integration** — `ast_tools.agent_integration` package has zero Hermes dependency. Use with FORGE, Claude Code, Cursor, or any MCP client
-- **Hybrid search**: True 6-factor RRF fusion — FTS5 keyword + vector semantic + recency + usage frequency + symbol kind + callgraph centrality
-- **Multi-language**: 20+ languages via tree-sitter with full structural awareness
-- **Incremental indexing**: SHA256 content-hash based, symbol-level diff — reindex in milliseconds
-- **Watchdog auto-indexer**: Inotify-based file watcher for live codebase updates
-- **Metrics store**: Time-series SQLite for codebase growth tracking
-- **CLI**: 11 commands for terminal-first workflows
-- **Schema v5**: symbols, embeddings, edges, dependency metrics, KNN graph, audit log
-
-## Quick Start
-
-```bash
-git clone https://github.com/stephanos8926-lgtm/ast-tools.git
-cd ast-tools
-uv sync --all-extras
-```
-
-### MCP Server Configuration
-
-**Any MCP client** (Hermes, FORGE, Claude Code):
-
-```json
-{
-  "mcpServers": {
-    "rw-ast-tools": {
-      "command": "ast-tools-server",
-      "args": ["--mode", "timeout"]
-    }
-  }
-}
-```
-
-### Server Modes
-
-| Mode | Flag | Transport | Lifecycle | Use Case |
-|------|------|-----------|-----------|----------|
-| `timeout` (default) | `--mode timeout` | stdio | Per-connection, idle TTL | Desktop CLI agents |
-| `daemon` | `--mode daemon` | stdio + systemd | Persistent, auto-restart | Multi-agent workstations |
-| `remote` | `--mode remote` | HTTP | Persistent, auth | Server deployment |
-
-Override via env var: `AST_TOOLS_MODE=daemon ast-tools-server`
-
-## Tool Categories
-
-| Category | Count | Tools |
-|----------|-------|-------|
-| **Core AST** | 8 | Structural search (`ast_grep`), read (`ast_read`), edit (`ast_edit`), query (`ast_query`), capsule (`ast_capsule`), stub gen (`ast_generate_stub`), interface extraction (`ast_refactor_extract_interface`), TS editing (`ts_edit`) |
-| **Project Intelligence** | 3 | Codebase summary, project info, impact analysis |
-| **Symbol Search** | 5 | FTS5, semantic hybrid (6-factor RRF), find-by-name, list symbols, index status |
-| **Structural Analysis** | 5 | Call graphs, type hierarchies, references, module imports, dependency chains |
-| **Dependency Analysis** | 6 | Fan-in/out (`module_imports`), circular deps, external deps, dead code (basic + enhanced), API surface diff |
-| **Index Management** | 4 | Refresh, reindex path, watch add, watch status |
-| **LSP Integration** | 8 | Go-to-def, references, hover, symbols, call hierarchy (in/out), available languages, server check |
-| **Agent Integration** | 4 | Context inject, context status, token status, validate usage |
-| **Code Validation** | 1 | Multi-language syntax validation |
-| **Knowledge Graph** | 3 | KG query, shortest path, neighborhood |
-| **Co-Change Analysis** | 4 | Predict, hotspots, history, diff |
-| **Phase 10** | 7 | Transitive deps, class hierarchy (MRO), blast radius v2, repo skeleton, file related, code validate |
-| **CLI** | 11 | Commands (`ast search`, `ast blast-radius`, `ast find-dead`, `ast callers`, `ast deps`, etc.) |
-
-## CLI
-
-```bash
-ast search "authentication handler"     # Semantic search
-ast blast-radius src/auth.py:42         # Impact analysis
-ast find-dead --format json              # Dead code detection
-ast callers process_payment              # Call graph
-ast deps src/api/handlers.py            # Import analysis
-```
-
-See [docs/CLI_REFERENCE.md](docs/CLI_REFERENCE.md) for the complete CLI reference.
-
-## Architecture
-
-```
-rw-ast-tools/
-├── src/
-│   └── ast_tools/
-│       ├── agent_integration/   # Standalone modules (zero Hermes dep)
-│       ├── tools/               # All 57 tool implementations
-│       ├── watchdog/            # File watcher + metrics store
-│       ├── kg/                  # Knowledge graph engine
-│       ├── cochange/            # Co-change analysis
-│       ├── database/            # Schema v5
-│       ├── embeddings/          # 384-dim vector embeddings
-│       ├── indexer/             # Symbol extraction, diff engine
-│       ├── context/             # Context injection (6-factor RRF)
-│       ├── watcher/             # File watcher daemon
-│       ├── curator/             # Automated index curation
-│       ├── utils/               # Security, file ops
-│       ├── _server.py           # 3-mode MCP server
-│       ├── server_config.py     # Config (CLI/env/file)
-│       └── cli.py               # CLI commands
-├── tests/                       # 770 tests passing
-├── docs/                        # Full documentation
-├── hermes-plugins/rw-ast-tools/ # Unified Hermes plugin
-├── deploy/                      # systemd service files
-└── CHANGELOG.md                 # Release changelog
-```
-
-## Documentation
-
-| Document | Purpose |
-|----------|---------|
-| `docs/AST_TOOLS_QUICKSTART.md` | User guide & workflows |
-| `docs/CLI_REFERENCE.md` | Complete CLI reference |
-| `docs/TROUBLESHOOTING.md` | Common issues & fixes |
-| `docs/DOCUMENTATION_INDEX.md` | Full documentation index |
-| `docs/reports/server-architecture-completion.md` | 3-mode server architecture report |
-| `docs/specs/server-architecture-redesign-v1.md` | Architecture specification |
-| `docs/adrs/0012-server-architecture-multi-mode.md` | Architecture decision record |
-| `SETUP_INSTRUCTIONS.md` | Installation guide |
-
-## License
-
-MIT — RapidWebs Enterprise, LLC
-
-## Contact
-
-Steven Page — <steven@rapidwebs.io>
+[![Tests](https://img.shields.io/badge/tests-943%20passing-brightgreen)](https://github.com/rapidwebs/rw-ast-tools/actions)
+[![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+[![Python](https://img.shields.io/badge/python-3.12%2B-blue)](https://python.org)
 
 ---
 
-<sup>Part of the [RapidWebs Enterprise](https://rapidwebs.io) ecosystem.</sup>
+## 🎯 What It Does
+
+rw-ast-tools is an MCP (Model Context Protocol) server that gives LLMs **structural code intelligence** — not just text search, but understanding of code as Abstract Syntax Trees:
+
+| Capability | Tools |
+|------------|-------|
+| **Structural Search** | `ast_grep` — pattern-match on AST nodes across 8 languages |
+| **Code Reading** | `ast_read` — extract API surface (classes, functions, imports, line numbers) |
+| **Surgical Editing** | `ast_edit` — libcst-powered edits (rename, add params, replace nodes) |
+| **Semantic Search** | `semantic_search` — hybrid vector + FTS5, finds code by *meaning* |
+| **Impact Analysis** | `impact_analysis`, `blast_radius_v2` — what breaks if you change X? |
+| **Code Intelligence** | `find_references`, `module_imports`, `circular_dependencies`, `class_hierarchy` |
+| **LSP Integration** | 11 LSP tools: definition, references, hover, completion, rename, diagnostics, code actions |
+| **Knowledge Graph** | `kg_query`, `kg_shortest_path`, `kg_neighborhood` — natural language graph traversal |
+| **Dead Code** | `dead_code_enhanced` — 6 FP reduction strategies (>40% → <20%) |
+| **Syntax Validation** | `code_validate_syntax` — 10 languages via compilers + tree-sitter |
+| **Auto-Fix** | `fix_code`, `fix_check` — multi-language convergent fix pipeline |
+| **Tool Discovery** | `search_tools`, `call_tool`, `tool_info`, `tool_usage_stats` — dynamic tool lookup |
+
+---
+
+## 🚀 Quick Start
+
+### Install
+
+```bash
+git clone https://github.com/rapidwebs/rw-ast-tools
+cd rw-ast-tools
+uv venv && source .venv/bin/activate
+uv pip install -e .
+```
+
+### Run MCP Server
+
+```bash
+# Daemon mode (persistent, systemd-managed) — RECOMMENDED
+ast-tools --mode daemon
+
+# Or timeout mode (default, stdio with idle timeout)
+ast-tools
+```
+
+### Hermes Integration
+
+Add to `~/.hermes/config.yaml`:
+
+```yaml
+mcp_servers:
+  ast-tools:
+    command: /home/user/Workspaces/ast-tools/.venv/bin/python3
+    args:
+      - /home/user/Workspaces/ast-tools/src/ast_tools/_server.py
+      - --mode
+      - daemon
+    env:
+      AST_TOOLS_DISCOVERY_MODE: true
+```
+
+Enable plugin:
+```bash
+hermes plugins enable rw-ast-tools
+```
+
+---
+
+## 🧰 All 77 Tools
+
+### Core AST (8)
+| Tool | Description |
+|------|-------------|
+| `ast_grep` | Structural search with AST patterns (Python, JS, TS, Rust, Go, Java, C++, C#) |
+| `ast_read` | Extract API surface — classes, functions, imports, line numbers |
+| `ast_edit` | Surgical edits via libcst — **always `dry_run=true` first!** |
+| `ast_generate_stub` | Generate `.pyi` stub files or interface summaries |
+| `ast_refactor_extract_interface` | Extract ABC/Protocol from a class |
+| `ast_capsule` | Export code as self-contained capsule with dependencies |
+| `ast_query` | Smart router — describe intent, auto-selects best tool |
+| `ts_edit` | TypeScript/TSX structural editing (tree-sitter) |
+
+### Analysis & Impact (14)
+| Tool | Description |
+|------|-------------|
+| `structural_analysis` | Call graphs, type hierarchies, references, dependencies |
+| `impact_analysis` | **Before refactoring** — affected files + risk assessment |
+| `blast_radius_v2` | Unified blast radius (imports + hierarchy + call graph) |
+| `module_imports` | Fan-in/fan-out import graph, circular dependency detection |
+| `find_references` | All usages of a symbol across the codebase |
+| `transitive_dependents` | Full transitive dependency chain |
+| `class_hierarchy` | MRO, bases, subclasses, method categories |
+| `circular_dependencies` | Detect circular imports |
+| `dependency_chain` | Trace dependency paths end-to-end |
+| `external_dependencies` | Find third-party imports |
+| `api_surface_diff` | Compare API surfaces between versions |
+| `co_change_predict` | Files that tend to change with a given file |
+| `co_change_hotspots` | Top-N riskiest files by churn × coupling |
+| `co_change_diff` | Symbols at risk when changing a symbol |
+
+### Knowledge Graph (3)
+| Tool | Description |
+|------|-------------|
+| `kg_query` | Natural language graph traversal |
+| `kg_shortest_path` | Shortest path between two symbols |
+| `kg_neighborhood` | All symbols within N hops |
+
+### Semantic Search & Index (8)
+| Tool | Description |
+|------|-------------|
+| `semantic_search` | Vector + FTS5 hybrid — search by **meaning** |
+| `search_symbols` | FTS5 keyword search |
+| `find_symbol_definition` | Lookup by qualified name |
+| `list_symbols` | All symbols in a file |
+| `refresh_index` | Incremental indexing (SHA256 content hashing) |
+| `index_status` | Symbols, files, embeddings count |
+| `reindex_path` | Per-file reindex |
+| `watch_add` / `watch_status` | Auto-index watcher daemon |
+
+### Dead Code & Quality (4)
+| Tool | Description |
+|------|-------------|
+| `dead_code_detection` | Basic unused code detection |
+| `dead_code_enhanced` | **6 FP reductions** — confidence scoring, framework decorators, entry points, SCC, `__all__`, polymorphism |
+| `code_validate_syntax` | 10 languages: Python, SQL, Shell, JS, TS, Rust, Go (compilers) + C, C++, C# (tree-sitter) |
+| `fix_code` / `fix_check` | Multi-language auto-fix pipeline (SAFE/UNSAFE/DISPLAY) |
+
+### LSP Code Intelligence (11)
+| Tool | Description |
+|------|-------------|
+| `lsp_definition` | Go to definition |
+| `lsp_references` | Find all references |
+| `lsp_hover` | Type signature + docs |
+| `lsp_symbols` | All symbols in file |
+| `lsp_diagnostics` | Errors/warnings from LSP |
+| `lsp_format` | Format code |
+| `lsp_code_actions` | Quick fixes & refactorings |
+| `lsp_rename` | Workspace-wide rename |
+| `lsp_signature_help` | Function signature at call site |
+| `lsp_completion` / `lsp_completion_detail` | Code completion |
+| `lsp_available_languages` / `lsp_check_server` | Server management |
+
+### Meta & Discovery (5)
+| Tool | Description |
+|------|-------------|
+| `search_tools` | Semantic search across all 77 tool descriptions |
+| `call_tool` | Execute tool by name with validated params |
+| `tool_info` | Full schema, category, usage stats for any tool |
+| `tool_usage_stats` | Call counts, error rates, latency, ranking boosts |
+| `context_inject` / `context_status` / `token_status` / `validate_usage` | Context injection system |
+
+### Embedding Models (4)
+| Tool | Description |
+|------|-------------|
+| `switch_embedding_model` | Hot-swap embedding model |
+| `list_embedding_models` | Available models |
+| `get_embedding_model_info` | Model details |
+| `rerank_results` | Cross-encoder reranking |
+
+### Curator (3)
+| Tool | Description |
+|------|-------------|
+| `curator_audit` | Automated code review |
+| `curator_summary` | Review summary |
+| `curator_status` | Curator system status |
+
+---
+
+## 🔧 Common Workflows
+
+### Before Making Changes (MANDATORY)
+```bash
+# 1. Orient to project
+ast-tools codebase_summary
+
+# 2. Read target file structure
+ast-tools ast_read --file src/auth/middleware.py
+
+# 3. Check what calls it (impact)
+ast-tools impact_analysis --target src/auth/middleware.py
+
+# 4. Check imports (if splitting module)
+ast-tools module_imports --module src.auth.middleware
+```
+
+### Find Code by Meaning
+```bash
+# "Where is the websocket handler?"
+ast-tools semantic_search --query "websocket handler" --k 5
+
+# "How does error retry work?"
+ast-tools semantic_search --query "exponential backoff retry" --k 10
+```
+
+### Refactor Large Module → Subpackage
+```bash
+# 1. Map all imports
+ast-tools structural_analysis --analysis-type dependencies --file src/large_module.py
+
+# 2. Check circular deps
+ast-tools module_imports --module large_module
+
+# 3. Extract to subpackage (create __init__.py with __all__)
+# 4. Run tests AFTER EACH extraction
+```
+
+### Dead Code Cleanup
+```bash
+# High-confidence dead code only
+ast-tools dead_code_enhanced --format json | jq '.dead_functions[] | select(.confidence=="high")'
+```
+
+---
+
+## 📦 Server Modes
+
+| Mode | Transport | Use Case |
+|------|-----------|----------|
+| `timeout` (default) | stdio + idle timeout | Interactive, short sessions |
+| `daemon` | Unix socket (systemd) | **Persistent, production** — recommended for Hermes |
+| `remote` | Streamable HTTP + bearer auth | Remote access, multi-client |
+
+**Daemon mode** (used by Hermes plugin):
+```bash
+systemctl --user enable --now ast-tools-daemon
+# or manually:
+ast-tools --mode daemon --socket /tmp/ast-tools.sock
+```
+
+---
+
+## 🔌 Hermes Plugin: `rw-ast-tools`
+
+Unified plugin replacing 3 old plugins. 4 hooks:
+
+| Hook | Purpose |
+|------|---------|
+| `pre_llm_call` | Injects project-specific context via `semantic_search` + quick reference + typo corrections |
+| `on_session_start` | Compact 200-token tool index |
+| `post_tool_call` | Token tracking + error correction for common mistakes |
+| `on_session_end` | Session intelligence (modified files + codebase summary) |
+
+**Key improvement**: `pre_llm_call` now calls `semantic_search(query, inject_context=True)` — returns **actual project symbols** (signatures, docstrings, file paths) instead of generic tool docs.
+
+---
+
+## 🏗️ Architecture
+
+```
+rw-ast-tools/
+├── src/ast_tools/
+│   ├── _server.py              # MCP server entry (3 modes)
+│   ├── server_config.py        # Unified config: CLI > env > file > defaults
+│   ├── config/unified.py       # Pydantic config with validation
+│   ├── tools/                  # 77 MCP tools (auto-registered)
+│   │   ├── semantic_search.py  # Hybrid vector + FTS5 (6-factor RRF)
+│   │   ├── ast_edit.py         # libcst surgical editing
+│   │   ├── ast_grep.py         # Tree-sitter structural search
+│   │   ├── lsp_tools.py        # 11 LSP tools
+│   │   ├── dynamic_schemas.py  # generate_quick_reference(), find_similar_tool()
+│   │   └── ... (70 more)
+│   ├── database/               # SQLite + sqlite-vec (384-dim)
+│   │   ├── connection.py       # Persistent pool + thread-pool fallback
+│   │   ├── schema.py           # Schema v5, migrations
+│   │   └── queries.py          # Symbol CRUD, vector KNN
+│   ├── indexer/                # Incremental indexing
+│   │   ├── extractor.py        # Tree-sitter + libcst extraction
+│   │   ├── diff.py             # Symbol-level diff (added/removed/modified)
+│   │   └── daemon.py           # Watchdog watcher (100ms debounce)
+│   ├── embeddings/             # SentenceTransformers + provider abstraction
+│   ├── reranker/               # Cross-encoder (ms-marco-MiniLM-L-6-v2)
+│   ├── lsp_client.py           # Persistent LSP cache, ref counting
+│   ├── agent_integration/      # Zero-Hermes-dependency modules
+│   │   ├── context_builder.py  # build_ast_tools_context, detect_ast_query
+│   │   ├── token_tracker.py    # TokenTracker, ContextPressureMonitor
+│   │   ├── error_correction.py # Common tool error detection
+│   │   └── session_intel.py    # Mutation tracking, codebase_summary
+│   ├── fix/                    # Auto-fix pipeline (C1)
+│   │   ├── engine.py           # Convergent fix runner
+│   │   └── fixers.py           # Per-language fixers
+│   ├── curator/                # Code review automation
+│   ├── ts_backend.py           # TypeScript tree-sitter backend
+│   └── spectral.py             # Spectral clustering (Nyström, TF-IDF naming)
+├── tests/                      # 71 test files, 943 tests
+├── docs/
+│   ├── portal/                 # Interactive HTML docs (React)
+│   ├── AST_TOOLS_QUICKSTART.md
+│   ├── CLI_REFERENCE.md
+│   └── DOCUMENTATION_INDEX.md
+└── plugins/
+    └── rw-ast-tools/           # Hermes plugin
+```
+
+---
+
+## 📊 Specs
+
+| Metric | Value |
+|--------|-------|
+| **MCP Tools** | 77 |
+| **Source Files** | 134 |
+| **Test Files** | 71 |
+| **Test Lines** | 8,946 |
+| **Tests Passing** | 943 (2 skipped) |
+| **Languages (AST)** | Python, JS, TS, TSX, Rust, Go, Java, C++, C, C# |
+| **Languages (Syntax Validation)** | 10 (7 compilers + 3 tree-sitter) |
+| **Embedding Dim** | 384 (all-MiniLM-L6-v2) |
+| **Schema Version** | v5 |
+| **License** | MIT |
+
+---
+
+## 🧪 Testing
+
+```bash
+# Full suite (2 min)
+pytest tests/ -v
+
+# Fast: unit tests only
+pytest tests/ -m "not integration" -x
+
+# Specific area
+pytest tests/tools/test_semantic_search.py -v
+pytest tests/tools/test_lsp_tools.py -v
+pytest tests/test_cli.py -v
+```
+
+---
+
+## 📚 Documentation
+
+| File | Description |
+|------|-------------|
+| `docs/AST_TOOLS_QUICKSTART.md` | 13KB intro + workflows |
+| `docs/CLI_REFERENCE.md` | 15KB complete CLI guide (11 commands) |
+| `docs/DOCUMENTATION_INDEX.md` | Full index of all docs |
+| `docs/portal/` | Interactive HTML docs (React + live search) |
+
+---
+
+## 📄 License
+
+MIT — see [LICENSE](LICENSE)
+
+---
+
+**Built by RapidWebs Enterprise** — `ast-tools` is the structural code intelligence layer for the NexusAgent platform.

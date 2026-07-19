@@ -2,6 +2,7 @@
 
 from lsprotocol import types as lsp_types
 
+
 def get_server_capabilities() -> lsp_types.ServerCapabilities:
     """Return the server's capabilities to the client."""
     return lsp_types.ServerCapabilities(
@@ -29,7 +30,7 @@ def get_server_capabilities() -> lsp_types.ServerCapabilities:
             # We are using push diagnostics, so no need for DocumentDiagnosticReport.full / inter_file_dependencies
             # Workaround for pygls typing issue where DiagnosticOptions requires full/workspace_diagnostics
             # This is effectively push diagnostics
-            # full=False, 
+            # full=False,
             # workspace=False,
         ),
         document_formatting_provider=True,

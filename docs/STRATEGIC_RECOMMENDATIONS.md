@@ -106,7 +106,7 @@ Confidence: 0.0001 (low — expected for short snippets without full context)
 
 **ast-tools' unique value proposition**: The only tool that combines:
 1. **AST-level structural analysis** (not just text search)
-2. **Unified MCP server** (57 tools exposed)
+2. **Unified MCP server** (77 tools exposed)
 3. **Auto-fix pipeline** (convergent, multi-language)
 4. **Cross-encoder reranker** (precision boost)
 5. **Local-first, no cloud dependency**
@@ -257,7 +257,7 @@ Confidence: 0.0001 (low — expected for short snippets without full context)
 |------------|--------|-------|
 | **Auto-fix** | Manual `ruff check --fix` + `ruff format` | `ast fix --all` (7 languages, convergent) |
 | **Search precision** | 6-factor RRF only | RRF + cross-encoder reranker (opt-in) |
-| **AI integration** | MCP server with 57 tools | + fix + reranker tools |
+| **AI integration** | MCP server with 77 tools | + fix + reranker tools |
 | **Configuration** | Scattered | Unified `FixConfig` + `RerankerConfig` |
 
 ### Next 30 Days (Critical Path)

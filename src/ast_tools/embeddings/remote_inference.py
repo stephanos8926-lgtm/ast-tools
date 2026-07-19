@@ -38,7 +38,7 @@ class RemoteInferenceConfig:
     user_agent: str = "ast-tools/remote-inference"
 
     @classmethod
-    def from_env(cls) -> "RemoteInferenceConfig":
+    def from_env(cls) -> RemoteInferenceConfig:
         """Create config from environment variables."""
         return cls(
             base_url=os.environ.get("AST_TOOLS_REMOTE_INFERENCE_URL", "http://100.126.48.57:8300"),
@@ -224,7 +224,7 @@ class RemoteInferenceClient:
             await self._session.close()
             self._session = None
 
-    async def __aenter__(self) -> "RemoteInferenceClient":
+    async def __aenter__(self) -> RemoteInferenceClient:
         await self._get_session()
         return self
 

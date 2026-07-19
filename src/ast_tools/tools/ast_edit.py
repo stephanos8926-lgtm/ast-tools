@@ -1,9 +1,9 @@
 """ast_edit tool — surgical AST-based code modification using libcst."""
 
-from typing import Any, Sequence
+from collections.abc import Sequence
+from typing import Any
 
 import libcst as cst
-from libcst.metadata import PositionProvider
 
 from ast_tools.utils.file_utils import validate_file_path
 

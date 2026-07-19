@@ -12,7 +12,6 @@ Tools:
 
 from ..lsp_client import LSP_SERVERS, get_lsp_client, release_lsp_client
 
-
 # ─── Phase 1 Tools (Refactored with persistent sessions) ──────────────────
 
 

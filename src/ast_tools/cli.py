@@ -25,7 +25,7 @@ import json
 import sys
 from pathlib import Path
 
-from ast_tools.config.unified import load_unified_config, UnifiedConfig
+from ast_tools.config.unified import UnifiedConfig, load_unified_config
 from ast_tools.tools.blast_radius_v2 import _tool_blast_radius_v2
 
 
@@ -68,6 +68,7 @@ def _cli_cleanup_cmd(args) -> str:
 
 
 # Import tool functions (lazy imports — noqa: E402)
+from ast_tools.fix.engine import FixContext, FixEngine  # noqa: E402
 from ast_tools.tools.dependency_tools import dead_code_detection  # noqa: E402
 from ast_tools.tools.enhanced_dead_code import find_dead_code_enhanced  # noqa: E402
 from ast_tools.tools.find_references import _tool_find_references  # noqa: E402
@@ -77,7 +78,6 @@ from ast_tools.tools.module_imports import _tool_module_imports  # noqa: E402
 from ast_tools.tools.project_info import _tool_project_info  # noqa: E402
 from ast_tools.tools.semantic_search import _tool_semantic_search  # noqa: E402
 from ast_tools.tools.structural_analysis import _ast_find_callees, _ast_find_callers  # noqa: E402
-from ast_tools.fix.engine import FixEngine, FixContext  # noqa: E402
 
 
 def _load_cli_config(args: argparse.Namespace) -> UnifiedConfig:
@@ -1057,9 +1057,8 @@ def cmd_governance_report(args: argparse.Namespace) -> int:
 
 def cmd_cleanup(args: argparse.Namespace) -> int:
     """Clean up old backup directories and temporary files."""
-    from pathlib import Path
-    from datetime import datetime, timedelta
     import shutil
+    from datetime import datetime, timedelta
 
     from ast_tools.config.loader import get_config_dir
 
@@ -1112,8 +1111,8 @@ def cmd_fix(args: argparse.Namespace) -> int:
     """Auto-fix code issues command."""
     from pathlib import Path
 
-    from ast_tools.fix.config import FixConfig, load_fix_config
-    from ast_tools.fix.engine import FixContext, FixEngine, SafetyLevel
+    from ast_tools.fix.config import load_fix_config
+    from ast_tools.fix.engine import SafetyLevel
 
     project_root = Path(args.project_root or ".").resolve()
     target_paths = [Path(p) for p in args.paths]
@@ -1191,6 +1190,7 @@ def cmd_fix(args: argparse.Namespace) -> int:
     # LLM-assisted fix mode
     if args.llm and result.actions_applied:
         import asyncio
+
         from ast_tools.config.unified import load_unified_config
         from ast_tools.llm.client import LLMClient, LLMFixContext
 
@@ -1803,15 +1803,15 @@ def main() -> int:
 
 def cmd_lsp(args: argparse.Namespace) -> int:
     """Start LSP server."""
-    import sys
     import logging
-    
+    import sys
+
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
         stream=sys.stderr,
     )
-    
+
     from ast_tools.lsp.server import main as lsp_main
     lsp_main()
     return 0

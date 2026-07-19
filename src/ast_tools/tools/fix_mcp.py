@@ -3,8 +3,8 @@
 from pathlib import Path
 from typing import Any
 
-from ast_tools.fix.engine import FixEngine, FixContext
 from ast_tools.fix.config import FixConfig as FixConfigData
+from ast_tools.fix.engine import FixContext, FixEngine
 from ast_tools.reranker import CrossEncoderReranker, RerankerConfig
 
 
@@ -31,9 +31,7 @@ def _tool_fix_code(name: str, params: dict[str, Any]) -> dict[str, Any]:
     target = (project_root / target_path).resolve()
 
     # Determine target paths
-    if target.is_file():
-        target_paths = [target]
-    elif target.is_dir():
+    if target.is_file() or target.is_dir():
         target_paths = [target]
     else:
         return {"error": f"Path not found: {target}"}
@@ -75,7 +73,6 @@ def _tool_fix_code(name: str, params: dict[str, Any]) -> dict[str, Any]:
     if not languages:
         languages = {"python"}  # Default fallback
 
-    from ast_tools.fix.config import FixConfig as FixConfigData
 
     config = FixConfigData(
         max_iterations=max_iterations,

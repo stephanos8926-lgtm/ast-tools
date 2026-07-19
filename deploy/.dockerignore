@@ -1,0 +1,12 @@
+.venv
+.git
+__pycache__
+*.pyc
+.env
+*.egg-info
+dist
+build
+node_modules
+docs
+tests
+deploy

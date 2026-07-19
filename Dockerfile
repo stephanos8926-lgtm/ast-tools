@@ -1,27 +1,23 @@
-FROM python:3.12-slim AS builder
+FROM python:3.13-slim
 
-WORKDIR /build
-COPY . .
-
-RUN pip install uv && \
-    uv sync --only-group dev --no-dev && \
-    uv build
-
-FROM python:3.12-slim
-
-RUN apt-get update -qq && \
-    apt-get install -y -qq --no-install-recommends \
-        git \
-        tree-sitter-cli \
-        nodejs \
-        npm \
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc g++ build-essential cmake \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
-COPY --from=builder /build/dist/*.whl /tmp/
-RUN pip install /tmp/*.whl && rm /tmp/*.whl
 
-EXPOSE 8000
+COPY pyproject.toml README.md ./
+COPY src/ ./src/
 
-ENTRYPOINT ["python3", "-m", "ast_tools_server"]
-CMD ["--host", "0.0.0.0", "--port", "8000"]
+# Install core deps (skip heavy ML — using remote engine)
+RUN pip install --no-cache-dir \
+        mcp anyio pyyaml lsprotocol uvicorn starlette aiohttp httpx \
+        libcst jedi watchdog tree-sitter sqlite-vec sqlparse jsonschema \
+        tiktoken numpy rich \
+        && pip install --no-cache-dir --no-deps .
+
+ENV AST_TOOLS_EMBEDDING_BACKEND=remote
+ENV AST_TOOLS_REMOTE_INFERENCE_URL=http://localhost:8300
+EXPOSE 8932
+
+CMD ["ast-tools-server", "--mode", "remote", "--host", "0.0.0.0", "--port", "8932"]

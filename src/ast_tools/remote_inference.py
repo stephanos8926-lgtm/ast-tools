@@ -11,14 +11,8 @@ import logging
 import os
 import time
 from dataclasses import dataclass
-from pathlib import Path
-from typing import TYPE_CHECKING
 
-import aiohttp
 import httpx
-
-if TYPE_CHECKING:
-    from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +29,7 @@ class RemoteInferenceConfig:
     verify_ssl: bool = True
 
     @classmethod
-    def from_env(cls) -> "RemoteInferenceConfig":
+    def from_env(cls) -> RemoteInferenceConfig:
         """Create config from environment variables."""
         return cls(
             base_url=os.environ.get("AST_TOOLS_REMOTE_INFERENCE_URL", "http://100.126.48.57:8300"),
