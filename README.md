@@ -57,19 +57,23 @@ Add to `~/.hermes/config.yaml`:
 ```yaml
 mcp_servers:
   ast-tools:
-    command: /home/user/Workspaces/ast-tools/.venv/bin/python3
+    command: socat
     args:
-      - /home/user/Workspaces/ast-tools/src/ast_tools/_server.py
-      - --mode
-      - daemon
-    env:
-      AST_TOOLS_DISCOVERY_MODE: true
+      - "-"
+      - "UNIX-CONNECT:/home/user/.cache/rw-ast-tools/server.sock"
+    connect_timeout: 10
+    timeout: 120
 ```
 
-Enable plugin:
+Daemon setup:
 ```bash
-hermes plugins enable rw-ast-tools
+# Install systemd user service
+cp deploy/rw-ast-tools.service ~/.config/systemd/user/
+systemctl --user daemon-reload
+systemctl --user enable --now rw-ast-tools
 ```
+
+The daemon auto-starts via systemd and Hermes connects via socat bridge. No per-session cold start — the daemon is always ready.
 
 ---
 
@@ -223,16 +227,23 @@ ast-tools dead_code_enhanced --format json | jq '.dead_functions[] | select(.con
 
 | Mode | Transport | Use Case |
 |------|-----------|----------|
-| `timeout` (default) | stdio + idle timeout | Interactive, short sessions |
-| `daemon` | Unix socket (systemd) | **Persistent, production** — recommended for Hermes |
-| `remote` | Streamable HTTP + bearer auth | Remote access, multi-client |
+| `daemon` (default) | **Unix domain socket** (systemd) | **Persistent, production** — recommended for Hermes |
+| `timeout` | stdio + idle timeout | Interactive, short sessions |
+| `remote` | Streamable HTTP + bearer auth | Remote container access |
 
-**Daemon mode** (used by Hermes plugin):
+**Daemon mode** (used by Hermes):
 ```bash
-systemctl --user enable --now ast-tools-daemon
-# or manually:
-ast-tools --mode daemon --socket /tmp/ast-tools.sock
+# systemd-managed (production)
+systemctl --user enable --now rw-ast-tools
+
+# Or manually:
+ast-tools --mode daemon
+
+# Via socat from Hermes:
+socat - UNIX-CONNECT:/home/user/.cache/rw-ast-tools/server.sock
 ```
+
+The daemon listens on a Unix domain socket using NDJSON line protocol. Multiple clients (Hermes, subagents, CLI) share the same daemon — no per-session cold start overhead (~10-16s saved per Hermes session).
 
 ### Multi-Project Watching in Daemon Mode
 
@@ -258,19 +269,6 @@ AST_TOOLS_DAEMON_WATCH_PATHS="/home/user/Workspaces/project-a,/home/user/Workspa
 If no paths configured, defaults to CWD.
 
 ---
-
-### ⚠️ Remote/HTTP Mode Limitation
-
-> **Important**: In `remote` (HTTP) mode, the server runs on a remote machine/container but **only has access to the filesystem where it runs**. It cannot analyze code on the client machine. This is a fundamental limitation of the architecture — the server must be deployed alongside the codebase you want to analyze, or you must sync/mount the codebase to the server.
-
-**Workarounds:**
-- Run daemon mode locally (recommended for single-user)
-- Sync code to server via rsync/git before analysis
-- Use worktree-based deployment (`hermes worktree remote ...`) to clone code on the server
-- Mount codebase via network filesystem (NFS, sshfs)
-
-We're exploring better patterns for this (see [issue #tracking](https://github.com/rapidwebs/rw-ast-tools/issues)).
-
 ---
 
 ## 🔌 Hermes Plugin: `rw-ast-tools`

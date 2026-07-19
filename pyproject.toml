@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "rw-ast-tools"
-version = "0.2.0"
+version = "0.2.2"
 description = "MCP server for structural code analysis and editing"
 readme = "README.md"
 license = {text = "MIT"}
@@ -12,7 +12,7 @@ requires-python = ">=3.10"
 authors = [
     {name = "RapidWebs Enterprise", email = "dev@rapidwebs.com"},
 ]
-keywords = ["mcp", "code-analysis", "ast", "refactoring", "semantic-search"]
+keywords = ["mcp", "code-analysis", "ast", "refactoring", "semantic-search", "lsp", "hermes"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
@@ -25,6 +25,12 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules",
     "Topic :: Software Development :: Code Generators",
 ]
+
+[project.urls]
+Homepage = "https://github.com/stephanos8926-lgtm/ast-tools"
+Repository = "https://github.com/stephanos8926-lgtm/ast-tools"
+Documentation = "https://github.com/stephanos8926-lgtm/ast-tools"
+Changelog = "https://github.com/stephanos8926-lgtm/ast-tools/blob/master/CHANGELOG.md"
 
 dependencies = [
     "anyio>=4.0",

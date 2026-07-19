@@ -6,6 +6,40 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
+## [v0.2.2] — 2026-07-19
+
+### ✨ New Features
+- **Unix Domain Socket transport** — daemon mode now listens on a Unix domain socket instead of stdio. Uses NDJSON line protocol over UDS. Enables persistent multi-client daemon (shared by Hermes + subagents + CLI).
+- **systemd user service** on BOTH machines — `rw-ast-tools.service` manages daemon lifecycle (auto-restart, 1G limit, watchdog). Same service file on workstation and dev VM.
+- **Symmetric multi-machine deployment** — both machines use identical config layout:
+  - `~/.config/rw-ast-tools/config.yaml` — daemon config
+  - `~/.cache/rw-ast-tools/server.sock` — UDS socket
+  - `socat - UNIX-CONNECT:server.sock` — Hermes MCP bridge
+- **RW_InferenceEngine integration** — both machines share embedding provider at `100.109.15.31:8300` (dev VM). Workstation uses remote mode.
+- **Worker Hermes on dev VM configured** — dev VM's Hermes agent now uses ast-tools via socat bridge, same as workstation.
+
+### 🐛 Bug Fixes
+- **Socket-first startup** — UDS socket created BEFORE watchdog init (watchdog scan can block 30+ seconds). Daemon immediately reachable after systemd start.
+- **Graceful client disconnect** — `ConnectionResetError`/`BrokenPipeError` caught silently instead of spamming error log.
+- **tools/list timeouts** — response closes cleanly after one NDJSON line (was hanging waiting for implicit EOF).
+
+### 🔧 Improvements
+- Socket permissions: `chmod 0o600` (owner-only)
+- Stale socket cleanup on startup
+- `os.path.expanduser()` on configured socket_path
+- Watchdog monitors `~/Workspaces/ast-tools` and `~/Workspaces/NexusAgent` on workstation
+
+### 📚 Documentation
+- Updated: 77 tools, schema v5, 943 tests
+- New daemon mode docs with systemd + socat bridge
+- Multi-machine symmetric deployment documentation
+- Removed stale `ast.rapidwebs.org` Caddy proxy references
+
+### 💥 Breaking Changes
+- **Hermes MCP config updated** — old: `python3 _server.py --mode daemon` stdio subprocess. New: `socat - UNIX-CONNECT:/path/to/server.sock`
+- **No more `ast.rapidwebs.org`** — port 8400 remote mode proxy removed. Use local UDS daemon or direct dev VM socket.
+
+---
 
 ## [v0.2.1] — 2026-07-18
 
