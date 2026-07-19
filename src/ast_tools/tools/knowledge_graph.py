@@ -47,7 +47,7 @@ def _get_symbol_searcher():
 
 
 def _resolve_db_path(db_path: str | None) -> str:
-    """Resolve database path, falling back to default if None."""
+    """Resolve database path, falling back to canonical get_db_path()."""
     if db_path:
         return db_path
     try:

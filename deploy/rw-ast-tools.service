@@ -5,7 +5,7 @@ After=network.target
 
 [Service]
 Type=simple
-ExecStart=%h/.local/bin/ast-tools-server --mode daemon --foreground
+ExecStart=/home/sysop/Workspaces/ast-tools/.venv/bin/ast-tools-server --mode daemon --foreground
 Restart=on-failure
 RestartSec=5
 WatchdogSec=120
@@ -13,13 +13,14 @@ StartLimitBurst=5
 StartLimitIntervalSec=300
 MemoryMax=1G
 Environment=AST_TOOLS_MODE=daemon
+Environment=AST_TOOLS_LOG_LEVEL=info
 
 # Security hardening
 NoNewPrivileges=true
 ProtectHome=read-only
 ProtectSystem=strict
 PrivateTmp=true
-ReadWritePaths=%h/.cache/rw-ast-tools %h/.config/rw-ast-tools
+ReadWritePaths=/home/sysop/.cache/rw-ast-tools /home/sysop/.config/rw-ast-tools /home/sysop/Workspaces /tmp
 
 [Install]
 WantedBy=default.target

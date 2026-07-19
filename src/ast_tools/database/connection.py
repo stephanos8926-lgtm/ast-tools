@@ -15,16 +15,17 @@ from pathlib import Path
 from typing import Any, TypeVar
 
 from ast_tools.config.loader import get_cache_dir
+from ast_tools.config.unified import RUNTIME
 
 DEFAULT_DB_PATH = get_cache_dir() / "codebase.db"
 
 # Per-thread connection cache
 _thread_local = threading.local()
 
-# Retry configuration
-MAX_RETRIES = 3
-RETRY_DELAY = 0.5  # seconds
-BACKOFF_MULTIPLIER = 2.0
+# Retry configuration — sourced from RUNTIME
+MAX_RETRIES = RUNTIME.db_max_retries
+RETRY_DELAY = RUNTIME.db_retry_delay
+BACKOFF_MULTIPLIER = RUNTIME.db_backoff_multiplier
 
 F = TypeVar("F", bound=Callable[..., Any])
 
@@ -206,10 +207,22 @@ def get_cache_path() -> Path:
     return Path.home() / ".cache" / "ast-tools" / "ast-cache"
 
 
-def get_db_path() -> Path:
+def get_db_path(project_root: str | Path | None = None) -> Path:
     """Get the database file path.
 
+    Canonical single source of truth for the ast-tools SQLite database path.
+
+    Args:
+        project_root: Optional project root to get the project-scoped DB.
+                      When provided, returns <project_root>/.ast-tools/cache/codebase.db
+                      When None (default), returns the global ~/.ast-tools/cache/codebase.db
+
     Returns:
-        Path to ~/.cache/ast-tools/codebase.db
+        Path to the ast-tools SQLite database (codebase.db)
+
+    Rule:
+        ALL code MUST use this function. No hardcoded .db paths anywhere.
     """
+    if project_root:
+        return Path(project_root) / ".ast-tools" / "cache" / "codebase.db"
     return DEFAULT_DB_PATH

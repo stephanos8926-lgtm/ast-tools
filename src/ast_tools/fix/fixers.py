@@ -9,7 +9,9 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from ast_tools.config.unified import RUNTIME
 
+from ..database.connection import get_connection, get_db_path
 @dataclass
 class FixerPlugin:
     """Represents a loaded, registered fixer plugin."""
@@ -199,7 +201,7 @@ class FixerBase(ABC):
     ) -> subprocess.CompletedProcess:
         """Run a command and return result."""
         if timeout is None:
-            timeout = 120  # Default 2 minute timeout
+            timeout = RUNTIME.timeout_fixer
         return subprocess.run(
             cmd,
             input=input_text,

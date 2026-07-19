@@ -30,6 +30,7 @@ DEFAULT_CONFIG: dict[str, Any] = {
         "socket_path": str(Path.home() / ".cache" / "rw-ast-tools" / "server.sock"),
         "watchdogs": True,
         "max_codebases": 10,
+        "watch_paths": [],  # NEW: list of paths to watch (empty = CWD only)
     },
     "remote": {
         "host": "127.0.0.1",
@@ -56,6 +57,7 @@ ENV_MAP: dict[str, tuple[str, ...]] = {
     "AST_TOOLS_TIMEOUT": ("server", "timeout_seconds"),
     "AST_TOOLS_DAEMON_SOCKET": ("daemon", "socket_path"),
     "AST_TOOLS_DAEMON_WATCHDOGS": ("daemon", "watchdogs"),
+    "AST_TOOLS_DAEMON_WATCH_PATHS": ("daemon", "watch_paths"),  # NEW
     "AST_TOOLS_REMOTE_HOST": ("remote", "host"),
     "AST_TOOLS_REMOTE_PORT": ("remote", "port"),
     "AST_TOOLS_AUTH_TOKEN": ("remote", "auth_token"),

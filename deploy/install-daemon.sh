@@ -12,16 +12,17 @@ TARGET_SERVICE="$USER_SERVICE_DIR/rw-ast-tools.service"
 CACHE_DIR="$HOME/.cache/rw-ast-tools"
 CONFIG_DIR="$HOME/.config/rw-ast-tools"
 
+AST_TOOLS_SERVER="/home/sysop/Workspaces/ast-tools/.venv/bin/ast-tools-server"
+
 echo "🔧 rw-ast-tools daemon installer"
 echo "=================================="
 
 # Check prerequisites
 echo "Checking prerequisites..."
 
-if ! command -v ast-tools-server &> /dev/null; then
-    echo "❌ ast-tools-server not found in PATH"
-    echo "   Install with: uv tool install rw-ast-tools"
-    echo "   Or from source: cd $PROJECT_ROOT && uv tool install dist/*.whl"
+if ! test -x "$AST_TOOLS_SERVER"; then
+    echo "❌ ast-tools-server not found at $AST_TOOLS_SERVER"
+    echo "   Ensure the .venv is set up in $PROJECT_ROOT"
     exit 1
 fi
 
@@ -30,7 +31,7 @@ if ! systemctl --user --version &> /dev/null; then
     exit 1
 fi
 
-echo "✅ ast-tools-server found: $(command -v ast-tools-server)"
+echo "✅ ast-tools-server found: $AST_TOOLS_SERVER"
 echo "✅ systemd user mode available"
 
 # Create directories
@@ -49,13 +50,13 @@ echo "✅ Service installed to $TARGET_SERVICE"
 CONFIG_FILE="$CONFIG_DIR/config.yaml"
 if [[ ! -f "$CONFIG_FILE" ]]; then
     echo "Creating default config..."
-    cat > "$CONFIG_FILE" << 'EOF'
+    cat > "$CONFIG_FILE" << EOF
 server:
   mode: "daemon"
   timeout_seconds: 900
 
 daemon:
-  socket_path: "~/.cache/rw-ast-tools/server.sock"
+  socket_path: "$HOME/.cache/rw-ast-tools/server.sock"
   watchdogs: true
   max_codebases: 10
 

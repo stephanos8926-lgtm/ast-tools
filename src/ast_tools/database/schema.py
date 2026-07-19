@@ -17,7 +17,7 @@ from datetime import datetime
 logger = logging.getLogger(__name__)
 
 # Current schema version - increment when making breaking changes
-SCHEMA_VERSION = 5  # Phase 9: Schema Enrichments (callgraph, dependencies, similarity, audit_log)
+SCHEMA_VERSION = 6  # Phase 9+: Index Consolidation (codebase_snapshots, projects table)
 
 # Initial schema (v1)
 INITIAL_SCHEMA = """
@@ -292,6 +292,76 @@ def migrate_v3_to_v4(conn: sqlite3.Connection):
     logger.info("Migration v3→v4: Added index on symbols.lang")
 
 
+@register_migration(6)
+def migrate_v5_to_v6(conn: sqlite3.Connection):
+    """Migration from schema v5 to v6.
+
+    Index Consolidation:
+    - codebase_snapshots table (time-series metrics, merged from metrics.db)
+    - projects table (project registry, migrated from YAML config)
+    """
+    # codebase_snapshots: time-series metrics (was in separate metrics.db)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS codebase_snapshots (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            codebase_id TEXT NOT NULL,
+            ts TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            files INTEGER DEFAULT 0,
+            loc INTEGER DEFAULT 0,
+            functions INTEGER DEFAULT 0,
+            classes INTEGER DEFAULT 0,
+            deps INTEGER DEFAULT 0,
+            size_bytes INTEGER DEFAULT 0,
+            commits_since_last INTEGER DEFAULT 0,
+            new_files INTEGER DEFAULT 0,
+            deleted_files INTEGER DEFAULT 0,
+            inserted_lines INTEGER DEFAULT 0,
+            deleted_lines INTEGER DEFAULT 0
+        )
+    """)
+    conn.execute("""
+        CREATE INDEX IF NOT EXISTS idx_snapshots_cb_ts
+        ON codebase_snapshots(codebase_id, ts)
+    """)
+    logger.info("Migration v5→v6: Added codebase_snapshots table")
+
+    # projects: project registry (was in YAML config)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS projects (
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            root_path TEXT NOT NULL UNIQUE,
+            added_at TEXT NOT NULL,
+            auto_watch INTEGER DEFAULT 1,
+            last_indexed_at TEXT,
+            symbol_count INTEGER DEFAULT 0,
+            file_count INTEGER DEFAULT 0,
+            index_state TEXT DEFAULT 'pending',
+            watch_pair_ids TEXT DEFAULT '[]'
+        )
+    """)
+    conn.execute("""
+        CREATE INDEX IF NOT EXISTS idx_projects_name ON projects(name)
+    """)
+    conn.execute("""
+        CREATE INDEX IF NOT EXISTS idx_projects_path ON projects(root_path)
+    """)
+    conn.execute("""
+        CREATE INDEX IF NOT EXISTS idx_projects_state ON projects(index_state)
+    """)
+    logger.info("Migration v5→v6: Added projects table")
+
+
+def get_migration_sql() -> str:
+    """Get the full schema SQL as a string.
+
+    Returns:
+        Complete schema SQL for reference or manual inspection
+    """
+    return INITIAL_SCHEMA
+
+
+# Migration v5 -> v6: Index Consolidation
 @register_migration(5)
 def migrate_v4_to_v5(conn: sqlite3.Connection):
     """Migration from schema v4 to v5.
@@ -324,10 +394,55 @@ def migrate_v4_to_v5(conn: sqlite3.Connection):
     migrate_v4_to_v5(conn)
 
 
-def get_migration_sql() -> str:
-    """Get the full schema SQL as a string.
+@register_migration(6)
+def migrate_v5_to_v6(conn: sqlite3.Connection):
+    """Migration from schema v5 to v6.
 
-    Returns:
-        Complete schema SQL for reference or manual inspection
+    Index Consolidation:
+    - codebase_snapshots table (moved from separate metrics.db)
+    - projects table (migrated from YAML config in project_registry)
     """
-    return INITIAL_SCHEMA
+    # codebase_snapshots: time-series metrics (was in separate metrics.db)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS codebase_snapshots (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            codebase_id TEXT NOT NULL,
+            ts TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            files INTEGER DEFAULT 0,
+            loc INTEGER DEFAULT 0,
+            functions INTEGER DEFAULT 0,
+            classes INTEGER DEFAULT 0,
+            deps INTEGER DEFAULT 0,
+            size_bytes INTEGER DEFAULT 0,
+            commits_since_last INTEGER DEFAULT 0,
+            new_files INTEGER DEFAULT 0,
+            deleted_files INTEGER DEFAULT 0,
+            inserted_lines INTEGER DEFAULT 0,
+            deleted_lines INTEGER DEFAULT 0
+        )
+    """)
+    conn.execute("""
+        CREATE INDEX IF NOT EXISTS idx_snapshots_cb_ts
+        ON codebase_snapshots(codebase_id, ts)
+    """)
+    logger.info("Migration v5→v6: Added codebase_snapshots table")
+
+    # projects table - migrated from YAML config to DB
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS projects (
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            root_path TEXT NOT NULL UNIQUE,
+            added_at TEXT NOT NULL,
+            auto_watch INTEGER DEFAULT 1,
+            last_indexed_at TEXT,
+            symbol_count INTEGER DEFAULT 0,
+            file_count INTEGER DEFAULT 0,
+            index_state TEXT DEFAULT 'pending',  -- pending, indexing, ready, stale
+            watch_pair_ids TEXT DEFAULT '[]'
+        )
+    """)
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_projects_name ON projects(name)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_projects_path ON projects(root_path)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_projects_state ON projects(index_state)")
+    logger.info("Migration v5→v6: Added projects table")

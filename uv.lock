@@ -3054,7 +3054,6 @@ dependencies = [
     { name = "libcst" },
     { name = "mcp" },
     { name = "pyyaml" },
-    { name = "sentence-transformers" },
     { name = "sqlite-vec" },
     { name = "sqlparse" },
     { name = "tiktoken" },
@@ -3083,6 +3082,9 @@ dev = [
     { name = "tree-sitter-rust" },
     { name = "tree-sitter-typescript" },
     { name = "websocket-client" },
+]
+reranker = [
+    { name = "sentence-transformers" },
 ]
 spectral = [
     { name = "scipy", version = "1.15.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
@@ -3134,7 +3136,7 @@ requires-dist = [
     { name = "pyyaml", specifier = ">=6.0" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.4.0" },
     { name = "scipy", marker = "extra == 'spectral'", specifier = ">=1.9.0" },
-    { name = "sentence-transformers", specifier = ">=2.2.0" },
+    { name = "sentence-transformers", marker = "extra == 'reranker'", specifier = ">=2.2.0" },
     { name = "sqlite-vec", specifier = ">=0.1.0" },
     { name = "sqlparse", specifier = ">=0.5.0" },
     { name = "tiktoken", specifier = ">=0.7.0" },
@@ -3161,7 +3163,7 @@ requires-dist = [
     { name = "watchdog", specifier = ">=4.0.0" },
     { name = "websocket-client", marker = "extra == 'dev'", specifier = ">=1.9" },
 ]
-provides-extras = ["dev", "tree-sitter", "spectral"]
+provides-extras = ["reranker", "dev", "tree-sitter", "spectral"]
 
 [package.metadata.requires-dev]
 dev = [

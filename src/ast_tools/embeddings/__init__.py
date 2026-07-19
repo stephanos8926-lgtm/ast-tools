@@ -4,9 +4,9 @@ Provides transformer-based embedding generation and vector storage/search via sq
 Supports both local (sentence-transformers) and remote (RW_InferenceEngine) backends.
 """
 
+from ast_tools.config.unified import RUNTIME
+
 from .model import (
-    EMBEDDING_DIM,
-    MODEL_NAME,
     generate_batch_embeddings,
     generate_embedding,
     get_model,
@@ -49,7 +49,10 @@ from .store import (
     search_similar,
 )
 
-# Prefer model.py's EMBEDDING_DIM if both are imported
+# Sourced from RUNTIME — single source of truth
+EMBEDDING_DIM = RUNTIME.embedding_dim
+MODEL_NAME = RUNTIME.embedding_model_minilm
+
 __all__ = [
     "DEFAULT_MODELS",
     "EMBEDDING_DIM",

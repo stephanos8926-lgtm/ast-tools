@@ -36,10 +36,22 @@ class MetricsStore:
     change velocity metrics. Queryable by codebase_id.
     """
 
-    def __init__(self, db_path: str | Path | None = None):
-        if db_path is None:
-            db_path = Path.home() / ".cache" / "rw-ast-tools" / "metrics.db"
-        self.db_path = Path(db_path)
+    def __init__(self, db_path: str | Path | None = None, project_root: str | Path | None = None):
+        """Initialize metrics store.
+
+        Args:
+            db_path: Custom database path. If provided, uses that exact path.
+            project_root: If no db_path given, use project-scoped DB at <project_root>/.ast-tools/cache/codebase.db
+                         If neither, uses global ~/.ast-tools/cache/codebase.db
+        """
+        if db_path is not None:
+            self.db_path = Path(db_path)
+        elif project_root is not None:
+            from ast_tools.database.connection import get_db_path
+            self.db_path = get_db_path(project_root=project_root)
+        else:
+            from ast_tools.database.connection import get_db_path
+            self.db_path = get_db_path()
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self._init_db()
 

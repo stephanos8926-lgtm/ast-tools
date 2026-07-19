@@ -17,6 +17,8 @@ from enum import Enum
 from pathlib import Path
 from typing import Any
 
+from ast_tools.config.unified import RUNTIME
+
 from .provider import EmbeddingBackend, EmbeddingProvider, RemoteInferenceConfig
 
 logger = logging.getLogger(__name__)
@@ -88,49 +90,49 @@ class EmbeddingModelConfig:
         )
 
 
-# Default model configurations
+# Default model configurations — batch sizes sourced from RUNTIME
 DEFAULT_MODELS = {
     "bge-small-en-v1.5": EmbeddingModelConfig(
         provider=EmbeddingModelProvider.LOCAL,
         model_name="bge-small-en-v1.5",
         dimension=384,
         description="BGE small English v1.5 - fast, good quality",
-        max_batch_size=64,
+        max_batch_size=RUNTIME.batch_size_embeddings_large,
     ),
     "all-MiniLM-L6-v2": EmbeddingModelConfig(
         provider=EmbeddingModelProvider.LOCAL,
         model_name="all-MiniLM-L6-v2",
         dimension=384,
         description="MiniLM L6 v2 - very fast, decent quality",
-        max_batch_size=64,
+        max_batch_size=RUNTIME.batch_size_embeddings_large,
     ),
     "ms-marco-MiniLM-L-6-v2": EmbeddingModelConfig(
         provider=EmbeddingModelProvider.LOCAL,
         model_name="ms-marco-MiniLM-L-6-v2",
         dimension=384,
         description="MS MARCO MiniLM - optimized for retrieval",
-        max_batch_size=64,
+        max_batch_size=RUNTIME.batch_size_embeddings_large,
     ),
     "rw-inference-bge": EmbeddingModelConfig(
         provider=EmbeddingModelProvider.REMOTE,
         model_name="bge-small-en-v1.5",
         dimension=384,
         description="Remote BGE via RW_InferenceEngine",
-        max_batch_size=32,
+        max_batch_size=RUNTIME.batch_size_embeddings_standard,
     ),
     "text-embedding-3-small": EmbeddingModelConfig(
         provider=EmbeddingModelProvider.OPENAI,
         model_name="text-embedding-3-small",
         dimension=1536,
         description="OpenAI text-embedding-3-small",
-        max_batch_size=100,
+        max_batch_size=RUNTIME.batch_size_embeddings_api,
     ),
     "text-embedding-3-large": EmbeddingModelConfig(
         provider=EmbeddingModelProvider.OPENAI,
         model_name="text-embedding-3-large",
         dimension=3072,
         description="OpenAI text-embedding-3-large",
-        max_batch_size=50,
+        max_batch_size=RUNTIME.batch_size_embeddings_api,
     ),
     "gemini-embedding-001": EmbeddingModelConfig(
         provider=EmbeddingModelProvider.GEMINI,

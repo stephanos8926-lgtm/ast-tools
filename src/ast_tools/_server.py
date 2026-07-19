@@ -193,19 +193,30 @@ async def _idle_monitor(timeout_seconds: int, get_last_activity) -> None:
 
 
 async def _run_daemon_mode(config: dict[str, Any]) -> None:
-    """Run server in daemon mode — persistent stdio with watchdog."""
+    """Run server in daemon mode — persistent stdio with watchdog.
+
+    Supports monitoring multiple project paths via `daemon.watch_paths`
+    config (or AST_TOOLS_DAEMON_WATCH_PATHS env var as comma-separated list).
+    Falls back to CWD if no paths specified.
+    """
     socket_path = config["daemon"]["socket_path"]
     logger.info("Starting daemon mode (socket: %s)", socket_path)
 
-    # Start watchdog in background
+    # Start watchdog for multiple paths
     from ast_tools.watchdog.monitor import CodebaseWatcher
 
     watcher = CodebaseWatcher(config)
     if watcher.enabled:
         try:
-            cwd = os.getcwd()
-            msg = watcher.start(cwd)
-            logger.info("Watchdog: %s", msg)
+            # Use configured watch_paths or fall back to CWD
+            watch_paths = config["daemon"].get("watch_paths", [])
+            if not watch_paths:
+                watch_paths = [os.getcwd()]
+                logger.info("No watch_paths configured, using CWD: %s", watch_paths[0])
+            
+            for path in watch_paths:
+                msg = watcher.start(path)
+                logger.info("Watchdog: %s", msg)
         except Exception as e:
             logger.warning("Watchdog failed to start: %s", e)
 

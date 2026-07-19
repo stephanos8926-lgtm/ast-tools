@@ -25,10 +25,12 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+from ast_tools.config.unified import RUNTIME
+
 logger = logging.getLogger(__name__)
 
-# Default max cache size (1GB)
-DEFAULT_MAX_SIZE_MB = 1024
+# Default max cache size (1GB) — sourced from RUNTIME
+DEFAULT_MAX_SIZE_MB = RUNTIME.cache_max_size_mb
 
 
 class ASTNodeEncoder(json.JSONEncoder):

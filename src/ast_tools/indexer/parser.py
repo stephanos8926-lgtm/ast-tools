@@ -14,11 +14,9 @@ import hashlib
 import logging
 from pathlib import Path
 
+from ast_tools.config.unified import RUNTIME
+
 logger = logging.getLogger(__name__)
-
-# Maximum file size to parse (10MB)
-MAX_FILE_SIZE = 10 * 1024 * 1024
-
 
 class ParseResult:
     """Result of parsing a Python file.
@@ -83,8 +81,9 @@ def parse_file(file_path: Path) -> ParseResult:
     try:
         # Check file size
         file_size = file_path.stat().st_size
-        if file_size > MAX_FILE_SIZE:
-            logger.warning(f"File too large (>10MB): {file_path}")
+        max_size = RUNTIME.max_file_size_parse
+        if file_size > max_size:
+            logger.warning(f"File too large (>{max_size // (1024*1024)}MB): {file_path}")
             return ParseResult(success=False, error=f"File too large: {file_size} bytes")
 
         # Read file content

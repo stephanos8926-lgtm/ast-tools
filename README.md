@@ -234,6 +234,43 @@ systemctl --user enable --now ast-tools-daemon
 ast-tools --mode daemon --socket /tmp/ast-tools.sock
 ```
 
+### Multi-Project Watching in Daemon Mode
+
+Daemon mode can monitor multiple projects simultaneously (saves resources vs running multiple instances). Configure via:
+
+1. **Config file** (`~/.config/rw-ast-tools/config.yaml`):
+```yaml
+daemon:
+  watchdogs: true
+  watch_paths:
+    - "/home/user/Workspaces/project-a"
+    - "/home/user/Workspaces/project-b"
+    - "/home/user/Workspaces/project-c"
+```
+
+2. **Environment variable** (comma-separated):
+```bash
+AST_TOOLS_DAEMON_WATCH_PATHS="/home/user/Workspaces/project-a,/home/user/Workspaces/project-b" ast-tools --mode daemon
+```
+
+3. **CLI** (coming soon): `ast-tools --mode daemon --watch-paths /path/a,/path/b`
+
+If no paths configured, defaults to CWD.
+
+---
+
+### ⚠️ Remote/HTTP Mode Limitation
+
+> **Important**: In `remote` (HTTP) mode, the server runs on a remote machine/container but **only has access to the filesystem where it runs**. It cannot analyze code on the client machine. This is a fundamental limitation of the architecture — the server must be deployed alongside the codebase you want to analyze, or you must sync/mount the codebase to the server.
+
+**Workarounds:**
+- Run daemon mode locally (recommended for single-user)
+- Sync code to server via rsync/git before analysis
+- Use worktree-based deployment (`hermes worktree remote ...`) to clone code on the server
+- Mount codebase via network filesystem (NFS, sshfs)
+
+We're exploring better patterns for this (see [issue #tracking](https://github.com/rapidwebs/rw-ast-tools/issues)).
+
 ---
 
 ## 🔌 Hermes Plugin: `rw-ast-tools`

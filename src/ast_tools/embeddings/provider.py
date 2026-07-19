@@ -12,7 +12,9 @@ import os
 from enum import Enum
 from typing import Any
 
-from .model import EMBEDDING_DIM, generate_batch_embeddings, generate_embedding
+from ast_tools.config.unified import RUNTIME
+
+from .model import generate_batch_embeddings, generate_embedding
 from .remote_inference import RemoteInferenceClient, RemoteInferenceConfig
 
 logger = logging.getLogger(__name__)
@@ -100,7 +102,7 @@ class EmbeddingProvider:
     async def generate_embedding(self, text: str) -> list[float]:
         """Generate embedding for a single text using the best available backend."""
         if not text or not text.strip():
-            return [0.0] * EMBEDDING_DIM
+            return [0.0] * RUNTIME.embedding_dim
 
         backend = await self._select_backend()
 

@@ -36,6 +36,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+from ast_tools.config.unified import RUNTIME
+
 from ..database import (
     database_context,
     delete_symbol_cascade,
@@ -371,7 +373,7 @@ def _generate_embeddings(conn) -> int:
         return 0
 
     # Generate embeddings in batches
-    batch_size = 32
+    batch_size = RUNTIME.batch_size_embeddings_standard
     total_generated = 0
 
     for i in range(0, len(texts), batch_size):

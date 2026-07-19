@@ -66,7 +66,8 @@ def release_lock() -> None:
 
 def pre_backup() -> Path | None:
     """Backup database before destructive operations."""
-    db_path = AST_TOOLS_DIR / "cache" / "codebase.db"
+    from ..database.connection import get_db_path
+    db_path = get_db_path()
     if not db_path.exists():
         return None
     BACKUP_DIR.mkdir(parents=True, exist_ok=True)
@@ -96,7 +97,8 @@ class LLmCurator:
             project_root: Root of project to curate (default: current dir)
         """
         self.project_root = Path(project_root) if project_root else Path.cwd()
-        self.db_path = self.project_root / ".ast-tools" / "index.db"
+        from ..database.connection import get_db_path
+        self.db_path = get_db_path(project_root=self.project_root)
 
     def daily_audit(self) -> dict:
         """Run daily audit of index health.

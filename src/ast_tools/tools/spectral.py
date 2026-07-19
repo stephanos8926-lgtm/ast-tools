@@ -135,6 +135,8 @@ from typing import Any
 
 import numpy as np
 
+from ast_tools.config.unified import RUNTIME
+
 # Scipy availability for sparse eigensolver (eigsh)
 try:
     import scipy  # noqa: F401
@@ -1654,7 +1656,7 @@ def _build_module_adjacency(
         return local_edges
 
     # Dispatch: sequential by default, parallel if max_workers > 1
-    max_workers_par = 4  # default parallelism
+    max_workers_par = RUNTIME.workers_spectral  # default parallelism
     file_count = len(source_files)
 
     if file_count < 20 or max_workers_par <= 1:
@@ -1736,8 +1738,8 @@ def _build_call_graph_adjacency(
 
     Args:
         project_root: Root of the project to analyze.
-        database_path: Path to the semantic index database. If None, auto-detect
-                      in project_root (default: project_root/.db/ast_tools.db).
+        database_path: Path to the semantic index database. If None, uses
+                       canonical get_db_path(project_root=project_root).
         edge_weight: Base weight multiplier.
 
     Returns:
@@ -1747,24 +1749,11 @@ def _build_call_graph_adjacency(
 
     # Auto-detect database path
     if database_path is None:
-        candidates = [
-            Path(project_root) / ".db" / "ast_tools.db",
-            Path(project_root) / "ast_tools.db",
-            Path(project_root) / "index" / "ast_tools.db",
-        ]
-        db_path: Path | None = None
-        for c in candidates:
-            if c.exists():
-                db_path = c
-                break
-    else:
-        db_path = Path(database_path)
-
-    if db_path is None or not db_path.exists():
-        logger.info("No semantic database found, falling back to import graph")
-        return _build_module_adjacency(project_root, edge_weight=edge_weight)
-
-    logger.info(f"Using semantic database: {db_path}")
+        from ast_tools.database.connection import get_db_path
+        db_path = get_db_path(project_root=project_root)
+        if not db_path.exists():
+            logger.info("No semantic database found, falling back to import graph")
+            return _build_module_adjacency(project_root, edge_weight=edge_weight)
 
     # Edge type → relative weight
     EDGE_WEIGHTS = {
@@ -1994,9 +1983,9 @@ class EmbeddingCache:
         self._order: list[tuple[str, str, str]] = []
         self._max_entries = max_entries
 
-    def get(self, file_path: str, content_hash: str, model: str = "all-MiniLM-L6-v2") -> list[float] | None:
+    def get(self, file_path: str, content_hash: str, model: str = RUNTIME.embedding_model_minilm) -> list[float] | None:
         """Get cached embedding. Returns None on miss.
-        
+
         Args:
             file_path: Absolute path to the source file.
             content_hash: Hash of file content (e.g. SHA256 hex).
@@ -2016,7 +2005,7 @@ class EmbeddingCache:
             return val
         return None
 
-    def put(self, file_path: str, content_hash: str, embedding: list[float], model: str = "all-MiniLM-L6-v2") -> None:
+    def put(self, file_path: str, content_hash: str, embedding: list[float], model: str = RUNTIME.embedding_model_minilm) -> None:
         """Store embedding in cache. Evicts LRU entry if at capacity."""
         key = (file_path, content_hash, model)
         if key in self._cache:
@@ -2127,11 +2116,11 @@ def _build_semantic_adjacency(
             return np.zeros((n, n))
 
         try:
-            model_name = "all-MiniLM-L6-v2"
+            model_name = RUNTIME.embedding_model_minilm
             logger.info(f"Loading embedding model for semantic affinity: {model_name}")
             model = SentenceTransformer(model_name)
             logger.info(f"Generating {len(module_docs)} module embeddings...")
-            embeddings_np = model.encode(module_docs, show_progress_bar=False, batch_size=32)
+            embeddings_np = model.encode(module_docs, show_progress_bar=False, batch_size=RUNTIME.batch_size_embeddings_standard)
             logger.info("Computing cosine similarity matrix...")
         except Exception as e:
             logger.warning(f"Failed to generate semantic embeddings ({e}), skipping")

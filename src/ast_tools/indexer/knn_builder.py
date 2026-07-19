@@ -6,7 +6,7 @@ Builds and maintains a KNN graph for semantic code search:
 - Approximate search with configurable accuracy
 
 Usage:
-    builder = KNNGraphBuilder(dim=384)
+    builder = KNNGraphBuilder(dim=RUNTIME.knn_dim)
     builder.add_item("symbol_id", embedding_vector)
     builder.build()
     neighbors = builder.query(query_embedding, k=10)
@@ -15,6 +15,8 @@ Usage:
 import logging
 import sqlite3
 import struct
+
+from ast_tools.config.unified import RUNTIME
 
 logger = logging.getLogger(__name__)
 
@@ -36,12 +38,12 @@ class KNNGraphBuilder:
     - Incremental updates without full rebuild
 
     Parameters:
-    - ef_construction: 200 (higher = better accuracy, slower build)
-    - M: 16 (number of connections, higher = better recall, more memory)
-    - ef_search: 50 (runtime search parameter, higher = better recall)
+    - ef_construction: RUNTIME.knn_ef_construction (higher = better accuracy, slower build)
+    - M: RUNTIME.knn_m (number of connections, higher = better recall, more memory)
+    - ef_search: RUNTIME.knn_ef_search (runtime search parameter, higher = better recall)
     """
 
-    def __init__(self, dim: int = 384, space: str = "cosine"):
+    def __init__(self, dim: int = RUNTIME.embedding_dim, space: str = "cosine"):
         """Initialize KNN graph builder.
 
         Args:

@@ -13,6 +13,8 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
+from ast_tools.config.unified import RUNTIME
+
 logger = logging.getLogger("ast-tools.cochange.git_miner")
 
 SCHEMA_SQL = """
@@ -67,14 +69,14 @@ class GitMiner:
                 capture_output=True,
                 text=True,
                 cwd=str(self.repo_path),
-                timeout=120,
+                timeout=RUNTIME.timeout_git_log,
             )
             if result.returncode != 0:
                 logger.warning("git log returned %d: %s", result.returncode, result.stderr[:200])
                 return ""
             return result.stdout
         except subprocess.TimeoutExpired:
-            logger.warning("git log timed out after 120s")
+            logger.warning(f"git log timed out after {RUNTIME.timeout_git_log}s")
             return ""
         except FileNotFoundError:
             logger.warning("git not found — cannot mine co-change data")

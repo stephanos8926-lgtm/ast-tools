@@ -20,12 +20,10 @@ from .fixers import (
     register_plugin_fixers,
 )
 from .fixers import FixerConfig as FixersFixerConfig
+from ast_tools.config.unified import RUNTIME
 
 console = Console()
 logger = logging.getLogger(__name__)
-
-# Max backup retention days
-BACKUP_RETENTION_DAYS = 7
 
 
 class SafetyLevel(Enum):
@@ -71,9 +69,9 @@ class FixContext:
     check_only: bool = False
     diff_only: bool = False
     verbose: bool = False
-    max_iterations: int = 10
-    timeout: int = 120  # Default 2 minute timeout per tool
-    max_file_size: int = 10 * 1024 * 1024  # 10MB default max file size
+    max_iterations: int = RUNTIME.fix_max_iterations
+    timeout: int = RUNTIME.timeout_fixer
+    max_file_size: int = RUNTIME.max_file_size_fix
     create_backups: bool = True  # Create .bak files before modifying
 
 

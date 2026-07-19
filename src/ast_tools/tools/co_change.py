@@ -11,11 +11,11 @@ from typing import Any
 
 
 def _resolve_db_path(db_path: str | None = None) -> str:
-    """Resolve database path."""
+    """Resolve database path to the canonical codebase.db."""
     if db_path:
         return db_path
-    from ast_tools.config.loader import get_cache_dir
-    return str(get_cache_dir() / "codebase.db")
+    from ast_tools.database.connection import get_db_path
+    return str(get_db_path())
 
 
 def _ensure_tables(conn) -> None:

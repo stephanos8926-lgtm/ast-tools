@@ -97,6 +97,7 @@ from .llm_suggest_fix import _tool_llm_check_available, _tool_llm_suggest_fix
 from .lsp_tools import register_lsp_tools
 from .module_imports import _tool_module_imports
 from .project_info import _tool_project_info
+from .project_registry import register_tools as register_project_registry_tools
 from .refresh_index import _tool_refresh_index
 from .repo_skeleton import _tool_repo_skeleton
 from .search_symbols import _tool_search_symbols
@@ -1746,3 +1747,6 @@ tool_usage_stats_tool = {
 }
 
 register_tool("tool_usage_stats", _tool_tool_usage_stats, tool_usage_stats_tool)
+
+# Register project registry tools
+register_project_registry_tools(TOOL_REGISTRY)

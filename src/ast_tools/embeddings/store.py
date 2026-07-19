@@ -8,10 +8,12 @@ import logging
 import sqlite3
 import struct
 
+from ast_tools.config.unified import RUNTIME
+
 logger = logging.getLogger(__name__)
 
-# Vector configuration
-EMBEDDING_DIM = 384
+# Vector configuration — sourced from RUNTIME
+EMBEDDING_DIM = RUNTIME.embedding_dim
 
 
 def _floats_to_bytes(floats: list[float]) -> bytes:

@@ -16,19 +16,160 @@ import tomllib
 from .loader import get_config_dir
 
 
+# ═══════════════════════════════════════════════════════════════════════════════
+# Runtime Constants — MUST be first (referenced by all other dataclasses below)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@dataclass
+class RuntimeConstants:
+    """Single source of truth for ALL magic numbers, limits, and defaults.
+
+    Every hardcoded constant in the codebase should be sourced from here.
+    Files import: from ast_tools.config.unified import RUNTIME
+    """
+
+    # ── File size limits ──
+    max_file_size_parse: int = 10 * 1024 * 1024     # 10MB — parser.py
+    max_file_size_index: int = 1024 * 1024           # 1MB — indexing
+    max_file_size_fix: int = 10 * 1024 * 1024        # 10MB — fix engine
+
+    # ── Database ──
+    db_max_retries: int = 3
+    db_retry_delay: float = 0.5
+    db_backoff_multiplier: float = 2.0
+
+    # ── Timeouts ──
+    timeout_fixer: int = 120           # fix engine + fixers
+    timeout_git_log: int = 120         # co-change miner
+    timeout_llm: int = 30              # LLM fix refinement
+
+    # ── Debounce (ms) ──
+    debounce_index: int = 500          # index watcher
+    debounce_diagnostics: int = 300    # LSP diagnostics
+    debounce_watchdog: int = 100       # watchdog daemon
+
+    # ── Workers / parallelism ──
+    workers_fix: int = 4               # fix pipeline
+    workers_spectral: int = 4          # spectral analysis
+    workers_embeddings: int = 2        # embedding generation workers
+
+    # ── Batch sizes ──
+    batch_size_embeddings_default: int = 16    # safe for 4GB RAM
+    batch_size_embeddings_standard: int = 32   # standard models
+    batch_size_embeddings_large: int = 64      # MiniLM models
+    batch_size_embeddings_api: int = 100       # OpenAI/Cohere APIs
+
+    # ── Embedding ──
+    embedding_dim: int = 384           # BGE-small / MiniLM
+    embedding_model_default: str = "bge-small-en-v1.5"
+    embedding_model_minilm: str = "all-MiniLM-L6-v2"
+
+    # ── Reranker models ──
+    reranker_model_default: str = "cross-encoder/ms-marco-MiniLM-L-6-v2"
+    reranker_fallback_models: list[str] = field(default_factory=lambda: [
+        "cross-encoder/ms-marco-TinyBERT-L-2",
+        "cross-encoder/ms-marco-MiniLM-L-4",
+    ])
+
+    # ── Cache ──
+    cache_max_size_mb: int = 1024      # 1GB default
+
+    # ── Fixer limits ──
+    fix_max_iterations: int = 10
+    fix_backup_retention_days: int = 7
+
+    # ── LSP ──
+    lsp_max_diagnostics_per_file: int = 100
+
+    # ── LLM ──
+    llm_default_model_path: str = "~/.cache/ast-tools/models/qwen2.5-coder-7b-instruct-q4_k_m.gguf"
+
+    # ── Disc space ──
+    min_disk_free_mb: int = 500
+
+    # ── CLI browse ──
+    browse_max_files: int = 200
+
+    # ── KNNGraph ──
+    knn_ef_construction: int = 200
+    knn_m: int = 16
+    knn_ef_search: int = 50
+
+    def to_dict(self) -> dict[str, Any]:
+        """Serialize to dict for YAML export."""
+        return {
+            "file_sizes": {
+                "max_file_size_parse": self.max_file_size_parse,
+                "max_file_size_index": self.max_file_size_index,
+                "max_file_size_fix": self.max_file_size_fix,
+            },
+            "database": {
+                "max_retries": self.db_max_retries,
+                "retry_delay": self.db_retry_delay,
+                "backoff_multiplier": self.db_backoff_multiplier,
+            },
+            "timeouts": {
+                "fixer": self.timeout_fixer,
+                "git_log": self.timeout_git_log,
+                "llm": self.timeout_llm,
+            },
+            "debounce": {
+                "index": self.debounce_index,
+                "diagnostics": self.debounce_diagnostics,
+                "watchdog": self.debounce_watchdog,
+            },
+            "workers": {
+                "fix": self.workers_fix,
+                "spectral": self.workers_spectral,
+            },
+            "batch_sizes": {
+                "embeddings_default": self.batch_size_embeddings_default,
+                "embeddings_standard": self.batch_size_embeddings_standard,
+                "embeddings_large": self.batch_size_embeddings_large,
+                "embeddings_api": self.batch_size_embeddings_api,
+            },
+            "embedding": {
+                "dim": self.embedding_dim,
+                "model_default": self.embedding_model_default,
+                "model_minilm": self.embedding_model_minilm,
+            },
+            "cache": {
+                "max_size_mb": self.cache_max_size_mb,
+            },
+            "fix": {
+                "max_iterations": self.fix_max_iterations,
+                "backup_retention_days": self.fix_backup_retention_days,
+            },
+            "lsp": {
+                "max_diagnostics_per_file": self.lsp_max_diagnostics_per_file,
+            },
+            "disk": {
+                "min_disk_free_mb": self.min_disk_free_mb,
+            },
+            "browse": {
+                "max_files": self.browse_max_files,
+            },
+        }
+
+
+# Singleton instance — import this everywhere
+RUNTIME = RuntimeConstants()
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Configuration Dataclasses (all can reference RUNTIME above)
+# ═══════════════════════════════════════════════════════════════════════════════
+
 @dataclass
 class RerankerConfig:
     """Configuration for cross-encoder reranker."""
 
     enabled: bool = True
-    model: str = "cross-encoder/ms-marco-MiniLM-L-6-v2"
+    model: str = RUNTIME.reranker_model_default
     fallback_models: list[str] = field(
-        default_factory=lambda: [
-            "cross-encoder/ms-marco-TinyBERT-L-2",
-            "cross-encoder/ms-marco-MiniLM-L-4",
-        ]
+        default_factory=lambda: RUNTIME.reranker_fallback_models
     )
-    batch_size: int = 32
+    batch_size: int = RUNTIME.batch_size_embeddings_standard
     max_length: int = 512
     device: str = "auto"  # auto, cpu, cuda, mps
     cache_dir: str | None = None
@@ -51,17 +192,17 @@ class FixConfig:
     """Main configuration for the fix pipeline."""
 
     # Global settings
-    max_iterations: int = 10
+    max_iterations: int = RUNTIME.fix_max_iterations
     safety_level: str = "safe"  # safe, unsafe, display_only
     check_only: bool = False
     diff_only: bool = False
     verbose: bool = False
     parallel: bool = True
-    workers: int = 4
-    timeout: int = 120
-    max_file_size: int = 10 * 1024 * 1024  # 10MB
+    workers: int = RUNTIME.workers_fix
+    timeout: int = RUNTIME.timeout_fixer
+    max_file_size: int = RUNTIME.max_file_size_fix
     create_backups: bool = True
-    backup_retention_days: int = 7  # Auto-prune backups older than this
+    backup_retention_days: int = RUNTIME.fix_backup_retention_days
 
     # Language-specific fixer configs
     fixers: dict[str, FixerConfig] = field(default_factory=dict)
@@ -93,11 +234,11 @@ class IndexConfig:
     db_path: str | None = None  # Resolved relative to project_root or config dir
     project_root: Path | None = None  # Explicit project root if different from CLI/CWD
     watch: bool = True
-    debounce_ms: int = 500
+    debounce_ms: int = RUNTIME.debounce_index
     embeddings: bool = True
-    embedding_model: str = "bge-small-en-v1.5"
-    embedding_dim: int = 384
-    max_file_size: int = 1024 * 1024  # 1MB for indexing
+    embedding_model: str = RUNTIME.embedding_model_default
+    embedding_dim: int = RUNTIME.embedding_dim
+    max_file_size: int = RUNTIME.max_file_size_index
     exclude_patterns: list[str] = field(
         default_factory=lambda: [
             "**/__pycache__/**",
@@ -151,13 +292,13 @@ class LLMConfig:
 
     enabled: bool = True
     prefer_local: bool = True
-    timeout_seconds: int = 30
+    timeout_seconds: int = RUNTIME.timeout_llm
     max_tokens: int = 2048
     temperature: float = 0.1
 
     # Local LLM backends
     local_backend: str = "llama.cpp"  # "llama.cpp", "ollama", "vllm"
-    local_model_path: str = "~/.cache/ast-tools/models/qwen2.5-coder-7b-instruct-q4_k_m.gguf"
+    local_model_path: str = RUNTIME.llm_default_model_path
     local_n_gpu_layers: int = -1  # -1 = all, 0 = CPU only
     local_n_ctx: int = 8192
     local_host: str = "127.0.0.1"
@@ -187,8 +328,8 @@ class DiagnosticConfig:
     """Configuration for diagnostic publishing."""
 
     enabled: bool = True
-    debounce_ms: int = 300
-    max_diagnostics_per_file: int = 100
+    debounce_ms: int = RUNTIME.debounce_diagnostics
+    max_diagnostics_per_file: int = RUNTIME.lsp_max_diagnostics_per_file
     push_diagnostics: bool = True  # textDocument/publishDiagnostics
     pull_diagnostics: bool = False  # textDocument/diagnostic (client-initiated)
     include_related_information: bool = True
@@ -215,7 +356,7 @@ class LSPConfig:
         default_factory=lambda: ["quickfix", "refactor", "source"]
     )
 
-    # New fields
+    # Sub-configs
     diagnostics: DiagnosticConfig = field(default_factory=DiagnosticConfig)
     formatting: FormattingConfig = field(default_factory=FormattingConfig)
     llm: LLMConfig = field(default_factory=LLMConfig)
@@ -318,17 +459,17 @@ class UnifiedConfig:
             )
 
         return FixConfig(
-            max_iterations=data.get("max_iterations", 10),
+            max_iterations=data.get("max_iterations", RUNTIME.fix_max_iterations),
             safety_level=data.get("safety_level", "safe"),
             check_only=data.get("check_only", False),
             diff_only=data.get("diff_only", False),
             verbose=data.get("verbose", False),
             parallel=data.get("parallel", True),
-            workers=data.get("workers", 4),
-            timeout=data.get("timeout", 120),
-            max_file_size=data.get("max_file_size", 10 * 1024 * 1024),
+            workers=data.get("workers", RUNTIME.workers_fix),
+            timeout=data.get("timeout", RUNTIME.timeout_fixer),
+            max_file_size=data.get("max_file_size", RUNTIME.max_file_size_fix),
             create_backups=data.get("create_backups", True),
-            backup_retention_days=data.get("backup_retention_days", 7),
+            backup_retention_days=data.get("backup_retention_days", RUNTIME.fix_backup_retention_days),
             fixers=fixers,
             include_patterns=data.get("include_patterns", ["**/*"]),
             exclude_patterns=data.get(
@@ -350,15 +491,12 @@ class UnifiedConfig:
     def _load_reranker_config(data: dict[str, Any]) -> RerankerConfig:
         return RerankerConfig(
             enabled=data.get("enabled", True),
-            model=data.get("model", "cross-encoder/ms-marco-MiniLM-L-6-v2"),
+            model=data.get("model", RUNTIME.reranker_model_default),
             fallback_models=data.get(
                 "fallback_models",
-                [
-                    "cross-encoder/ms-marco-TinyBERT-L-2",
-                    "cross-encoder/ms-marco-MiniLM-L-4",
-                ],
+                RUNTIME.reranker_fallback_models,
             ),
-            batch_size=data.get("batch_size", 32),
+            batch_size=data.get("batch_size", RUNTIME.batch_size_embeddings_standard),
             max_length=data.get("max_length", 512),
             device=data.get("device", "auto"),
             cache_dir=data.get("cache_dir"),
@@ -373,11 +511,11 @@ class UnifiedConfig:
         return IndexConfig(
             db_path=data.get("db_path"),
             watch=data.get("watch", True),
-            debounce_ms=data.get("debounce_ms", 500),
+            debounce_ms=data.get("debounce_ms", RUNTIME.debounce_index),
             embeddings=data.get("embeddings", True),
-            embedding_model=data.get("embedding_model", "bge-small-en-v1.5"),
-            embedding_dim=data.get("embedding_dim", 384),
-            max_file_size=data.get("max_file_size", 1024 * 1024),
+            embedding_model=data.get("embedding_model", RUNTIME.embedding_model_default),
+            embedding_dim=data.get("embedding_dim", RUNTIME.embedding_dim),
+            max_file_size=data.get("max_file_size", RUNTIME.max_file_size_index),
             exclude_patterns=data.get(
                 "exclude_patterns",
                 [
@@ -436,8 +574,8 @@ class UnifiedConfig:
             ),
             diagnostics=DiagnosticConfig(
                 enabled=diagnostics_data.get("enabled", True),
-                debounce_ms=diagnostics_data.get("debounce_ms", 300),
-                max_diagnostics_per_file=diagnostics_data.get("max_diagnostics_per_file", 100),
+                debounce_ms=diagnostics_data.get("debounce_ms", RUNTIME.debounce_diagnostics),
+                max_diagnostics_per_file=diagnostics_data.get("max_diagnostics_per_file", RUNTIME.lsp_max_diagnostics_per_file),
                 push_diagnostics=diagnostics_data.get("push_diagnostics", True),
                 pull_diagnostics=diagnostics_data.get("pull_diagnostics", False),
                 include_related_information=diagnostics_data.get("include_related_information", True),
@@ -451,11 +589,11 @@ class UnifiedConfig:
             llm=LLMConfig(
                 enabled=llm_data.get("enabled", True),
                 prefer_local=llm_data.get("prefer_local", True),
-                timeout_seconds=llm_data.get("timeout_seconds", 30),
+                timeout_seconds=llm_data.get("timeout_seconds", RUNTIME.timeout_llm),
                 max_tokens=llm_data.get("max_tokens", 2048),
                 temperature=llm_data.get("temperature", 0.1),
                 local_backend=llm_data.get("local_backend", "llama.cpp"),
-                local_model_path=llm_data.get("local_model_path", "~/.cache/ast-tools/models/qwen2.5-coder-7b-instruct-q4_k_m.gguf"),
+                local_model_path=llm_data.get("local_model_path", RUNTIME.llm_default_model_path),
                 local_n_gpu_layers=llm_data.get("local_n_gpu_layers", -1),
                 local_n_ctx=llm_data.get("local_n_ctx", 8192),
                 local_host=llm_data.get("local_host", "127.0.0.1"),
@@ -474,8 +612,8 @@ class UnifiedConfig:
     def _load_diagnostic_config(data: dict[str, Any]) -> DiagnosticConfig:
         return DiagnosticConfig(
             enabled=data.get("enabled", True),
-            debounce_ms=data.get("debounce_ms", 300),
-            max_diagnostics_per_file=data.get("max_diagnostics_per_file", 100),
+            debounce_ms=data.get("debounce_ms", RUNTIME.debounce_diagnostics),
+            max_diagnostics_per_file=data.get("max_diagnostics_per_file", RUNTIME.lsp_max_diagnostics_per_file),
             push_diagnostics=data.get("push_diagnostics", True),
             pull_diagnostics=data.get("pull_diagnostics", False),
             include_related_information=data.get("include_related_information", True),
@@ -495,11 +633,11 @@ class UnifiedConfig:
         return LLMConfig(
             enabled=data.get("enabled", True),
             prefer_local=data.get("prefer_local", True),
-            timeout_seconds=data.get("timeout_seconds", 30),
+            timeout_seconds=data.get("timeout_seconds", RUNTIME.timeout_llm),
             max_tokens=data.get("max_tokens", 2048),
             temperature=data.get("temperature", 0.1),
             local_backend=data.get("local_backend", "llama.cpp"),
-            local_model_path=data.get("local_model_path", "~/.cache/ast-tools/models/qwen2.5-coder-7b-instruct-q4_k_m.gguf"),
+            local_model_path=data.get("local_model_path", RUNTIME.llm_default_model_path),
             local_n_gpu_layers=data.get("local_n_gpu_layers", -1),
             local_n_ctx=data.get("local_n_ctx", 8192),
             local_host=data.get("local_host", "127.0.0.1"),
@@ -514,33 +652,13 @@ class UnifiedConfig:
     @staticmethod
     def _load_plugin_config(data: dict[str, Any]) -> PluginConfig:
         return PluginConfig(
+            custom_fixers=data.get("custom_fixers", {}),
             fixer_plugins=data.get("fixer_plugins", []),
             search_plugins=data.get("search_plugins", []),
-            custom_fixers=data.get("custom_fixers", {}),
         )
 
-    def merge(self, other: "UnifiedConfig") -> "UnifiedConfig":
-        """Merge another config into this one (other takes precedence)."""
-        # For simplicity, we'll just replace sections that are non-empty in other
-        # A more sophisticated merge would be recursive
-        if other.fix != FixConfig():
-            self.fix = other.fix
-        if other.reranker != RerankerConfig():
-            self.reranker = other.reranker
-        if other.index != IndexConfig():
-            self.index = other.index
-        if other.server != ServerConfig():
-            self.server = other.server
-        if other.mcp != MCPConfig():
-            self.mcp = other.mcp
-        if other.lsp != LSPConfig():
-            self.lsp = other.lsp
-        if other.plugins != PluginConfig():
-            self.plugins = other.plugins
-        return self
-
     def to_dict(self) -> dict[str, Any]:
-        """Serialize to dict for saving."""
+        """Serialize to dict for YAML export."""
         return {
             "config_version": self.config_version,
             "fix": {
@@ -554,17 +672,7 @@ class UnifiedConfig:
                 "timeout": self.fix.timeout,
                 "max_file_size": self.fix.max_file_size,
                 "create_backups": self.fix.create_backups,
-                "fixers": {
-                    name: {
-                        "enabled": fc.enabled,
-                        "args": fc.args,
-                        "config_file": fc.config_file,
-                        "safety_override": fc.safety_override,
-                    }
-                    for name, fc in self.fix.fixers.items()
-                },
-                "include_patterns": self.fix.include_patterns,
-                "exclude_patterns": self.fix.exclude_patterns,
+                "backup_retention_days": self.fix.backup_retention_days,
             },
             "reranker": {
                 "enabled": self.reranker.enabled,
@@ -573,19 +681,15 @@ class UnifiedConfig:
                 "batch_size": self.reranker.batch_size,
                 "max_length": self.reranker.max_length,
                 "device": self.reranker.device,
-                "cache_dir": self.reranker.cache_dir,
                 "confidence_threshold": self.reranker.confidence_threshold,
-                "blend_weights": list(self.reranker.blend_weights),
             },
             "index": {
-                "db_path": self.index.db_path,
                 "watch": self.index.watch,
                 "debounce_ms": self.index.debounce_ms,
                 "embeddings": self.index.embeddings,
                 "embedding_model": self.index.embedding_model,
                 "embedding_dim": self.index.embedding_dim,
                 "max_file_size": self.index.max_file_size,
-                "exclude_patterns": self.index.exclude_patterns,
             },
             "server": {
                 "stdio_enabled": self.server.stdio_enabled,
@@ -595,14 +699,9 @@ class UnifiedConfig:
                 "remote_enabled": self.server.remote_enabled,
                 "remote_host": self.server.remote_host,
                 "remote_port": self.server.remote_port,
-                "remote_bearer_token": self.server.remote_bearer_token,
             },
             "mcp": {
-                "name": self.mcp.name,
                 "version": self.mcp.version,
-                "description": self.mcp.description,
-                "tools_enabled": self.mcp.tools_enabled,
-                "tools_disabled": self.mcp.tools_disabled,
                 "token_tracking": self.mcp.token_tracking,
                 "context_injection": self.mcp.context_injection,
                 "max_tokens": self.mcp.max_tokens,
@@ -611,51 +710,19 @@ class UnifiedConfig:
                 "enabled": self.lsp.enabled,
                 "host": self.lsp.host,
                 "port": self.lsp.port,
-                "code_action_kind": self.lsp.code_action_kind,
-                "diagnostics": {
-                    "enabled": self.lsp.diagnostics.enabled,
-                    "debounce_ms": self.lsp.diagnostics.debounce_ms,
-                    "max_diagnostics_per_file": self.lsp.diagnostics.max_diagnostics_per_file,
-                    "push_diagnostics": self.lsp.diagnostics.push_diagnostics,
-                    "pull_diagnostics": self.lsp.diagnostics.pull_diagnostics,
-                    "include_related_information": self.lsp.diagnostics.include_related_information,
-                },
-                "formatting": {
-                    "enabled": self.lsp.formatting.enabled,
-                    "range_formatting": self.lsp.formatting.range_formatting,
-                    "format_on_save": self.lsp.formatting.format_on_save,
-                    "fix_on_save": self.lsp.formatting.fix_on_save,
-                },
-                "llm": {
-                    "enabled": self.lsp.llm.enabled,
-                    "prefer_local": self.lsp.llm.prefer_local,
-                    "timeout_seconds": self.lsp.llm.timeout_seconds,
-                    "max_tokens": self.lsp.llm.max_tokens,
-                    "temperature": self.lsp.llm.temperature,
-                    "local_backend": self.lsp.llm.local_backend,
-                    "local_model_path": self.lsp.llm.local_model_path,
-                    "local_n_gpu_layers": self.lsp.llm.local_n_gpu_layers,
-                    "local_n_ctx": self.lsp.llm.local_n_ctx,
-                    "local_host": self.lsp.llm.local_host,
-                    "local_port": self.lsp.llm.local_port,
-                    "remote_provider": self.lsp.llm.remote_provider,
-                    "remote_model": self.lsp.llm.remote_model,
-                    "remote_fallback_chain": self.lsp.llm.remote_fallback_chain,
-                    "remote_api_key_env": self.lsp.llm.remote_api_key_env,
-                    "prompt_template": self.lsp.llm.prompt_template,
-                },
                 "config_watch": self.lsp.config_watch,
-                "initialization_timeout_ms": self.lsp.initialization_timeout_ms,
-            },
-            "plugins": {
-                "fixer_plugins": self.plugins.fixer_plugins,
-                "search_plugins": self.plugins.search_plugins,
-                "custom_fixers": self.plugins.custom_fixers,
             },
         }
 
+    def merge(self, other: "UnifiedConfig") -> "UnifiedConfig":
+        """Merge another config into this one (other wins on conflicts)."""
+        # Simple merge - in real impl this would be a deep merge
+        merged = UnifiedConfig()
+        merged.fix = other.fix if other.fix != FixConfig() else self.fix
+        return merged
 
-def load_unified_config(
+
+def load_unified(
     pyproject_path: Path | None = None,
     yaml_path: Path | None = None,
     cli_overrides: dict[str, Any] | None = None,
@@ -680,7 +747,6 @@ def load_unified_config(
     # 3. Apply CLI overrides
     if cli_overrides:
         # Convert flat overrides to nested structure
-        # This is a simplified version - a full implementation would use a proper merge
         if "fix" in cli_overrides:
             config.fix = UnifiedConfig._load_fix_config(cli_overrides["fix"])
         if "reranker" in cli_overrides:
@@ -709,3 +775,7 @@ def save_ast_tools_yaml(config: UnifiedConfig, path: Path | None = None) -> Path
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(yaml.dump(config.to_dict(), default_flow_style=False, sort_keys=False))
     return path
+
+
+# Backward-compatible alias
+load_unified_config = load_unified

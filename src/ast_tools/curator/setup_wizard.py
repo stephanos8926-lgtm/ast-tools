@@ -171,7 +171,8 @@ def _check_environment() -> tuple[bool, list[str]]:
 
 def _init_database(config_dir: Path) -> Path:
     """Initialize SQLite database with schema."""
-    db_path = config_dir / "cache" / "codebase.db"
+    from ast_tools.database.connection import get_db_path
+    db_path = get_db_path()
     data_dir = config_dir / "cache"
     data_dir.mkdir(parents=True, exist_ok=True)
 
@@ -243,10 +244,10 @@ def _create_initial_index(project_root: Path) -> bool:
     Falls back to counting Python files if import fails.
     """
     try:
-        from ast_tools.database.connection import get_connection
+        from ast_tools.database.connection import get_connection, get_db_path
         from ast_tools.indexer.extractor import extract_symbols_ts
 
-        db_path = AST_TOOLS_DIR / "cache" / "codebase.db"
+        db_path = get_db_path()
         conn = get_connection(db_path)
 
         indexed = 0
@@ -298,7 +299,8 @@ def _run_health_check(config_dir: Path) -> dict:
     checks = []
 
     # DB exists
-    db_path = config_dir / "cache" / "codebase.db"
+    from ast_tools.database.connection import get_db_path
+    db_path = get_db_path()
     if db_path.exists():
         checks.append({"check": "database", "status": "ok", "score": 30})
     else:

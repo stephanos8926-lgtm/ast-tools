@@ -1,12 +1,12 @@
-"""
-Configuration for the auto-fix pipeline.
-"""
+"""Configuration for the auto-fix pipeline."""
 
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
 import tomllib
+
+from ast_tools.config.unified import RUNTIME
 
 
 @dataclass
@@ -24,15 +24,15 @@ class FixConfig:
     """Main configuration for the fix pipeline."""
 
     # Global settings
-    max_iterations: int = 10
+    max_iterations: int = RUNTIME.fix_max_iterations
     safety_level: str = "safe"  # safe, unsafe, display_only
     check_only: bool = False
     diff_only: bool = False
     verbose: bool = False
     parallel: bool = True
-    workers: int = 4
+    workers: int = RUNTIME.workers_fix
     create_backups: bool = True
-    backup_retention_days: int = 7
+    backup_retention_days: int = RUNTIME.fix_backup_retention_days
 
     # Language-specific fixer configs
     fixers: dict[str, FixerConfig] = field(default_factory=dict)

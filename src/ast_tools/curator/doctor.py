@@ -68,7 +68,8 @@ def run(
     auto_fixes: list[str] = []
 
     # 1. Database existence
-    db_path = AST_TOOLS_DIR / "cache" / "codebase.db"
+    from ast_tools.database.connection import get_db_path
+    db_path = get_db_path()
     if db_path.exists():
         checks.append(
             {
@@ -84,7 +85,7 @@ def run(
                 "check": "database",
                 "status": "fail",
                 "score": 0,
-                "detail": "Database not found at ~/.ast-tools/cache/codebase.db",
+                "detail": f"Database not found at {db_path}",
             }
         )
         if fix:
@@ -382,10 +383,10 @@ def _track_trend(score: int) -> dict[str, Any]:
 
 def _init_database() -> None:
     """Initialize database if missing."""
-    from ast_tools.database.connection import get_connection
+    from ast_tools.database.connection import get_connection, get_db_path
     from ast_tools.database.schema import init_schema, migrate
 
-    db_path = AST_TOOLS_DIR / "cache" / "codebase.db"
+    db_path = get_db_path()
     db_path.parent.mkdir(parents=True, exist_ok=True)
 
     conn = get_connection(db_path)

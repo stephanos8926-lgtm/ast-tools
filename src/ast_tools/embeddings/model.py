@@ -7,23 +7,18 @@ Optimized for low RAM usage (<400MB) on constrained hardware.
 from __future__ import annotations
 
 import logging
-import os
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from sentence_transformers import SentenceTransformer
 
+from ast_tools.config.unified import RUNTIME
+
 logger = logging.getLogger(__name__)
 
-# Model configuration
-MODEL_NAME = "all-MiniLM-L6-v2"
-EMBEDDING_DIM = 384
-
-# Batch size configuration (via env var for flexibility)
-# Default 16 for safety on 4GB RAM systems; can be increased via AST_TOOLS_EMBEDDING_BATCH_SIZE
-DEFAULT_BATCH_SIZE = int(os.environ.get("AST_TOOLS_EMBEDDING_BATCH_SIZE", "16"))
-DEFAULT_CACHE_DIR = Path.home() / ".cache" / "ast-tools" / "models" / MODEL_NAME
+# Model configuration - now sourced from RUNTIME
+DEFAULT_CACHE_DIR = Path.home() / ".cache" / "ast-tools" / "models" / RUNTIME.embedding_model_minilm
 
 # Global model cache (lazy-loaded)
 _model: SentenceTransformer | None = None
@@ -40,38 +35,33 @@ def get_model(cache_dir: str | None = None) -> SentenceTransformer:
                   Defaults to ~/.cache/ast-tools/models/{MODEL_NAME}/
 
     Returns:
-        Loaded SentenceTransformer model
-
-    Raises:
-        RuntimeError: If model fails to load (with recovery instructions)
-
-    Note:
-        Model is cached globally after first load. Subsequent calls return
-        the cached instance (no re-download).
+        Loaded SentenceTransformer instance
     """
     global _model
-    if _model is None:
-        from sentence_transformers import SentenceTransformer
+    if _model is not None:
+        return _model
 
-        cache_path = Path(cache_dir) if cache_dir else DEFAULT_CACHE_DIR
-        cache_path.mkdir(parents=True, exist_ok=True)
+    from sentence_transformers import SentenceTransformer
 
-        logger.info(f"Loading embedding model: {MODEL_NAME} from {cache_path}")
+    cache_path = Path(cache_dir) if cache_dir else DEFAULT_CACHE_DIR
+    cache_path.mkdir(parents=True, exist_ok=True)
 
-        try:
-            _model = SentenceTransformer(MODEL_NAME, cache_folder=str(cache_path))
-            logger.info(f"Model loaded successfully (dimension: {EMBEDDING_DIM})")
-        except Exception as e:
-            logger.error(f"Failed to load embedding model: {e}")
-            raise RuntimeError(
-                f"Failed to load embedding model '{MODEL_NAME}'. "
-                f"Possible causes:\n"
-                f"  - No internet connection (required for first download)\n"
-                f"  - HuggingFace rate limiting (set HF_TOKEN for higher limits)\n"
-                f"  - Disk full ({cache_path} needs ~130MB)\n"
-                f"  - Corrupted cache (try deleting {cache_path} and retry)\n"
-                f"Original error: {e}"
-            ) from e
+    logger.info(f"Loading embedding model: {RUNTIME.embedding_model_minilm} from {cache_path}")
+
+    try:
+        _model = SentenceTransformer(RUNTIME.embedding_model_minilm, cache_folder=str(cache_path))
+        logger.info(f"Model loaded successfully (dimension: {RUNTIME.embedding_dim})")
+    except Exception as e:
+        logger.error(f"Failed to load embedding model: {e}")
+        raise RuntimeError(
+            f"Failed to load embedding model '{RUNTIME.embedding_model_minilm}'. "
+            f"Possible causes:\n"
+            f"  - No internet connection (required for first download)\n"
+            f"  - HuggingFace rate limiting (set HF_TOKEN for higher limits)\n"
+            f"  - Disk full ({cache_path} needs ~130MB)\n"
+            f"  - Corrupted cache (try deleting {cache_path} and retry)\n"
+            f"Original error: {e}"
+        ) from e
     return _model
 
 
@@ -95,75 +85,78 @@ def generate_embedding(text: str, model: SentenceTransformer | None = None) -> l
 
     # Handle empty input
     if not text or not text.strip():
-        return [0.0] * EMBEDDING_DIM
+        return [0.0] * RUNTIME.embedding_dim
 
     try:
         embedding = model.encode([text], convert_to_numpy=True, normalize_embeddings=True)[0]
         return embedding.tolist()
     except Exception as e:
         logger.error(f"Failed to generate embedding: {e}")
-        return [0.0] * EMBEDDING_DIM
+        return [0.0] * RUNTIME.embedding_dim
 
 
 def generate_batch_embeddings(
-    texts: list[str], model: SentenceTransformer | None = None, batch_size: int = DEFAULT_BATCH_SIZE
+    texts: list[str],
+    model: SentenceTransformer | None = None,
+    batch_size: int | None = None,
 ) -> list[list[float]]:
-    """Generate embeddings for multiple texts efficiently.
+    """Generate embeddings for multiple texts in batches.
 
     Args:
         texts: List of texts to embed
-        model: Optional pre-loaded model
-        batch_size: Number of texts to process in parallel (default: from AST_TOOLS_EMBEDDING_BATCH_SIZE or 16)
-                   Lower = less RAM, higher = faster (but more memory)
+        model: Optional pre-loaded model (uses global cache if None)
+        batch_size: Batch size for processing. Defaults to RUNTIME.batch_size_embeddings_default.
 
     Returns:
-        List of embeddings (same order as input texts)
-
-    Note:
-        - Batch processing is 5-10x faster than individual calls
-        - RAM usage scales with batch_size (16 = ~25MB overhead, 32 = ~50MB)
-        - For 4GB RAM systems, keep batch_size ≤ 64
+        List of embeddings, one per input text
     """
     if model is None:
         model = get_model()
 
-    # Filter empty texts but preserve positions
-    non_empty_indices = [(i, text) for i, text in enumerate(texts) if text and text.strip()]
+    if batch_size is None:
+        batch_size = RUNTIME.batch_size_embeddings_default
 
-    if not non_empty_indices:
-        return [[0.0] * EMBEDDING_DIM for _ in texts]
+    if not texts:
+        return []
 
-    # Generate embeddings for non-empty texts
-    non_empty_texts = [text for _, text in non_empty_indices]
+    # Handle empty strings
+    results = []
+    for text in texts:
+        if not text or not text.strip():
+            results.append([0.0] * RUNTIME.embedding_dim)
+        else:
+            results.append(None)  # Placeholder for actual embedding
 
-    try:
-        embeddings = model.encode(
-            non_empty_texts,
-            batch_size=batch_size,
-            convert_to_numpy=True,
-            normalize_embeddings=True,
-            show_progress_bar=len(texts) > 100,  # Only show for large batches
-        )
-    except Exception as e:
-        logger.error(f"Failed to generate batch embeddings: {e}")
-        return [[0.0] * EMBEDDING_DIM for _ in texts]
+    # Process non-empty texts in batches
+    non_empty = [(i, t) for i, t in enumerate(texts) if t and t.strip()]
+    for i in range(0, len(non_empty), batch_size):
+        batch = non_empty[i:i + batch_size]
+        indices = [idx for idx, _ in batch]
+        batch_texts = [t for _, t in batch]
 
-    # Reconstruct full list with zero vectors for empty inputs
-    result = [[0.0] * EMBEDDING_DIM for _ in texts]
-    for (i, _), emb in zip(non_empty_indices, embeddings, strict=False):
-        result[i] = emb.tolist()
+        try:
+            embeddings = model.encode(
+                batch_texts,
+                convert_to_numpy=True,
+                normalize_embeddings=True,
+                batch_size=batch_size,
+            )
+            for idx, emb in zip(indices, embeddings):
+                results[idx] = emb.tolist()
+        except Exception as e:
+            logger.error(f"Failed to generate batch embeddings: {e}")
+            for idx in indices:
+                results[idx] = [0.0] * RUNTIME.embedding_dim
 
-    return result
+    return results
 
 
 def unload_model() -> None:
-    """Unload model from memory (frees ~300MB RAM).
-
-    Useful for batch operations where model is only needed temporarily.
-    Call get_model() again to reload.
-    """
+    """Unload the embedding model from memory to free RAM."""
     global _model
     if _model is not None:
         del _model
         _model = None
-        logger.info("Embedding model unloaded from memory")
+        logger.info("Embedding model unloaded, RAM freed")
+    else:
+        logger.debug("No embedding model loaded, nothing to unload")

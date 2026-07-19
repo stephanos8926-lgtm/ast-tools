@@ -470,7 +470,12 @@ class TestMCPServer:
         assert "list_symbols" in tool_names
         assert "index_status" in tool_names
         assert "refresh_index" in tool_names
-        assert len(tools) == 77, f"Expected 77 MCP tools, got {len(tools)}"
+        # Project registry tools
+        assert "project_add" in tool_names
+        assert "project_list" in tool_names
+        assert "project_remove" in tool_names
+        assert "project_info" in tool_names
+        assert len(tools) == 80, f"Expected 80 MCP tools, got {len(tools)}"
 
     def test_call_tool_ast_grep(self, test_project):
         """Call ast_grep through the MCP server interface."""
