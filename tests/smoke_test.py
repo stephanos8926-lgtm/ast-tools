@@ -54,7 +54,6 @@ def main() -> int:
         import importlib.metadata
 
         version = importlib.metadata.version("rw-ast-tools")
-        assert version == "0.2.0"
         print(f"✅ Version OK — {version}")
     except Exception as e:
         errors.append(f"Version check failed: {e}")

@@ -9,9 +9,6 @@ from datetime import datetime, timedelta
 from enum import Enum
 from pathlib import Path
 
-from rich.console import Console
-from rich.progress import BarColumn, Progress, SpinnerColumn, TaskProgressColumn, TextColumn
-
 from .config import FixConfig
 from .fixers import (
     FixAction,
@@ -22,7 +19,24 @@ from .fixers import (
 from .fixers import FixerConfig as FixersFixerConfig
 from ast_tools.config.unified import RUNTIME
 
-console = Console()
+_console = None
+
+def _get_console():
+    global _console
+    if _console is None:
+        from rich.console import Console
+        _console = Console()
+    return _console
+
+def _create_progress(**kwargs):
+    from rich.progress import BarColumn, Progress, SpinnerColumn, TaskProgressColumn, TextColumn
+    return Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        BarColumn(),
+        TaskProgressColumn(),
+        **kwargs
+    )
 logger = logging.getLogger(__name__)
 
 
@@ -232,7 +246,7 @@ class FixEngine:
         all_skipped: list[FixAction] = []
         iteration = 0
 
-        with Progress(
+        with _create_progress(
             SpinnerColumn(),
             TextColumn("[progress.description]{task.description}"),
             BarColumn(),
@@ -294,7 +308,7 @@ class FixEngine:
                 if oscillating_files:
                     warning = f"Oscillation detected in files: {', '.join(oscillating_files)}. Stopping to prevent infinite loop."
                     if self.context.verbose:
-                        console.print(f"  [red]⚠[/red] {warning}")
+                        _get_console().print(f"  [red]⚠[/red] {warning}")
                     all_errors.append(warning)
                     break
 
@@ -328,7 +342,7 @@ class FixEngine:
         for fixer in self.fixers:
             if not fixer.is_available():
                 if self.context.verbose:
-                    console.print(f"  [yellow]⚠[/yellow] {fixer.name}: not available, skipping")
+                    _get_console().print(f"  [yellow]⚠[/yellow] {fixer.name}: not available, skipping")
                 continue
 
             # Detect files for this fixer
@@ -342,7 +356,7 @@ class FixEngine:
                 is_safe, reason = self._check_file_safety(file_path)
                 if not is_safe:
                     if self.context.verbose:
-                        console.print(f"  [yellow]⊘[/yellow] Skipping {file_path}: {reason}")
+                        _get_console().print(f"  [yellow]⊘[/yellow] Skipping {file_path}: {reason}")
                     continue
 
                 # Check .gitignore patterns
@@ -350,7 +364,7 @@ class FixEngine:
                     str(file_path.relative_to(self.context.project_root))
                 ):
                     if self.context.verbose:
-                        console.print(
+                        _get_console().print(
                             f"  [yellow]⊘[/yellow] Skipping {file_path}: matched .gitignore pattern"
                         )
                     continue
@@ -387,7 +401,7 @@ class FixEngine:
                 return pathspec.PathSpec.from_lines("gitwildmatch", patterns)
         except ImportError:
             if self.context.verbose:
-                console.print(
+                _get_console().print(
                     "  [yellow]⚠[/yellow] pathspec not available, .gitignore patterns not respected"
                 )
         except Exception:
@@ -422,19 +436,19 @@ class FixEngine:
                     if fixer and fixer.apply_fix(action):
                         applied.append(action)
                         if self.context.verbose:
-                            console.print(
+                            _get_console().print(
                                 f"  [green]✓[/green] {action.tool}: {action.description} in {action.file_path}"
                             )
                     else:
                         skipped.append(action)
                         if self.context.verbose:
-                            console.print(
+                            _get_console().print(
                                 f"  [yellow]⊘[/yellow] {action.tool}: {action.description} in {action.file_path} (skipped)"
                             )
                 except Exception as e:
                     errors.append(f"{action.tool} on {action.file_path}: {e}")
                     if self.context.verbose:
-                        console.print(
+                        _get_console().print(
                             f"  [red]✗[/red] {action.tool}: {action.description} in {action.file_path} - {e}"
                         )
 
@@ -473,4 +487,4 @@ class FixEngine:
             fromfile=f"a/{action.file_path}",
             tofile=f"b/{action.file_path}",
         )
-        console.print("".join(diff))
+        _get_console().print("".join(diff))
