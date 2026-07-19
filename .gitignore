@@ -62,3 +62,4 @@ wheels/
 node_modules/
 packages/*/node_modules/
 packages/*/out/
+.npx-cache/
