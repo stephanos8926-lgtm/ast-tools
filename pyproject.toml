@@ -26,12 +26,6 @@ classifiers = [
     "Topic :: Software Development :: Code Generators",
 ]
 
-[project.urls]
-Homepage = "https://github.com/stephanos8926-lgtm/ast-tools"
-Repository = "https://github.com/stephanos8926-lgtm/ast-tools"
-Documentation = "https://github.com/stephanos8926-lgtm/ast-tools"
-Changelog = "https://github.com/stephanos8926-lgtm/ast-tools/blob/master/CHANGELOG.md"
-
 dependencies = [
     "anyio>=4.0",
     "libcst>=1.0",
@@ -95,6 +89,12 @@ spectral = [
 ast-tools-server = "ast_tools._server:main_sync"
 ast-tools-project = "ast_tools._project_tools:cli_main"
 ast-tools = "ast_tools.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/stephanos8926-lgtm/ast-tools"
+Repository = "https://github.com/stephanos8926-lgtm/ast-tools"
+Documentation = "https://github.com/stephanos8926-lgtm/ast-tools"
+Changelog = "https://github.com/stephanos8926-lgtm/ast-tools/blob/master/CHANGELOG.md"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/ast_tools"]
