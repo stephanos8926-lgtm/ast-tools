@@ -11,11 +11,21 @@ import logging
 import os
 import time
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, TYPE_CHECKING
 
-import aiohttp
+if TYPE_CHECKING:
+    import aiohttp
 
 logger = logging.getLogger(__name__)
+
+# Lazy aiohttp import — avoids mandatory dependency for CLI/core-only usage
+_aiohttp = None
+def _get_aiohttp():
+    global _aiohttp
+    if _aiohttp is None:
+        import aiohttp  # type: ignore[import-untyped]
+        _aiohttp = aiohttp
+    return _aiohttp
 
 
 @dataclass
@@ -70,23 +80,23 @@ class RemoteInferenceClient:
     """Async HTTP client for remote inference engine."""
 
     config: RemoteInferenceConfig
-    _session: aiohttp.ClientSession | None = field(default=None, init=False)
+    _session: _get_aiohttp().ClientSession | None = field(default=None, init=False)
     _healthy: bool = field(default=False, init=False)
     _last_health_check: float = field(default=0.0, init=False)
 
-    async def _get_session(self) -> aiohttp.ClientSession:
+    async def _get_session(self) -> _get_aiohttp().ClientSession:
         """Get or create aiohttp session with connection pooling."""
         if self._session is None or self._session.closed:
-            timeout = aiohttp.ClientTimeout(
+            timeout = _get_aiohttp().ClientTimeout(
                 total=self.config.request_timeout,
                 connect=self.config.connect_timeout,
             )
-            connector = aiohttp.TCPConnector(
+            connector = _get_aiohttp().TCPConnector(
                 limit=self.config.connector_limit,
                 limit_per_host=self.config.connector_limit_per_host,
                 keepalive_timeout=30,
             )
-            self._session = aiohttp.ClientSession(
+            self._session = _get_aiohttp().ClientSession(
                 timeout=timeout,
                 connector=connector,
                 headers={"User-Agent": self.config.user_agent},
@@ -112,7 +122,7 @@ class RemoteInferenceClient:
                         continue
                     elif response.status >= 500:
                         # Server error - retry
-                        raise aiohttp.ClientResponseError(
+                        raise _get_aiohttp().ClientResponseError(
                             request_info=response.request_info,
                             history=response.history,
                             status=response.status,
@@ -122,7 +132,7 @@ class RemoteInferenceClient:
                         # Client error - don't retry
                         text = await response.text()
                         raise ValueError(f"HTTP {response.status}: {text}")
-            except (aiohttp.ClientError, asyncio.TimeoutError) as e:
+            except (_get_aiohttp().ClientError, asyncio.TimeoutError) as e:
                 last_exception = e
                 if attempt < self.config.max_retries:
                     logger.warning(
