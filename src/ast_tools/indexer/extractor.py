@@ -15,7 +15,7 @@ Supports both Python's built-in ast module and tree-sitter for multi-language su
 import ast
 import logging
 
-from ..embeddings import generate_embedding
+from ..embeddings.provider import provider_generate_embedding_sync as generate_embedding
 from ..symbols import Edge, EdgeKind, Symbol, SymbolKind
 
 logger = logging.getLogger(__name__)

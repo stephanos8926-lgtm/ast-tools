@@ -11,7 +11,8 @@ from contextlib import suppress
 from datetime import datetime
 from typing import Any
 
-from ..embeddings import generate_embedding, insert_embedding, insert_embeddings_batch
+from ..embeddings import insert_embedding, insert_embeddings_batch
+from ..embeddings.provider import provider_generate_embedding_sync as generate_embedding
 from ..symbols import Symbol, SymbolKind
 from .connection import retry_on_locked
 

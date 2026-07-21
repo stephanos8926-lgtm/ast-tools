@@ -11,9 +11,9 @@ from typing import Any
 from ..context import ContextInjector, MarkdownFormatter
 from ..database.connection import get_connection
 from ..embeddings import (
-    generate_embedding,
     search_similar,
 )
+from ..embeddings.provider import provider_generate_embedding_sync as generate_embedding
 from ..reranker import RerankerConfig, apply_reranking  # New Import
 from ..utils.rrf import rrf_fuse
 

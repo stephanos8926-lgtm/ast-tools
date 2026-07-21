@@ -7,6 +7,7 @@ Automatically handles backend selection and fallback.
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import os
 from enum import Enum
@@ -229,3 +230,27 @@ async def provider_rerank(
     # Extract content from candidates for reranking
     documents = [c.get("content", c.get("text", c.get("docstring", ""))) for c in candidates]
     return await provider.rerank(query, documents, top_k=top_k)
+
+
+# ── Sync convenience bridge ──────────────────────────────────────────────────
+_sync_loop: asyncio.AbstractEventLoop | None = None
+
+
+def _get_sync_loop() -> asyncio.AbstractEventLoop:
+    """Get or create a dedicated event loop for sync→async bridging."""
+    global _sync_loop
+    if _sync_loop is None or _sync_loop.is_closed():
+        _sync_loop = asyncio.new_event_loop()
+        _sync_loop.set_debug(False)
+    return _sync_loop
+
+
+def provider_generate_embedding_sync(text: str) -> list[float]:
+    """Sync wrapper around provider_generate_embedding.
+
+    Uses a dedicated event loop (not asyncio.run()) so that repeated
+    calls from the same sync thread don't churn loop creation/destruction.
+    Designed for use in anyio.to_thread contexts (MCP tool handlers, CLI).
+    """
+    loop = _get_sync_loop()
+    return loop.run_until_complete(provider_generate_embedding(text))
