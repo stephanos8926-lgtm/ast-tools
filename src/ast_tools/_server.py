@@ -41,21 +41,19 @@ from ast_tools.tools import (
 )
 
 # Global activity tracking for idle timeout
-# Global activity tracking for idle timeout
 _last_activity = time.monotonic()
 
-# Set up file logging to capture Forge interactions
+# Stable file-backed logging for daemon/client lifecycle debugging.
 log_file = "/tmp/ast-tools-forge.log"
+file_handler = logging.FileHandler(log_file)
+file_handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s"))
 logging.basicConfig(
     level=logging.DEBUG,
-    format='%(asctime)s %(levelname)s %(name)s: %(message)s',
-    handlers=[
-        logging.FileHandler(log_file),
-        logging.StreamHandler(sys.stderr)
-    ]
+    handlers=[file_handler, logging.StreamHandler(sys.stderr)],
 )
 logger = logging.getLogger(__name__)
-logger.info(f"Server started, logging to {log_file}")
+logger.info("Server started, logging to %s", log_file)
+
 
 def _update_activity() -> None:
     """Update the last activity timestamp for idle timeout."""
@@ -66,15 +64,17 @@ def _update_activity() -> None:
 def _get_last_activity():
     return _last_activity
 
-logging.basicConfig(level=logging.DEBUG, stream=sys.stderr)
-logger = logging.getLogger(__name__)
 
-server = Server("rw-ast-tools")
+SERVER_NAME = "rw-ast-tools"
+SERVER_VERSION = "0.2.0"
+
+server = Server(SERVER_NAME)
 
 # Log all incoming requests
 async def _log_request(request):
-    logger.debug(f"Incoming request: {request.method}")
+    logger.debug("Incoming request: %s", request.method)
     return None  # Continue to next handler
+
 
 server.request_handlers["*"] = _log_request
 
@@ -90,17 +90,12 @@ async def _handle_initialized(notification: InitializedNotification) -> None:
 server.notification_handlers[InitializedNotification] = _handle_initialized
 
 
-# ─── Tool Handlers ────────────────────────────────────────────────────────
+# ─── Tool Handlers ─────────────────────────────────────────────────────────
 
 
 @server.list_tools()
 async def handle_list_tools() -> list[Tool]:
-    """Return list of all available tools.
-
-    In discovery mode (AST_TOOLS_DISCOVERY_MODE=true), only meta-tools
-    (search_tools, call_tool, tool_info, tool_usage_stats) are exposed.
-    Individual tools are still callable through call_tool.
-    """
+    """Return list of all available tools."""
     all_tools = list_tools()
     if os.environ.get("AST_TOOLS_DISCOVERY_MODE", "").lower() in ("true", "1", "yes"):
         meta_tools = {"search_tools", "call_tool", "tool_info", "tool_usage_stats"}
@@ -235,12 +230,23 @@ async def _run_daemon_mode(config: dict[str, Any]) -> None:
 
     async def handle_client(reader, writer):
         """Handle one MCP client connection over the socket."""
+        task = asyncio_mod.current_task()
         try:
             while True:
-                line = await reader.readline()
+                try:
+                    line = await reader.readline()
+                except ConnectionError as exc:
+                    logger.debug("Client connection closed during read: %s", exc)
+                    break
+
                 if not line:
                     break
-                request = json.loads(line.decode("utf-8").strip())
+                try:
+                    request = json.loads(line.decode("utf-8").strip())
+                except Exception as exc:
+                    logger.warning("Bad JSON from client: %s", exc)
+                    continue
+
                 method = request.get("method")
                 req_id = request.get("id")
 
@@ -251,7 +257,7 @@ async def _run_daemon_mode(config: dict[str, Any]) -> None:
                         "result": {
                             "protocolVersion": "2024-11-05",
                             "capabilities": {"tools": {"listChanged": False}},
-                            "serverInfo": {"name": "rw-ast-tools", "version": "0.2.0"},
+                            "serverInfo": {"name": SERVER_NAME, "version": SERVER_VERSION},
                         },
                     }
                 elif method == "tools/list":
@@ -263,11 +269,7 @@ async def _run_daemon_mode(config: dict[str, Any]) -> None:
                         "id": req_id,
                         "result": {
                             "tools": [
-                                {
-                                    "name": t.name,
-                                    "description": t.description,
-                                    "inputSchema": getattr(t, "inputSchema", {}),
-                                }
+                                {"name": t.name, "description": t.description, "inputSchema": getattr(t, "inputSchema", {})}
                                 for t in tools
                             ]
                         },
@@ -278,32 +280,37 @@ async def _run_daemon_mode(config: dict[str, Any]) -> None:
                     params = request.get("params", {})
                     name = params.get("name")
                     arguments = params.get("arguments", {})
-                    handler = get_tool_handler(name)
-                    result = await anyio.to_thread.run_sync(handler, arguments)
+                    try:
+                        handler = get_tool_handler(name)
+                        result = await anyio.to_thread.run_sync(handler, arguments)
+                    except Exception as exc:
+                        logger.exception("Tool %s failed", name)
+                        result = {"error": str(exc), "error_code": "INTERNAL", "tool": name}
                     response = {
                         "jsonrpc": "2.0",
                         "id": req_id,
-                        "result": {
-                            "content": [{"type": "text", "text": json.dumps(result)}]
-                        },
+                        "result": {"content": [{"type": "text", "text": json.dumps(result)}]},
                     }
                 else:
                     response = {
                         "jsonrpc": "2.0",
                         "id": req_id,
-                        "error": {
-                            "code": -32601,
-                            "message": f"Method not found: {method}",
-                        },
+                        "error": {"code": -32601, "message": f"Method not found: {method}"},
                     }
 
-                writer.write((json.dumps(response) + "\n").encode("utf-8"))
-                await writer.drain()
+                try:
+                    writer.write((json.dumps(response) + "\n").encode("utf-8"))
+                    await writer.drain()
+                except ConnectionError as exc:
+                    logger.debug("Client connection closed during write: %s", exc)
+                    break
         except Exception as e:
             if not isinstance(e, (ConnectionResetError, BrokenPipeError)):
                 logger.error("Client handler error: %s", e)
         finally:
             try:
+                if task is not None:
+                    task.cancel()
                 writer.close()
                 await writer.wait_closed()
             except Exception:
@@ -314,12 +321,21 @@ async def _run_daemon_mode(config: dict[str, Any]) -> None:
         loop = asyncio_mod.get_event_loop()
         server_sock.setblocking(False)
         while True:
-            client_sock, _ = await loop.sock_accept(server_sock)
-            reader, writer = await asyncio_mod.open_unix_connection(sock=client_sock)
-            # Handle in background — concurrent clients
-            asyncio_mod.create_task(
-                handle_client(reader, writer)
-            )
+            try:
+                client_sock, _ = await loop.sock_accept(server_sock)
+            except OSError as exc:
+                logger.debug("Socket accept error: %s", exc)
+                break
+            try:
+                reader, writer = await asyncio_mod.open_unix_connection(sock=client_sock)
+            except Exception as exc:
+                logger.warning("Failed to open connection from client socket: %s", exc)
+                try:
+                    client_sock.close()
+                except Exception:
+                    pass
+                continue
+            asyncio_mod.create_task(handle_client(reader, writer))
 
     try:
         await accept_loop()
@@ -425,7 +441,7 @@ async def _run_legacy_http(host: str, port: int, auth_token: str) -> None:
             result = {
                 "protocolVersion": "2024-11-05",
                 "capabilities": {"experimental": {}, "tools": {"listChanged": False}},
-                "serverInfo": {"name": "rw-ast-tools", "version": "1.28.0"},
+                "serverInfo": {"name": SERVER_NAME, "version": SERVER_VERSION},
             }
             return web.json_response(result)
 

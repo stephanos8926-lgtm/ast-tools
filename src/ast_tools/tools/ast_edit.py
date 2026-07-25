@@ -309,6 +309,32 @@ def _tool_ast_edit(args: dict[str, Any]) -> dict[str, Any]:
     params = args.get("params", {})
     dry_run = args.get("dry_run", False)
 
+    required_by_operation: dict[str, list[str]] = {
+        "rename_function": ["old_name", "new_name"],
+        "add_parameter": ["function_name", "parameter_name"],
+        "change_signature": ["function_name", "parameters"],
+        "replace_node": ["replacement"],
+        "remove_node": ["start_line", "end_line"],
+        "inline_variable": ["variable_name"],
+        "extract_method": ["new_method_name"],
+    }
+    missing = [name for name in required_by_operation.get(operation, []) if name not in params]
+    if missing:
+        return {
+            "error": f"Missing required params for operation={operation}: {', '.join(missing)}",
+            "error_code": "INVALID_INPUT",
+            "missing": missing,
+            "tool": "ast_edit",
+        }
+
+    replacement = params.get("replacement", "")
+    if not isinstance(replacement, str):
+        return {
+            "error": f"Invalid type for replacement: {type(replacement).__name__}",
+            "error_code": "INVALID_INPUT",
+            "tool": "ast_edit",
+        }
+
     # Validate file path with security checks
     try:
         file_path = validate_file_path(
