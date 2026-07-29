@@ -32,7 +32,7 @@ class ConfigFileHandler(FileSystemEventHandler):
             self._last_event_time = now
 
             logger.info(f"Config file changed: {path}")
-            asyncio.create_task(self.callback(path))
+            _task = asyncio.create_task(self.callback(path))
 
 
 class ConfigWatcher:

@@ -1869,8 +1869,7 @@ def _build_call_graph_adjacency(
         {name: i for i, name in enumerate(import_names)}
         for i, src_name in enumerate(import_names):
             for j in range(i + 1, len(import_names)):
-                if import_adj[i, j] > 0:
-                    if src_name in internal_modules and import_names[j] in internal_modules:
+                if import_adj[i, j] > 0 and src_name in internal_modules and import_names[j] in internal_modules:
                         adjacency[(src_name, import_names[j])] += import_adj[i, j]
                         adjacency[(import_names[j], src_name)] += import_adj[i, j]
 
@@ -2476,8 +2475,7 @@ def suggest_modules(
         cochange_weight = config.cochange_weight
 
     # Apply profile if set (overrides any individual params)
-    if config is not None and config.profile is not None:
-        if config.profile in SPECTRAL_PROFILES:
+    if config is not None and config.profile is not None and config.profile in SPECTRAL_PROFILES:
             preset = SPECTRAL_PROFILES[config.profile]
             for k, v in preset.items():
                 if k == "semantic_weight":

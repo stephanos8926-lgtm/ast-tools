@@ -252,8 +252,7 @@ def apply_reranking(
 
     # Preserve original scores and add reranker scores
     for i, idx in enumerate(result.indices):
-        if i < len(reranked) and idx < len(candidates):
-            if "rerank_score" not in reranked[i]:
+        if i < len(reranked) and idx < len(candidates) and "rerank_score" not in reranked[i]:
                 reranked[i]["rerank_score"] = (
                     result.scores[idx] if idx < len(result.scores) else 0.0
                 )
