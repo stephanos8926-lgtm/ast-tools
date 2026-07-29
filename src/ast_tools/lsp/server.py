@@ -311,7 +311,7 @@ class ASTToolsLanguageServer(LanguageServer):
             items=diagnostics,
         )
 
-    async def _on_config_change(self, params: lsp_types.DidChangeConfigurationParams):
+    async def _on_config_change(self, _params: lsp_types.DidChangeConfigurationParams):
         """Handle configuration change from client."""
         # Reload config with client overrides
         # This is a simplified implementation
@@ -360,7 +360,7 @@ class ASTToolsLanguageServer(LanguageServer):
         finally:
             temp_path.unlink(missing_ok=True)
 
-    async def _run_formatting(self, uri: str, text: str, language: str, range_: lsp_types.Range | None) -> list[lsp_types.TextEdit] | None:
+    async def _run_formatting(self, _uri: str, text: str, language: str, range_: lsp_types.Range | None) -> list[lsp_types.TextEdit] | None:
         """Run formatter on document or range."""
         import tempfile
         from pathlib import Path

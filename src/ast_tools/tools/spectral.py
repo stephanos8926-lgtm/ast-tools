@@ -1447,7 +1447,7 @@ def _extract_imports_python(source: str, source_module: str,
 
 # Language dispatch table
 _LANG_IMPORT_EXTRACTOR = {
-    "python": lambda tree, src: [],  # Handled by _extract_imports_python
+    "python": lambda _tree, _src: [],  # Handled by _extract_imports_python
     "typescript": _extract_imports_ts,
     "javascript": _extract_imports_ts,
     "go": _extract_imports_go,

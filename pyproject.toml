@@ -123,6 +123,8 @@ ignore = [
     "E501",   # line too long (handled by formatter)
     "B008",   # function call in argument defaults (common in async)
     "B904",   # raise without from (we do this intentionally)
+    "RUF002", # ambiguous unicode docstring (pre-existing, needs per-char review)
+    "RUF003", # ambiguous unicode comment (pre-existing, needs per-char review)
     "RUF012", # mutable class defaults (handled by type checker)
 ]
 

@@ -48,7 +48,7 @@ class DiagnosticPublisher:
 
         self._debounce_timers[uri] = asyncio.create_task(_delayed_publish())
 
-    async def compute_diagnostics(self, uri: str, text: str, language: str) -> list[lsp_types.Diagnostic]:
+    async def compute_diagnostics(self, _uri: str, text: str, language: str) -> list[lsp_types.Diagnostic]:
         """Run fixers in check-only mode and convert to LSP diagnostics."""
         if not self.config.enabled:
             return []
@@ -105,7 +105,7 @@ class DiagnosticPublisher:
         finally:
             temp_path.unlink(missing_ok=True)
 
-    def _fix_actions_to_diagnostics(self, actions: list, language: str, source_text: str) -> list[lsp_types.Diagnostic]:
+    def _fix_actions_to_diagnostics(self, actions: list, _language: str, source_text: str) -> list[lsp_types.Diagnostic]:
         """Convert FixAction list to LSP Diagnostic objects."""
         from ast_tools.fix.fixers import FixAction
 
@@ -149,7 +149,7 @@ class DiagnosticPublisher:
 
         return diagnostics
 
-    def _locate_change(self, source: str, original: str, fixed: str) -> tuple[tuple[int, int], tuple[int, int]]:
+    def _locate_change(self, source: str, original: str, _fixed: str) -> tuple[tuple[int, int], tuple[int, int]]:
         """Find the position of a change in source text."""
         # Find the first differing line
         source_lines = source.splitlines(keepends=True)

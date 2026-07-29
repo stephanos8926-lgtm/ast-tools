@@ -1801,7 +1801,7 @@ def main() -> int:
     return args.func(args)
 
 
-def cmd_lsp(args: argparse.Namespace) -> int:
+def cmd_lsp(_args: argparse.Namespace) -> int:
     """Start LSP server."""
     import logging
     import sys

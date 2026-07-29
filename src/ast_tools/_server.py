@@ -83,7 +83,7 @@ server.request_handlers["*"] = _log_request
 # ─── Notification Handlers ───────────────────────────────────────────────────
 
 
-async def _handle_initialized(notification: InitializedNotification) -> None:
+async def _handle_initialized(_notification: InitializedNotification) -> None:
     """Handle the initialized notification from client."""
     logger.info("Client initialized")
 
@@ -381,7 +381,7 @@ async def _run_remote_mode(config: dict[str, Any]) -> None:
         # (Mistral, Cursor, etc. often omit Accept headers)
         try:
             from mcp.server.streamable_http import StreamableHTTPServerTransport
-            async def lenient_validate(self, request, scope, send):
+            async def lenient_validate(self, _request, _scope, _send):  # noqa: ARG001
                 return True
             StreamableHTTPServerTransport._validate_accept_header = lenient_validate
         except Exception:
@@ -418,7 +418,7 @@ async def _run_remote_mode(config: dict[str, Any]) -> None:
         raise
 
 
-async def _run_legacy_http(host: str, port: int, auth_token: str) -> None:
+async def _run_legacy_http(host: str, port: int, _auth_token: str) -> None:
     """Fallback HTTP server when MCP v2 streamable_http is unavailable."""
     import asyncio
 

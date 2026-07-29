@@ -178,7 +178,7 @@ class FixerBase(ABC):
 
         return True
 
-    def verify(self, files: list[Path]) -> list[str]:
+    def verify(self, _files: list[Path]) -> list[str]:
         """Verify files after fixing. Return list of remaining issues."""
         return []
 
