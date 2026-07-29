@@ -28,7 +28,6 @@ class CodeActionHandler:
         range_ = params.range
 
         # Get diagnostics in the range
-        diagnostics = params.context.diagnostics if params.context else []
 
         # Create fix engine context for this document
         import tempfile

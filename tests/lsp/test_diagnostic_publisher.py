@@ -1,7 +1,6 @@
 """Unit tests for the LSP diagnostic publisher."""
 
-import hashlib
-from unittest.mock import AsyncMock, Mock, patch
+from unittest.mock import AsyncMock, Mock
 
 import pytest
 from lsprotocol import types as lsp_types
@@ -105,7 +104,7 @@ class TestDiagnosticPublisher:
     def test_fix_action_diagnostic_conversion(self, mock_server, diagnostic_config):
         publisher = DiagnosticPublisher(mock_server, diagnostic_config)
         from pathlib import Path
-        
+
         action = FixAction(
             tool="ruff",
             file_path=Path("/project/main.py"),
@@ -119,10 +118,10 @@ class TestDiagnosticPublisher:
                 "end_pos": (0, 11),
             },
         )
-        
+
         diagnostics = publisher._fix_actions_to_diagnostics([action], "python", "import os\nx = 1\n")
         assert len(diagnostics) == 1
-        
+
         d = diagnostics[0]
         assert d.message == "Remove unused import 'os'"
         assert d.severity == lsp_types.DiagnosticSeverity.Information
@@ -130,13 +129,13 @@ class TestDiagnosticPublisher:
         assert d.source == "ast-tools.ruff"
         assert d.data["fixer"] == "ruff"
         assert d.data["fixable"] is True
-        
+
         # Check range
         assert d.range.start.line == 0
         assert d.range.start.character == 0
         assert d.range.end.line == 0
         assert d.range.end.character == 11
-        
+
         # Check tags for "unused"
         assert d.tags == [lsp_types.DiagnosticTag.Unnecessary]
 
@@ -144,7 +143,7 @@ class TestDiagnosticPublisher:
         """Test diagnostic conversion when no position metadata."""
         publisher = DiagnosticPublisher(mock_server, diagnostic_config)
         from pathlib import Path
-        
+
         action = FixAction(
             tool="ruff",
             file_path=Path("/project/main.py"),
@@ -154,10 +153,10 @@ class TestDiagnosticPublisher:
             safety="safe",
             metadata={},  # No position info
         )
-        
+
         diagnostics = publisher._fix_actions_to_diagnostics([action], "python", "x = 1\n\n\n")
         assert len(diagnostics) == 1
-        
+
         # Should use _locate_change to find position
         d = diagnostics[0]
         # The change is at line 1 (the extra blank lines)
@@ -173,7 +172,7 @@ class TestDiagnosticPublisher:
     def test_disabled_publisher(self, mock_server):
         config = DiagnosticConfig(enabled=False)
         publisher = DiagnosticPublisher(mock_server, config)
-        
+
         import asyncio
         diagnostics = asyncio.run(publisher.compute_diagnostics("file:///test.py", "x = 1", "python"))
         assert diagnostics == []
@@ -184,7 +183,7 @@ class TestDiagnosticPublisher:
         publisher = DiagnosticPublisher(mock_server, diagnostic_config)
         server = mock_server
         server.language_router.get_fixers_for_language.return_value = []
-        
+
         result = await publisher.compute_diagnostics(
             "file:///test.py", "x = 1\n", "python"
         )

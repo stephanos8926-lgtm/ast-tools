@@ -111,7 +111,7 @@ class TestHotspots:
 class TestCoChangePredict:
     def test_returns_suggestions_for_symbol(self, tmp_path):
         import src.ast_tools.tools.co_change as cc
-        from src.ast_tools.tools.co_change import _tool_co_change_predict, _resolve_db_path
+        from src.ast_tools.tools.co_change import _tool_co_change_predict
 
         db = tmp_path / "test.db"
         _create_test_db(db)
@@ -128,7 +128,7 @@ class TestCoChangePredict:
 
     def test_suggestions_sorted_by_coupling(self, tmp_path):
         import src.ast_tools.tools.co_change as cc
-        from src.ast_tools.tools.co_change import _tool_co_change_predict, _resolve_db_path
+        from src.ast_tools.tools.co_change import _tool_co_change_predict
 
         db = tmp_path / "test.db"
         _create_test_db(db)
@@ -143,7 +143,7 @@ class TestCoChangePredict:
             cc._resolve_db_path = original
 
     def test_missing_symbol_raises(self):
-        from src.ast_tools.tools.co_change import _tool_co_change_predict, _resolve_db_path
+        from src.ast_tools.tools.co_change import _tool_co_change_predict
 
         try:
             _tool_co_change_predict({})
@@ -153,7 +153,7 @@ class TestCoChangePredict:
 
     def test_symbol_not_found_returns_empty(self, tmp_path):
         import src.ast_tools.tools.co_change as cc
-        from src.ast_tools.tools.co_change import _tool_co_change_predict, _resolve_db_path
+        from src.ast_tools.tools.co_change import _tool_co_change_predict
 
         db = tmp_path / "test.db"
         _create_test_db(db)

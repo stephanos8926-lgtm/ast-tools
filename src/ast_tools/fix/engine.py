@@ -9,6 +9,8 @@ from datetime import datetime, timedelta
 from enum import Enum
 from pathlib import Path
 
+from ast_tools.config.unified import RUNTIME
+
 from .config import FixConfig
 from .fixers import (
     FixAction,
@@ -17,7 +19,6 @@ from .fixers import (
     register_plugin_fixers,
 )
 from .fixers import FixerConfig as FixersFixerConfig
-from ast_tools.config.unified import RUNTIME
 
 _console = None
 
@@ -247,11 +248,7 @@ class FixEngine:
         iteration = 0
 
         with _create_progress(
-            SpinnerColumn(),
-            TextColumn("[progress.description]{task.description}"),
-            BarColumn(),
-            TaskProgressColumn(),
-            console=console,
+            console=_get_console(),
         ) as progress:
             task = progress.add_task(
                 "Running auto-fix pipeline...", total=self.context.max_iterations

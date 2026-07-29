@@ -19,6 +19,7 @@ Mode selection (in priority order):
 
 from __future__ import annotations
 
+import contextlib
 import json
 import logging
 import os
@@ -330,10 +331,8 @@ async def _run_daemon_mode(config: dict[str, Any]) -> None:
                 reader, writer = await asyncio_mod.open_unix_connection(sock=client_sock)
             except Exception as exc:
                 logger.warning("Failed to open connection from client socket: %s", exc)
-                try:
+                with contextlib.suppress(Exception):
                     client_sock.close()
-                except Exception:
-                    pass
                 continue
             asyncio_mod.create_task(handle_client(reader, writer))
 

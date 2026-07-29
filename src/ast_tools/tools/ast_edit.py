@@ -23,7 +23,7 @@ def _extract_method_python(
 
     # If extracting as a method, ensure 'self' is the first parameter
     if is_method and "self" not in new_method_params:
-        new_method_params = ["self"] + list(new_method_params)
+        new_method_params = ["self", *list(new_method_params)]
 
     # Use a visitor to collect statement positions via correct libcst metadata API
     class PosCollector(cst.CSTTransformer):
@@ -63,7 +63,6 @@ def _extract_method_python(
         raise ValueError("No statements found in the specified range for extraction.")
 
     # Calculate indent level — default to 1 (one level)
-    indent_level = 1
 
     # Re-indent extracted statements for the new function body
     re_indented_statements: list[cst.BaseStatement] = []

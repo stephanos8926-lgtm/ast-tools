@@ -11,7 +11,7 @@ from typing import Any
 
 from ast_tools.config.unified import RUNTIME
 
-from ..database.connection import get_connection, get_db_path
+
 @dataclass
 class FixerPlugin:
     """Represents a loaded, registered fixer plugin."""
@@ -155,9 +155,7 @@ class FixerBase(ABC):
             return False
         if original and not fixed:
             # Allow emptying a file if original was empty or had only whitespace
-            if not original.strip():
-                return True
-            return False
+            return bool(not original.strip())
 
         # Check for null bytes
         if "\x00" in fixed:
@@ -211,7 +209,7 @@ class FixerBase(ABC):
             timeout=timeout,
         )
 
-    def _run_json_command(self, cmd: list[str], cwd: Path = None) -> dict:
+    def _run_json_command(self, cmd: list[str], cwd: Path | None = None) -> dict:
         """Run a command and parse JSON output."""
         result = self._run_command(cmd, cwd=cwd)
         if result.returncode == 0 and result.stdout.strip():

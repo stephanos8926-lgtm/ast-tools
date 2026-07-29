@@ -14,7 +14,7 @@ class TextDocument:
 
     def apply_change(self, change):
         """Apply a content change to the document.
-        
+
         Supports both full document replacement (TextDocumentContentChangeWholeDocument)
         and range-based incremental updates (TextDocumentContentChangePartial).
         """

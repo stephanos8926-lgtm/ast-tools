@@ -2,15 +2,11 @@ import asyncio
 import logging
 import time
 from pathlib import Path
-from typing import TYPE_CHECKING
 
 from watchdog.events import FileSystemEvent, FileSystemEventHandler
 from watchdog.observers import Observer
 
 from ast_tools.config.unified import load_unified_config
-
-if TYPE_CHECKING:
-    from watchdog.observers import Observer
 
 logger = logging.getLogger(__name__)
 
@@ -96,7 +92,7 @@ class ConfigWatcher:
 
             # Also check user config dir
             from ast_tools.config.loader import get_config_dir
-            user_yaml = get_config_dir() / "ast-tools.yaml"
+            get_config_dir() / "ast-tools.yaml"
 
             cli_overrides = {"lsp": {"enabled": True}}
             self.server.config = load_unified_config(

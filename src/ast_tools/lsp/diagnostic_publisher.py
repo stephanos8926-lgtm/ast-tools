@@ -156,7 +156,7 @@ class DiagnosticPublisher:
         original_lines = original.splitlines(keepends=True)
 
         # Simple heuristic: find the line that changed
-        for i, (src_line, orig_line) in enumerate(zip(source_lines, original_lines)):
+        for i, (src_line, orig_line) in enumerate(zip(source_lines, original_lines, strict=False)):
             if src_line != orig_line:
                 # Found the changed line
                 start_char = 0

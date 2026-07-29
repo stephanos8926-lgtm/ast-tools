@@ -100,7 +100,6 @@ TOOL_CATEGORIES: dict[str, str] = {
     "fix_code": "FIX",
     "fix_check": "FIX",
     "llm_suggest_fix": "FIX",
-    "code_validate_syntax": "CODE_ANALYSIS",
 
     # ── CURATOR ────────────────────────────────────────────────────────────
     "curator_audit": "CURATOR",

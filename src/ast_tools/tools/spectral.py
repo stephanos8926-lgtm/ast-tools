@@ -125,6 +125,7 @@ the Fiedler vector (2nd eigenvector) of the normalized graph Laplacian.
 from __future__ import annotations
 
 import concurrent.futures
+import contextlib
 import hashlib
 import logging
 import math
@@ -985,7 +986,7 @@ def update_laplacian_incremental(
 
     # Recompute D^{-1/2}
     with np.errstate(divide="ignore"):
-        old_d_inv_sqrt = np.where(old_deg > 1e-10, 1.0 / np.sqrt(old_deg), 0.0)
+        np.where(old_deg > 1e-10, 1.0 / np.sqrt(old_deg), 0.0)
         new_d_inv_sqrt = np.where(new_deg > 1e-10, 1.0 / np.sqrt(new_deg), 0.0)
 
     # Update affected rows and columns
@@ -1336,7 +1337,7 @@ def _extract_imports_ts(tree, source: str) -> list[str]:
     cursor = ts.QueryCursor(query)
     captures = cursor.captures(tree.root_node)
     paths: list[str] = []
-    for name, nodes in captures.items():
+    for _name, nodes in captures.items():
         for node in nodes:
             path = node.text.decode("utf-8")
             if path:
@@ -1351,7 +1352,7 @@ def _extract_imports_go(tree, source: str) -> list[str]:
     cursor = ts.QueryCursor(query)
     captures = cursor.captures(tree.root_node)
     paths: list[str] = []
-    for name, nodes in captures.items():
+    for _name, nodes in captures.items():
         for node in nodes:
             path = node.text.decode("utf-8")
             if path:
@@ -1366,7 +1367,7 @@ def _extract_imports_rust(tree, source: str) -> list[str]:
     cursor = ts.QueryCursor(query)
     captures = cursor.captures(tree.root_node)
     paths: list[str] = []
-    for name, nodes in captures.items():
+    for _name, nodes in captures.items():
         for node in nodes:
             path = node.text.decode("utf-8")
             if path:
@@ -1385,7 +1386,7 @@ def _extract_imports_c(tree, source: str) -> list[str]:
     cursor = ts.QueryCursor(query)
     captures = cursor.captures(tree.root_node)
     paths: list[str] = []
-    for name, nodes in captures.items():
+    for _name, nodes in captures.items():
         for node in nodes:
             path = node.text.decode("utf-8")
             if path:
@@ -1433,10 +1434,7 @@ def _extract_imports_python(source: str, source_module: str,
                             break
             else:
                 parts = source_module.split(".")
-                if node.level <= len(parts):
-                    base = ".".join(parts[:-node.level])
-                else:
-                    base = ""
+                base = ".".join(parts[:-node.level]) if node.level <= len(parts) else ""
                 resolved = f"{base}.{node.module}" if base and node.module else (base or node.module or "")
                 if resolved and resolved in internal_modules:
                     adjacency[(source_module, resolved)] += edge_weight
@@ -1574,7 +1572,7 @@ def _build_module_adjacency(
     stdlib_modules: set[str] = set()
     try:
         import sys
-        stdlib_modules = {p for p in sys.stdlib_module_names}
+        stdlib_modules = set(sys.stdlib_module_names)
     except (AttributeError, KeyError):
         stdlib_modules = {
             "abc", "ast", "asyncio", "base64", "collections", "copy",
@@ -1868,7 +1866,7 @@ def _build_call_graph_adjacency(
         import_adj, import_names = _build_module_adjacency(
             project_root, edge_weight=edge_weight * 0.5, include_submodules=True
         )
-        import_index = {name: i for i, name in enumerate(import_names)}
+        {name: i for i, name in enumerate(import_names)}
         for i, src_name in enumerate(import_names):
             for j in range(i + 1, len(import_names)):
                 if import_adj[i, j] > 0:
@@ -2010,10 +2008,8 @@ class EmbeddingCache:
         key = (file_path, content_hash, model)
         if key in self._cache:
             # Refresh position
-            try:
+            with contextlib.suppress(ValueError):
                 self._order.remove(key)
-            except ValueError:
-                pass
         elif len(self._cache) >= self._max_entries:
             # Evict least recently used
             lru_key = self._order.pop(0)
@@ -2131,10 +2127,8 @@ def _build_semantic_adjacency(
             for i, mod in enumerate(module_names):
                 f = mod_to_file.get(mod)
                 if f and content_hashes[i]:
-                    try:
+                    with contextlib.suppress(Exception):
                         cache.put(str(f.resolve()), content_hashes[i], embeddings_np[i].tolist())
-                    except Exception:
-                        pass
 
     adj = np.zeros((n, n), dtype=np.float64)
     SIMILARITY_THRESHOLD = 0.5

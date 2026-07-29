@@ -1,7 +1,5 @@
 """Tests for the LSP code action handler."""
 
-import asyncio
-from pathlib import Path
 
 import pytest
 

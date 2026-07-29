@@ -301,7 +301,7 @@ def lsp_rename(file: str, line: int, col: int, new_name: str) -> dict:
 
         # WorkspaceEdit format: changes dict[uri] -> TextEdit[]
         changes = result.get("changes", {})
-        document_changes = result.get("documentChanges", [])
+        result.get("documentChanges", [])
 
         affected_files = list(changes.keys()) if changes else []
         total_edits = sum(len(edits) for edits in changes.values()) if changes else 0

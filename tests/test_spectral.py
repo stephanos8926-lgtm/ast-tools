@@ -12,15 +12,11 @@ Covers:
 
 from __future__ import annotations
 
-import tempfile
-from pathlib import Path
 
 import numpy as np
 import pytest
 
 from ast_tools.tools.spectral import (
-    ClusterAssignment,
-    PartitionNode,
     SpectralConfig,
     SpectralResult,
     _build_cochange_adjacency,
@@ -33,6 +29,10 @@ from ast_tools.tools.spectral import (
     suggest_modules,
     _tool_suggest_modules,
 )
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────
@@ -359,7 +359,7 @@ class TestSuggestModules:
 
     def test_tool_function_min_size(self, synthetic_project: Path) -> None:
         """Larger min_cluster_size reduces number of clusters."""
-        result_default = _tool_suggest_modules({"project_root": str(synthetic_project)})
+        _tool_suggest_modules({"project_root": str(synthetic_project)})
         result_large = _tool_suggest_modules({
             "project_root": str(synthetic_project),
             "min_cluster_size": 3,
@@ -427,7 +427,7 @@ class TestMultiLanguage:
         (db_dir / "models.rs").write_text("pub struct User;\n")
         (src / "main.rs").write_text("use crate::db::models;\nfn main() {}\n")
         adj, names = _build_module_adjacency(str(tmp_path))
-        main_name = [n for n in names if "main" in n][0]
+        main_name = next(n for n in names if "main" in n)
         assert "src.db.models" in names, f"Expected src.db.models in {names}"
         mi = names.index(main_name)
         di = names.index("src.db.models")
@@ -477,7 +477,7 @@ class TestMultiLanguage:
         lib.mkdir()
         (lib / "util.ts").write_text("export function greet() {}\n")
         # Both should appear in the same graph
-        adj, names = _build_module_adjacency(str(tmp_path))
+        _adj, names = _build_module_adjacency(str(tmp_path))
         expected = {"main", "helpers", "app", "lib.util"}
         found = set(names)
         missing = expected - found
@@ -779,7 +779,7 @@ class TestExports:
         assert dot.endswith("}")
 
     def test_export_dot_empty_tree(self) -> None:
-        from ast_tools.tools.spectral import export_dot, SpectralResult
+        from ast_tools.tools.spectral import export_dot
         result = SpectralResult(
             clusters=[], partition_tree=None, num_modules=0, num_clusters=0,
         )
@@ -798,7 +798,7 @@ class TestExports:
         assert "</svg>" in svg
 
     def test_export_svg_no_tree(self) -> None:
-        from ast_tools.tools.spectral import export_dendrogram_svg, SpectralResult
+        from ast_tools.tools.spectral import export_dendrogram_svg
         result = SpectralResult(
             clusters=[], partition_tree=None, num_modules=0, num_clusters=0,
         )

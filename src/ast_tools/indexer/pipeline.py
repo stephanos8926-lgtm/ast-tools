@@ -22,19 +22,19 @@ from typing import Any
 
 from ..database import (
     database_context,
-    init_schema,
-    update_file_cache,
-    insert_symbols_batch,
-    insert_edges_batch,
     delete_symbol_cascade,
     get_cached_hash,
     get_symbols_by_file,
+    init_schema,
+    insert_edges_batch,
+    insert_symbols_batch,
+    update_file_cache,
 )
 from ..database.connection import get_db_path
-from ..database.schema import migrate, SCHEMA_VERSION
+from ..database.schema import SCHEMA_VERSION, migrate
 from ..indexer import extract_symbols, parse_file
 from ..indexer.diff import compute_symbol_diff
-from ..tools.refresh_index import find_python_files, compute_file_hash
+from ..tools.refresh_index import compute_file_hash, find_python_files
 
 
 def reindex_all(
@@ -261,8 +261,8 @@ def reindex_all(
             layer_start = time.time()
             stats["layers"]["project_registry"] = {"updated": False}
             try:
+
                 from ..tools.project_registry import _get_or_create_project_id
-                import yaml
 
                 project_id = _get_or_create_project_id(str(root), root.name)
                 conn.execute(

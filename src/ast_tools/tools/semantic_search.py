@@ -448,9 +448,9 @@ def _tool_semantic_search(args: dict[str, Any]) -> str:
     db_path = args.get("db_path")
     inject_context = args.get("inject_context", True)
     token_budget = args.get("token_budget", 4096)
-    diversity_limit = args.get("diversity_limit", 3)
+    args.get("diversity_limit", 3)
     use_reranker = args.get("use_reranker", False)
-    session_id = args.get("session_id")
+    args.get("session_id")
 
     if k < 1:
         k = 1

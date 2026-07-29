@@ -141,7 +141,7 @@ def generate_batch_embeddings(
                 normalize_embeddings=True,
                 batch_size=batch_size,
             )
-            for idx, emb in zip(indices, embeddings):
+            for idx, emb in zip(indices, embeddings, strict=False):
                 results[idx] = emb.tolist()
         except Exception as e:
             logger.error(f"Failed to generate batch embeddings: {e}")

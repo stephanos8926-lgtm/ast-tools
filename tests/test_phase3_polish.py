@@ -8,8 +8,11 @@ import sys
 import tempfile
 from contextlib import contextmanager
 from pathlib import Path
+from typing import Any
 
 import pytest
+
+from mcp.types import TextContent
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 

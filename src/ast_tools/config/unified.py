@@ -15,7 +15,6 @@ import tomllib
 
 from .loader import get_config_dir
 
-
 # ═══════════════════════════════════════════════════════════════════════════════
 # Runtime Constants — MUST be first (referenced by all other dataclasses below)
 # ═══════════════════════════════════════════════════════════════════════════════

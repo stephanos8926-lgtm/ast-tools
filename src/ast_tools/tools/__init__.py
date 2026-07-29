@@ -4,8 +4,10 @@ AST-Tools: Tool implementations and registry.
 
 from __future__ import annotations
 
-from collections.abc import Callable
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 TOOL_REGISTRY: dict[str, Callable[[dict[str, Any]], dict[str, Any]]] = {}
 
@@ -1624,7 +1626,7 @@ def _tool_call_tool(args: dict[str, Any]) -> dict[str, Any]:
 def _tool_tool_info(args: dict[str, Any]) -> dict[str, Any]:
     """Get full details about a specific tool."""
     name = args.get("name", "")
-    include_examples = args.get("include_examples", False)
+    args.get("include_examples", False)
 
     if not name:
         return {"error": "Missing required parameter: name", "error_code": "INVALID_INPUT"}

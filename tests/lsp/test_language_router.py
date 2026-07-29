@@ -1,6 +1,5 @@
 """Unit tests for the LSP language router."""
 
-from pathlib import Path
 
 import pytest
 

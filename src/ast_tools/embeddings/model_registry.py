@@ -11,15 +11,17 @@ import hashlib
 import json
 import logging
 import time
-from collections.abc import Callable
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from ast_tools.config.unified import RUNTIME
 
 from .provider import EmbeddingBackend, EmbeddingProvider, RemoteInferenceConfig
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 logger = logging.getLogger(__name__)
 

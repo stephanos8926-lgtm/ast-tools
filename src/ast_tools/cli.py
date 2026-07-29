@@ -1207,7 +1207,7 @@ def cmd_fix(args: argparse.Namespace) -> int:
                         diagnostic_message=action.description,
                         diagnostic_code=action.tool,
                         file_path=str(action.file_path) if action.file_path else "",
-                        language=list(languages)[0] if languages else "python",
+                        language=next(iter(languages)) if languages else "python",
                     )
                     llm_result = asyncio.run(client.suggest_fix(ctx))
                     if llm_result.success:

@@ -1,19 +1,13 @@
 """Tests for the fixer plugin system."""
 
-import importlib
-import sys
 import tempfile
 from pathlib import Path
-from typing import Any
 
 import pytest
 
 from ast_tools.fix.engine import FixEngine, FixContext
 from ast_tools.fix.config import FixConfig
 from ast_tools.fix.fixers import (
-    FixerBase,
-    FixAction,
-    FixerConfig as FixerPluginConfig,
     PluginManager,
     plugin_manager,
     get_fixer_for_language,
@@ -250,7 +244,7 @@ class TestFixEngineWithPlugin:
             assert result.success
             # After fix, file should end with exactly one newline
             final = test_file.read_text()
-            assert final == "x = 1\n", f"Expected normalized, got {repr(final)}"
+            assert final == "x = 1\n", f"Expected normalized, got {final!r}"
         finally:
             test_file.unlink(missing_ok=True)
 
