@@ -334,7 +334,7 @@ async def _run_daemon_mode(config: dict[str, Any]) -> None:
                 with contextlib.suppress(Exception):
                     client_sock.close()
                 continue
-            _task = asyncio_mod.create_task(handle_client(reader, writer))
+            _task = asyncio_mod.create_task(handle_client(reader, writer))  # noqa: RUF006
 
     try:
         await accept_loop()

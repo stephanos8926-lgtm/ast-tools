@@ -68,7 +68,7 @@ def _tool_fix_code(name: str, params: dict[str, Any]) -> dict[str, Any]:
             ".mdx": "markdown",
         }
         languages = {lang_map.get(ext) for ext in extensions if lang_map.get(ext)}
-        languages = {l for l in languages if l is not None}  # Filter out None
+        languages = {lang for lang in languages if lang is not None}
 
     if not languages:
         languages = {"python"}  # Default fallback
