@@ -392,4 +392,3 @@ def migrate_v4_to_v5(conn: sqlite3.Connection):
     from ast_tools.database.migrations.migration_009_schema_enrichments import migrate_v4_to_v5
 
     migrate_v4_to_v5(conn)
-

@@ -39,6 +39,7 @@ def run(aggressive: bool = False, dry_run: bool = False) -> dict[str, Any]:
 
     # 1. SQLite VACUUM + REINDEX
     from ..database.connection import get_db_path
+
     db_path = get_db_path()
     if db_path.exists():
         before = db_path.stat().st_size

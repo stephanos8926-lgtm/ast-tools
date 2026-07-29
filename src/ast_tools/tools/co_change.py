@@ -15,6 +15,7 @@ def _resolve_db_path(db_path: str | None = None) -> str:
     if db_path:
         return db_path
     from ast_tools.database.connection import get_db_path
+
     return str(get_db_path())
 
 

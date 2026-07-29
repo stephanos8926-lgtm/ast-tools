@@ -91,19 +91,23 @@ def lsp_symbols(file: str) -> dict:
         symbols = []
         for sym in result:
             if "selectionRange" in sym:
-                symbols.append({
-                    "name": sym.get("name", ""),
-                    "kind": sym.get("kind", 0),
-                    "file": file,
-                    "line": sym["selectionRange"]["start"]["line"] + 1,
-                })
+                symbols.append(
+                    {
+                        "name": sym.get("name", ""),
+                        "kind": sym.get("kind", 0),
+                        "file": file,
+                        "line": sym["selectionRange"]["start"]["line"] + 1,
+                    }
+                )
             elif "range" in sym:
-                symbols.append({
-                    "name": sym.get("name", ""),
-                    "kind": sym.get("kind", 0),
-                    "file": file,
-                    "line": sym["range"]["start"]["line"] + 1,
-                })
+                symbols.append(
+                    {
+                        "name": sym.get("name", ""),
+                        "kind": sym.get("kind", 0),
+                        "file": file,
+                        "line": sym["range"]["start"]["line"] + 1,
+                    }
+                )
 
         return {"count": len(symbols), "symbols": symbols}
     except Exception as e:
@@ -222,8 +226,14 @@ def lsp_format(file: str, apply: bool = False) -> dict:
         edits = [
             {
                 "range": {
-                    "start": {"line": e["range"]["start"]["line"], "col": e["range"]["start"]["character"]},
-                    "end": {"line": e["range"]["end"]["line"], "col": e["range"]["end"]["character"]},
+                    "start": {
+                        "line": e["range"]["start"]["line"],
+                        "col": e["range"]["start"]["character"],
+                    },
+                    "end": {
+                        "line": e["range"]["end"]["line"],
+                        "col": e["range"]["end"]["character"],
+                    },
                 },
                 "new_text": e.get("newText", ""),
             }
@@ -235,10 +245,17 @@ def lsp_format(file: str, apply: bool = False) -> dict:
             return {
                 "formatted": write_result["applied"],
                 "edits_applied": write_result["count"],
-                "message": f"Applied {write_result['count']} formatting edits" if write_result["applied"] else f"Failed: {write_result.get('error', 'unknown')}",
+                "message": f"Applied {write_result['count']} formatting edits"
+                if write_result["applied"]
+                else f"Failed: {write_result.get('error', 'unknown')}",
             }
 
-        return {"formatted": True, "edits": edits, "edits_count": len(edits), "note": "Pass apply=true to write changes"}
+        return {
+            "formatted": True,
+            "edits": edits,
+            "edits_count": len(edits),
+            "note": "Pass apply=true to write changes",
+        }
     except Exception as e:
         return {"error": str(e), "formatted": False}
     finally:
@@ -269,9 +286,7 @@ def lsp_code_actions(file: str, line: int, col: int) -> dict:
             }
             # Extract diagnostics this action fixes
             if action.get("diagnostics"):
-                entry["fixes_diagnostics"] = [
-                    d.get("message", "") for d in action["diagnostics"]
-                ]
+                entry["fixes_diagnostics"] = [d.get("message", "") for d in action["diagnostics"]]
             actions.append(entry)
 
         return {"count": len(actions), "actions": actions}
@@ -395,13 +410,17 @@ def lsp_workspace_symbols(query: str) -> dict:
         for sym in result or []:
             loc = sym.get("location", {})
             uri = loc.get("uri", "")
-            symbols.append({
-                "name": sym.get("name", ""),
-                "kind": sym.get("kind", 0),
-                "file": uri.replace("file://", ""),
-                "line": loc.get("range", {}).get("start", {}).get("line", 0) + 1 if loc.get("range") else 0,
-                "container": sym.get("containerName", ""),
-            })
+            symbols.append(
+                {
+                    "name": sym.get("name", ""),
+                    "kind": sym.get("kind", 0),
+                    "file": uri.replace("file://", ""),
+                    "line": loc.get("range", {}).get("start", {}).get("line", 0) + 1
+                    if loc.get("range")
+                    else 0,
+                    "container": sym.get("containerName", ""),
+                }
+            )
 
         return {"count": len(symbols), "symbols": symbols}
     except Exception as e:
@@ -438,10 +457,7 @@ def lsp_completion(file: str, line: int, col: int, filter_text: str | None = Non
         ]
         if filter_text:
             fl = filter_text.lower()
-            items = [
-                it for it in items
-                if fl in it["label"].lower() or fl in it["detail"].lower()
-            ]
+            items = [it for it in items if fl in it["label"].lower() or fl in it["detail"].lower()]
         return {"count": len(items), "items": items}
     except Exception as e:
         return {"error": str(e)}
@@ -614,7 +630,11 @@ def register_lsp_tools(registry: dict):
             "type": "object",
             "properties": {
                 "file": {"type": "string", "description": "File path"},
-                "apply": {"type": "boolean", "description": "If true, write edits to file", "default": False},
+                "apply": {
+                    "type": "boolean",
+                    "description": "If true, write edits to file",
+                    "default": False,
+                },
             },
             "required": ["file"],
         },

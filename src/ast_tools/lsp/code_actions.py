@@ -1,6 +1,5 @@
 """Code action handler for LSP server."""
 
-
 from lsprotocol import types as lsp_types
 
 from ast_tools.fix.config import FixConfig
@@ -13,7 +12,9 @@ class CodeActionHandler:
     def __init__(self, server):
         self.server = server
 
-    async def get_code_actions(self, params: lsp_types.CodeActionParams) -> list[lsp_types.CodeAction]:
+    async def get_code_actions(
+        self, params: lsp_types.CodeActionParams
+    ) -> list[lsp_types.CodeAction]:
         """Provide code actions for the given range."""
         uri = params.text_document.uri
         text = self.server.document_store.get_text(uri)
@@ -64,7 +65,9 @@ class CodeActionHandler:
             )
 
             # Create fix engine with plugin fixers
-            plugin_fixers = self.server.config.plugins.custom_fixers if self.server.config.plugins else {}
+            plugin_fixers = (
+                self.server.config.plugins.custom_fixers if self.server.config.plugins else {}
+            )
             engine = FixEngine(context, plugin_fixers=plugin_fixers)
 
             # Run fix engine to get available actions
@@ -129,9 +132,7 @@ class CodeActionHandler:
                             )
                             for e in parsed.edits
                         ]
-                        action.edit = lsp_types.WorkspaceEdit(
-                            changes={uri: edits}
-                        )
+                        action.edit = lsp_types.WorkspaceEdit(changes={uri: edits})
                         action.title = f"🤖 {action.title} (via {result.get('model_used', 'LLM')})"
         except Exception as e:
             logger = __import__("logging").getLogger(__name__)
@@ -141,7 +142,9 @@ class CodeActionHandler:
 
         return action
 
-    def _fix_action_to_code_action(self, action, range_: lsp_types.Range, uri: str) -> lsp_types.CodeAction | None:
+    def _fix_action_to_code_action(
+        self, action, range_: lsp_types.Range, uri: str
+    ) -> lsp_types.CodeAction | None:
         """Convert a FixAction to an LSP CodeAction."""
         from ast_tools.fix.fixers import FixAction
 
@@ -149,10 +152,16 @@ class CodeActionHandler:
             return None
 
         # Create workspace edit
-        edit = lsp_types.WorkspaceEdit(changes={uri: [lsp_types.TextEdit(
-            range=range_,
-            new_text=action.fixed_content or "",
-        )]})
+        edit = lsp_types.WorkspaceEdit(
+            changes={
+                uri: [
+                    lsp_types.TextEdit(
+                        range=range_,
+                        new_text=action.fixed_content or "",
+                    )
+                ]
+            }
+        )
 
         kind = self._safety_to_code_action_kind(action.safety)
 

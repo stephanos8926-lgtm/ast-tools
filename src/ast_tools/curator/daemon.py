@@ -67,6 +67,7 @@ def release_lock() -> None:
 def pre_backup() -> Path | None:
     """Backup database before destructive operations."""
     from ..database.connection import get_db_path
+
     db_path = get_db_path()
     if not db_path.exists():
         return None
@@ -98,6 +99,7 @@ class LLmCurator:
         """
         self.project_root = Path(project_root) if project_root else Path.cwd()
         from ..database.connection import get_db_path
+
         self.db_path = get_db_path(project_root=self.project_root)
 
     def daily_audit(self) -> dict:

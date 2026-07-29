@@ -40,11 +40,13 @@ def project_add(args: dict) -> dict:
     db = _get_db()
     try:
         # Check for duplicate
-        existing = db.execute(
-            "SELECT * FROM projects WHERE root_path = ?", (path,)
-        ).fetchone()
+        existing = db.execute("SELECT * FROM projects WHERE root_path = ?", (path,)).fetchone()
         if existing:
-            return {"status": "exists", "project": dict(existing), "message": "Project already registered"}
+            return {
+                "status": "exists",
+                "project": dict(existing),
+                "message": "Project already registered",
+            }
 
         # Create project entry
         import uuid
@@ -130,9 +132,7 @@ def project_list(args: dict) -> dict:
     """
     db = _get_db()
     try:
-        rows = db.execute(
-            "SELECT * FROM projects ORDER BY added_at DESC"
-        ).fetchall()
+        rows = db.execute("SELECT * FROM projects ORDER BY added_at DESC").fetchall()
         projects = [dict(r) for r in rows]
         return {"projects": projects, "total": len(projects)}
     except Exception as e:
@@ -159,9 +159,7 @@ def project_info(args: dict) -> dict:
     db = _get_db()
     try:
         # Check if registered
-        project = db.execute(
-            "SELECT * FROM projects WHERE root_path = ?", (path,)
-        ).fetchone()
+        project = db.execute("SELECT * FROM projects WHERE root_path = ?", (path,)).fetchone()
 
         if not project:
             return {"status": "not_found", "message": f"Project not registered: {path}"}
@@ -185,14 +183,12 @@ def project_info(args: dict) -> dict:
             ).fetchone()[0]
 
             # Embedding count
-            stats["embeddings"] = project_db.execute(
-                "SELECT COUNT(*) FROM symbols_vec"
-            ).fetchone()[0]
+            stats["embeddings"] = project_db.execute("SELECT COUNT(*) FROM symbols_vec").fetchone()[
+                0
+            ]
 
             # Edge count
-            stats["edges"] = project_db.execute(
-                "SELECT COUNT(*) FROM edges"
-            ).fetchone()[0]
+            stats["edges"] = project_db.execute("SELECT COUNT(*) FROM edges").fetchone()[0]
 
             project["stats"] = stats
         except Exception:
@@ -236,9 +232,7 @@ def _get_index_stats(path: str) -> dict | None:
         ).fetchone()[0]
 
         # Embedding count
-        stats["embeddings"] = conn.execute(
-            "SELECT COUNT(*) FROM symbols_vec"
-        ).fetchone()[0]
+        stats["embeddings"] = conn.execute("SELECT COUNT(*) FROM symbols_vec").fetchone()[0]
 
         return stats
     except Exception:

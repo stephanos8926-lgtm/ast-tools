@@ -266,9 +266,12 @@ class LSPClient:
             text = Path(file).read_text(encoding="utf-8", errors="replace")
         except OSError:
             text = ""
-        self._send_notification("textDocument/didOpen", {
-            "textDocument": {"uri": uri, "languageId": self.lang, "version": 1, "text": text},
-        })
+        self._send_notification(
+            "textDocument/didOpen",
+            {
+                "textDocument": {"uri": uri, "languageId": self.lang, "version": 1, "text": text},
+            },
+        )
         self._open_files.add(abs_path)
 
     # ─── LSP Query Methods ──────────────────────────────────────────────
@@ -398,7 +401,8 @@ class LSPClient:
 
         # Filter diagnostics at or near the requested position
         diags_at_pos = [
-            d for d in file_diags
+            d
+            for d in file_diags
             if abs(d.get("range", {}).get("start", {}).get("line", 0) - (line - 1)) <= 2
         ]
 
@@ -483,10 +487,13 @@ class LSPClient:
             lines = text.splitlines(keepends=True)
 
             # Apply edits in reverse order (last range first to preserve offsets)
-            for edit in sorted(edits, key=lambda e: (
-                -e["range"]["start"]["line"],
-                -e["range"]["start"]["character"],
-            )):
+            for edit in sorted(
+                edits,
+                key=lambda e: (
+                    -e["range"]["start"]["line"],
+                    -e["range"]["start"]["character"],
+                ),
+            ):
                 r = edit["range"]
                 sl, sc = r["start"]["line"], r["start"]["character"]  # 0-indexed
                 el, ec = r["end"]["line"], r["end"]["character"]

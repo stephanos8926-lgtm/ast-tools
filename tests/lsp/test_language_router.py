@@ -1,6 +1,5 @@
 """Unit tests for the LSP language router."""
 
-
 import pytest
 
 from ast_tools.config.unified import UnifiedConfig

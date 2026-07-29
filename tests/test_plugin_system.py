@@ -39,9 +39,7 @@ def project_root():
 @pytest.fixture
 def temp_py_file():
     """Create a temp Python file with content to fix."""
-    with tempfile.NamedTemporaryFile(
-        mode="w", suffix=".py", delete=False, encoding="utf-8"
-    ) as f:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False, encoding="utf-8") as f:
         f.write("x = 1\n\n\n")  # Extra trailing newlines
         tmp_path = f.name
     yield Path(tmp_path)
@@ -172,9 +170,11 @@ class TestRegisterPluginFixers:
 
     def test_register_plugin_fixers(self):
         """register_plugin_fixers() loads plugins into the global manager."""
-        register_plugin_fixers({
-            "tn": "tests.fixtures.custom_fixer_example:TrailingNewlineFixer",
-        })
+        register_plugin_fixers(
+            {
+                "tn": "tests.fixtures.custom_fixer_example:TrailingNewlineFixer",
+            }
+        )
 
         cls = get_fixer_for_language("tn")
         assert cls is not None
@@ -207,9 +207,11 @@ class TestRegisterPluginFixers:
 
     def test_register_plugin_fixers_multiple(self):
         """Multiple plugins can be registered and used."""
-        register_plugin_fixers({
-            "tn": "tests.fixtures.custom_fixer_example:TrailingNewlineFixer",
-        })
+        register_plugin_fixers(
+            {
+                "tn": "tests.fixtures.custom_fixer_example:TrailingNewlineFixer",
+            }
+        )
 
         assert get_fixer_for_language("tn") is TrailingNewlineFixer
 
@@ -238,7 +240,9 @@ class TestFixEngineWithPlugin:
             )
             engine = FixEngine(
                 ctx,
-                plugin_fixers={"python": "tests.fixtures.custom_fixer_example:TrailingNewlineFixer"},
+                plugin_fixers={
+                    "python": "tests.fixtures.custom_fixer_example:TrailingNewlineFixer"
+                },
             )
             result = engine.run()
             assert result.success
@@ -270,7 +274,9 @@ class TestFixEngineWithPlugin:
             )
             engine = FixEngine(
                 ctx,
-                plugin_fixers={"python": "tests.fixtures.custom_fixer_example:TrailingNewlineFixer"},
+                plugin_fixers={
+                    "python": "tests.fixtures.custom_fixer_example:TrailingNewlineFixer"
+                },
             )
             result = engine.run()
 
@@ -285,6 +291,7 @@ class TestFixEngineWithPlugin:
             assert (test_dir / "clean.py").read_text() == "z = 3\n"
         finally:
             import shutil
+
             shutil.rmtree(test_dir, ignore_errors=True)
 
     def test_plugin_with_builtin_together(self, project_root):
@@ -302,7 +309,9 @@ class TestFixEngineWithPlugin:
             )
             engine = FixEngine(
                 ctx,
-                plugin_fixers={"python": "tests.fixtures.custom_fixer_example:TrailingNewlineFixer"},
+                plugin_fixers={
+                    "python": "tests.fixtures.custom_fixer_example:TrailingNewlineFixer"
+                },
             )
             result = engine.run()
             assert result.success
@@ -328,13 +337,13 @@ class TestFixEngineWithPlugin:
             )
             engine = FixEngine(
                 ctx,
-                plugin_fixers={"python": "tests.fixtures.custom_fixer_example:TrailingNewlineFixer"},
+                plugin_fixers={
+                    "python": "tests.fixtures.custom_fixer_example:TrailingNewlineFixer"
+                },
             )
             result = engine.run()
             assert result.converged
-            assert result.iterations == 1, (
-                f"Expected 1 iteration, got {result.iterations}"
-            )
+            assert result.iterations == 1, f"Expected 1 iteration, got {result.iterations}"
         finally:
             test_file.unlink(missing_ok=True)
 

@@ -46,6 +46,7 @@ def list_tool_names() -> list[str]:
 def list_tools() -> list[Tool]:
     """Return list of all registered tools as MCP Tool objects."""
     from mcp.types import Tool
+
     tools = []
     for name in sorted(TOOL_REGISTRY.keys()):
         schema = TOOL_SCHEMAS.get(name, {})
@@ -1527,11 +1528,13 @@ def _tool_search_tools(args: dict[str, Any]) -> dict[str, Any]:
             if category and TOOL_CATEGORIES.get(name) != category:
                 continue
             schema = TOOL_SCHEMAS.get(name, {})
-            results.append({
-                "name": name,
-                "description": schema.get("description", ""),
-                "category": TOOL_CATEGORIES.get(name, "OTHER"),
-            })
+            results.append(
+                {
+                    "name": name,
+                    "description": schema.get("description", ""),
+                    "category": TOOL_CATEGORIES.get(name, "OTHER"),
+                }
+            )
         results = results[:top_k]
         return {"count": len(results), "results": results}
 
@@ -1559,14 +1562,16 @@ def _tool_search_tools(args: dict[str, Any]) -> dict[str, Any]:
             name, rank = row
             desc = TOOL_SCHEMAS.get(name, {}).get("description", "")
             boost = _usage_boost(name)
-            results.append({
-                "name": name,
-                "description": desc,
-                "category": TOOL_CATEGORIES.get(name, "OTHER"),
-                "score": round(float(rank), 4),
-                "boost": boost,
-                "boosted_score": round(float(rank) * (1 + boost), 4),
-            })
+            results.append(
+                {
+                    "name": name,
+                    "description": desc,
+                    "category": TOOL_CATEGORIES.get(name, "OTHER"),
+                    "score": round(float(rank), 4),
+                    "boost": boost,
+                    "boosted_score": round(float(rank) * (1 + boost), 4),
+                }
+            )
 
         # If AND query returned nothing, try OR
         if not results:
@@ -1579,14 +1584,16 @@ def _tool_search_tools(args: dict[str, Any]) -> dict[str, Any]:
                 name, rank = row
                 desc = TOOL_SCHEMAS.get(name, {}).get("description", "")
                 boost = _usage_boost(name)
-                results.append({
-                    "name": name,
-                    "description": desc,
-                    "category": TOOL_CATEGORIES.get(name, "OTHER"),
-                    "score": round(float(rank), 4),
-                    "boost": boost,
-                    "boosted_score": round(float(rank) * (1 + boost), 4),
-                })
+                results.append(
+                    {
+                        "name": name,
+                        "description": desc,
+                        "category": TOOL_CATEGORIES.get(name, "OTHER"),
+                        "score": round(float(rank), 4),
+                        "boost": boost,
+                        "boosted_score": round(float(rank) * (1 + boost), 4),
+                    }
+                )
     except sqlite3.OperationalError as e:
         return {"error": f"FTS5 query error: {e}", "results": []}
     finally:
@@ -1665,8 +1672,26 @@ search_tools_tool = {
     "inputSchema": {
         "type": "object",
         "properties": {
-            "query": {"type": "string", "description": "Natural language query describing what you want to do"},
-            "category": {"type": "string", "enum": ["CODE_ANALYSIS", "SEARCH", "REFACTOR", "INDEX", "LSP", "GRAPH", "FIX", "CURATOR", "WATCH", "META"], "description": "Optional category filter"},
+            "query": {
+                "type": "string",
+                "description": "Natural language query describing what you want to do",
+            },
+            "category": {
+                "type": "string",
+                "enum": [
+                    "CODE_ANALYSIS",
+                    "SEARCH",
+                    "REFACTOR",
+                    "INDEX",
+                    "LSP",
+                    "GRAPH",
+                    "FIX",
+                    "CURATOR",
+                    "WATCH",
+                    "META",
+                ],
+                "description": "Optional category filter",
+            },
             "top_k": {"type": "integer", "default": 5, "description": "Number of results (max 10)"},
         },
         "required": ["query"],
@@ -1678,8 +1703,14 @@ call_tool_tool = {
     "inputSchema": {
         "type": "object",
         "properties": {
-            "name": {"type": "string", "description": "The exact tool name from search_tools results"},
-            "arguments": {"type": "object", "description": "Tool-specific arguments per the tool's schema"},
+            "name": {
+                "type": "string",
+                "description": "The exact tool name from search_tools results",
+            },
+            "arguments": {
+                "type": "object",
+                "description": "Tool-specific arguments per the tool's schema",
+            },
         },
         "required": ["name", "arguments"],
     },
@@ -1691,7 +1722,11 @@ tool_info_tool = {
         "type": "object",
         "properties": {
             "name": {"type": "string", "description": "The exact tool name"},
-            "include_examples": {"type": "boolean", "default": False, "description": "Include usage examples"},
+            "include_examples": {
+                "type": "boolean",
+                "default": False,
+                "description": "Include usage examples",
+            },
         },
         "required": ["name"],
     },
@@ -1716,15 +1751,17 @@ def _tool_tool_usage_stats(args: dict[str, Any]) -> dict[str, Any]:
         errors = usage.get("errors", 0)
         avg_latency = usage.get("total_latency_ms", 0) / max(calls, 1)
         success_rate = (calls - errors) / max(calls, 1) if calls else 0
-        stats.append({
-            "name": name,
-            "category": TOOL_CATEGORIES.get(name, "OTHER"),
-            "calls": calls,
-            "errors": errors,
-            "success_rate": round(success_rate, 3),
-            "avg_latency_ms": round(avg_latency, 1),
-            "boost": _usage_boost(name),
-        })
+        stats.append(
+            {
+                "name": name,
+                "category": TOOL_CATEGORIES.get(name, "OTHER"),
+                "calls": calls,
+                "errors": errors,
+                "success_rate": round(success_rate, 3),
+                "avg_latency_ms": round(avg_latency, 1),
+                "boost": _usage_boost(name),
+            }
+        )
 
     if sort_by == "calls":
         stats.sort(key=lambda x: x["calls"], reverse=True)
@@ -1744,7 +1781,12 @@ tool_usage_stats_tool = {
         "type": "object",
         "properties": {
             "top": {"type": "integer", "default": 20, "description": "Number of results (max 50)"},
-            "sort_by": {"type": "string", "enum": ["calls", "errors", "success_rate", "boost"], "default": "calls", "description": "Sort field"},
+            "sort_by": {
+                "type": "string",
+                "enum": ["calls", "errors", "success_rate", "boost"],
+                "default": "calls",
+                "description": "Sort field",
+            },
         },
         "required": [],
     },

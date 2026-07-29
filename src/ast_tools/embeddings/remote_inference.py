@@ -17,10 +17,13 @@ logger = logging.getLogger(__name__)
 
 # Lazy aiohttp import — avoids mandatory dependency for CLI/core-only usage
 _aiohttp = None
+
+
 def _get_aiohttp():
     global _aiohttp
     if _aiohttp is None:
         import aiohttp  # type: ignore[import-untyped]
+
         _aiohttp = aiohttp
     return _aiohttp
 
@@ -100,9 +103,7 @@ class RemoteInferenceClient:
             )
         return self._session
 
-    async def _request_with_retry(
-        self, method: str, url: str, **kwargs
-    ) -> dict[str, Any]:
+    async def _request_with_retry(self, method: str, url: str, **kwargs) -> dict[str, Any]:
         """Make HTTP request with exponential backoff retry."""
         session = await self._get_session()
         last_exception = None
@@ -139,7 +140,9 @@ class RemoteInferenceClient:
                     await asyncio.sleep(self.config.retry_backoff * (2**attempt))
                     continue
                 else:
-                    logger.error(f"Request failed after {self.config.max_retries + 1} attempts: {e}")
+                    logger.error(
+                        f"Request failed after {self.config.max_retries + 1} attempts: {e}"
+                    )
                     raise
 
         raise last_exception
@@ -150,7 +153,11 @@ class RemoteInferenceClient:
         Caches result for health_check_interval seconds unless force=True.
         """
         now = time.time()
-        if not force and self._healthy and (now - self._last_health_check) < self.config.health_check_interval:
+        if (
+            not force
+            and self._healthy
+            and (now - self._last_health_check) < self.config.health_check_interval
+        ):
             return self._healthy
 
         try:

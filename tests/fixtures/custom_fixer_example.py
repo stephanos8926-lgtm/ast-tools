@@ -44,15 +44,17 @@ class TrailingNewlineFixer(FixerBase):
                 else:
                     changes.append("inconsistent line ending")
 
-                actions.append(FixAction(
-                    tool=self.name,
-                    file_path=file_path,
-                    description=f"Normalize trailing newline: {', '.join(changes)}",
-                    original_content=original,
-                    fixed_content=fixed,
-                    safety="safe",
-                    metadata={"type": "format", "changes": changes},
-                ))
+                actions.append(
+                    FixAction(
+                        tool=self.name,
+                        file_path=file_path,
+                        description=f"Normalize trailing newline: {', '.join(changes)}",
+                        original_content=original,
+                        fixed_content=fixed,
+                        safety="safe",
+                        metadata={"type": "format", "changes": changes},
+                    )
+                )
         return actions
 
     def verify(self, files: list[Path]) -> list[str]:

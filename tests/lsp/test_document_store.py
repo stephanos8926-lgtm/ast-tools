@@ -38,10 +38,12 @@ class TestTextDocument:
 
     def test_apply_change_simple(self):
         doc = TextDocument("file:///test.py", "x = 1", "python")
+
         # Simple dict-based change (some LSP clients use this)
         class SimpleChange:
             def __init__(self, text):
                 self.text = text
+
         change = SimpleChange("x = 42")
         doc.apply_change(change)
         assert doc.text == "x = 42"

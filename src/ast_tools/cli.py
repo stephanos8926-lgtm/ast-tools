@@ -1211,13 +1211,15 @@ def cmd_fix(args: argparse.Namespace) -> int:
                     )
                     llm_result = asyncio.run(client.suggest_fix(ctx))
                     if llm_result.success:
-                        llm_results.append({
-                            "tool": action.tool,
-                            "file": str(action.file_path),
-                            "llm_diff": llm_result.diff,
-                            "llm_confidence": llm_result.confidence,
-                            "model": llm_result.model_used,
-                        })
+                        llm_results.append(
+                            {
+                                "tool": action.tool,
+                                "file": str(action.file_path),
+                                "llm_diff": llm_result.diff,
+                                "llm_confidence": llm_result.confidence,
+                                "model": llm_result.model_used,
+                            }
+                        )
                 except Exception as e:
                     llm_results.append({"tool": action.tool, "error": str(e)})
             asyncio.run(client.close())
@@ -1287,9 +1289,16 @@ def _print_fix_table(result):
 
 def _print_fix_markdown(result):
     """Print fix results as markdown."""
-    lines = ["## Auto-Fix Results", "", "| Tool | File | Description | Safety |", "|------|------|-------------|--------|"]
+    lines = [
+        "## Auto-Fix Results",
+        "",
+        "| Tool | File | Description | Safety |",
+        "|------|------|-------------|--------|",
+    ]
     for action in result.actions_applied:
-        lines.append(f"| {action.tool} | `{action.file_path}` | {action.description} | {action.safety} |")
+        lines.append(
+            f"| {action.tool} | `{action.file_path}` | {action.description} | {action.safety} |"
+        )
     lines.append("")
     lines.append(f"**Total fixes:** {result.total_fixes}")
     lines.append(f"**Files changed:** {result.files_changed}")
@@ -1697,12 +1706,14 @@ def main() -> int:
         help="Maximum convergence iterations",
     )
     fix_p.add_argument(
-        "-v", "--verbose",
+        "-v",
+        "--verbose",
         action="store_true",
         help="Verbose output",
     )
     fix_p.add_argument(
-        "-f", "--format",
+        "-f",
+        "--format",
         choices=["table", "json", "markdown"],
         default="table",
         help="Output format",
@@ -1813,6 +1824,7 @@ def cmd_lsp(_args: argparse.Namespace) -> int:
     )
 
     from ast_tools.lsp.server import main as lsp_main
+
     lsp_main()
     return 0
 

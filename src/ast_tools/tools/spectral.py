@@ -143,6 +143,7 @@ try:
     import scipy  # noqa: F401
     from scipy.sparse import csr_matrix
     from scipy.sparse.linalg import eigsh as scipy_eigsh
+
     SCIPY_AVAILABLE = True
 except ImportError:
     SCIPY_AVAILABLE = False
@@ -454,7 +455,12 @@ def _fiedler_vector_scalable(
             sparse_L = csr_matrix(laplacian)
             # Find 2 smallest eigenvalues (k=2 → λ₁ ≈ 0, λ₂ = Fiedler)
             eigenvalues, eigenvectors = scipy_eigsh(
-                sparse_L, k=2, which="SM", tol=tol, maxiter=n_iter, v0=None,
+                sparse_L,
+                k=2,
+                which="SM",
+                tol=tol,
+                maxiter=n_iter,
+                v0=None,
             )
             # Sort ascending (eigsh doesn't guarantee order for SM)
             idx = np.argsort(eigenvalues)
@@ -541,7 +547,7 @@ def _fiedler_vector_nystrom(
 
     # Build sub-matrices
     A = adjacency[np.ix_(sample_idx, sample_idx)]  # m×m
-    B = adjacency[np.ix_(sample_idx, compl_idx)]    # m×(n-m)
+    B = adjacency[np.ix_(sample_idx, compl_idx)]  # m×(n-m)
 
     # Degree computation
     deg_sample = np.sum(A, axis=1) + np.sum(B, axis=1)
@@ -843,9 +849,7 @@ def _compute_multi_resolution(
                 cluster_labels[m] = cid
 
             # Compute cohesion and coupling
-            indices = [
-                i for i, mn in enumerate(connected_names) if mn in pn.modules
-            ]
+            indices = [i for i, mn in enumerate(connected_names) if mn in pn.modules]
             if len(indices) >= 2:
                 sub = connected_adj[np.ix_(indices, indices)]
                 intra = float(np.sum(sub) / 2.0)
@@ -857,10 +861,15 @@ def _compute_multi_resolution(
                 cohesion = 0.0
                 coupling = 0.0
 
-            clusters_out.append(ClusterAssignment(
-                cluster_id=cid, modules=mods, size=len(mods),
-                cohesion=cohesion, coupling=coupling,
-            ))
+            clusters_out.append(
+                ClusterAssignment(
+                    cluster_id=cid,
+                    modules=mods,
+                    size=len(mods),
+                    cohesion=cohesion,
+                    coupling=coupling,
+                )
+            )
 
         # Compute quality
         labels_arr = np.zeros(n, dtype=int)
@@ -868,12 +877,14 @@ def _compute_multi_resolution(
             labels_arr[i] = cluster_labels.get(mn, 0)
         quality = _partition_quality(connected_adj, labels_arr, len(set(labels_arr)))
 
-        resolutions.append(ResolutionLevel(
-            name=name,
-            num_clusters=len(clusters_out),
-            quality=float(quality),
-            clusters=clusters_out,
-        ))
+        resolutions.append(
+            ResolutionLevel(
+                name=name,
+                num_clusters=len(clusters_out),
+                quality=float(quality),
+                clusters=clusters_out,
+            )
+        )
 
     return resolutions
 
@@ -1013,13 +1024,13 @@ def update_laplacian_incremental(
 
 # Language-specific source file extensions
 LANG_EXTENSIONS: dict[str, set[str]] = {
-    "python":      {".py"},
-    "typescript":  {".ts", ".tsx"},
-    "javascript":  {".js", ".jsx", ".mjs", ".cjs"},
-    "go":          {".go"},
-    "rust":        {".rs"},
-    "c":           {".c", ".h"},
-    "cpp":         {".cpp", ".cc", ".cxx", ".hpp", ".hh"},
+    "python": {".py"},
+    "typescript": {".ts", ".tsx"},
+    "javascript": {".js", ".jsx", ".mjs", ".cjs"},
+    "go": {".go"},
+    "rust": {".rs"},
+    "c": {".c", ".h"},
+    "cpp": {".cpp", ".cc", ".cxx", ".hpp", ".hh"},
 }
 
 # Reverse: extension → language code
@@ -1040,11 +1051,23 @@ def _iter_source_files(project_path: Path) -> list[Path]:
     Skips hidden directories, __pycache__, node_modules, .venv, etc.
     """
     skip_dirs = {
-        ".git", "__pycache__", ".venv", "venv", "node_modules",
-        ".tox", ".eggs", "build", "dist", ".mypy_cache",
-        ".pytest_cache", ".idea", ".vscode", "site-packages",
+        ".git",
+        "__pycache__",
+        ".venv",
+        "venv",
+        "node_modules",
+        ".tox",
+        ".eggs",
+        "build",
+        "dist",
+        ".mypy_cache",
+        ".pytest_cache",
+        ".idea",
+        ".vscode",
+        "site-packages",
         "target",  # Rust build dir
-        ".next", ".nuxt",  # JS framework build dirs
+        ".next",
+        ".nuxt",  # JS framework build dirs
     }
     source_files: list[Path] = []
     for f in sorted(project_path.rglob("*")):
@@ -1332,6 +1355,7 @@ def _extract_imports_ts(tree, source: str) -> list[str]:
     """Extract import paths from a TypeScript/JavaScript tree."""
     # Tree-sitter 0.26 query API
     import tree_sitter as ts
+
     lang = tree.language
     query = ts.Query(lang, _TS_IMPORT_QUERY)
     cursor = ts.QueryCursor(query)
@@ -1348,6 +1372,7 @@ def _extract_imports_ts(tree, source: str) -> list[str]:
 def _extract_imports_go(tree, source: str) -> list[str]:
     """Extract import paths from a Go tree."""
     import tree_sitter as ts
+
     query = ts.Query(tree.language, _GO_IMPORT_QUERY)
     cursor = ts.QueryCursor(query)
     captures = cursor.captures(tree.root_node)
@@ -1363,6 +1388,7 @@ def _extract_imports_go(tree, source: str) -> list[str]:
 def _extract_imports_rust(tree, source: str) -> list[str]:
     """Extract use paths from a Rust tree."""
     import tree_sitter as ts
+
     query = ts.Query(tree.language, _RUST_USE_QUERY)
     cursor = ts.QueryCursor(query)
     captures = cursor.captures(tree.root_node)
@@ -1382,6 +1408,7 @@ def _extract_imports_rust(tree, source: str) -> list[str]:
 def _extract_imports_c(tree, source: str) -> list[str]:
     """Extract include paths from a C/C++ tree."""
     import tree_sitter as ts
+
     query = ts.Query(tree.language, _C_INCLUDE_QUERY)
     cursor = ts.QueryCursor(query)
     captures = cursor.captures(tree.root_node)
@@ -1394,17 +1421,21 @@ def _extract_imports_c(tree, source: str) -> list[str]:
     return paths
 
 
-def _extract_imports_python(source: str, source_module: str,
-                             internal_modules: set[str],
-                             stdlib_modules: set[str],
-                             third_party_prefixes: set[str],
-                             edge_weight: float,
-                             adjacency: dict[tuple[str, str], float]) -> None:
+def _extract_imports_python(
+    source: str,
+    source_module: str,
+    internal_modules: set[str],
+    stdlib_modules: set[str],
+    third_party_prefixes: set[str],
+    edge_weight: float,
+    adjacency: dict[tuple[str, str], float],
+) -> None:
     """Extract import edges from a Python file using ast.parse.
 
     Modifies ``adjacency`` in-place.
     """
     import ast as ast_module
+
     try:
         tree = ast_module.parse(source, filename="<spectral>")
     except SyntaxError:
@@ -1434,8 +1465,10 @@ def _extract_imports_python(source: str, source_module: str,
                             break
             else:
                 parts = source_module.split(".")
-                base = ".".join(parts[:-node.level]) if node.level <= len(parts) else ""
-                resolved = f"{base}.{node.module}" if base and node.module else (base or node.module or "")
+                base = ".".join(parts[: -node.level]) if node.level <= len(parts) else ""
+                resolved = (
+                    f"{base}.{node.module}" if base and node.module else (base or node.module or "")
+                )
                 if resolved and resolved in internal_modules:
                     adjacency[(source_module, resolved)] += edge_weight
                 elif resolved:
@@ -1480,6 +1513,7 @@ def _extract_python_edges_parallel(
     instead of modifying a shared adjacency dict.
     """
     import ast as ast_module
+
     edges: list[tuple[str, str, float]] = []
     try:
         tree = ast_module.parse(source, filename="<spectral>")
@@ -1572,26 +1606,87 @@ def _build_module_adjacency(
     stdlib_modules: set[str] = set()
     try:
         import sys
+
         stdlib_modules = set(sys.stdlib_module_names)
     except (AttributeError, KeyError):
         stdlib_modules = {
-            "abc", "ast", "asyncio", "base64", "collections", "copy",
-            "csv", "dataclasses", "datetime", "decimal", "enum", "functools",
-            "glob", "hashlib", "html", "http", "importlib", "inspect",
-            "io", "itertools", "json", "logging", "math", "multiprocessing",
-            "os", "pathlib", "pickle", "platform", "pprint", "queue",
-            "random", "re", "shutil", "signal", "socket", "sqlite3",
-            "statistics", "string", "struct", "subprocess", "sys",
-            "tempfile", "textwrap", "threading", "time", "traceback",
-            "typing", "unittest", "urllib", "uuid", "warnings", "weakref",
-            "xml", "zipfile", "__future__",
+            "abc",
+            "ast",
+            "asyncio",
+            "base64",
+            "collections",
+            "copy",
+            "csv",
+            "dataclasses",
+            "datetime",
+            "decimal",
+            "enum",
+            "functools",
+            "glob",
+            "hashlib",
+            "html",
+            "http",
+            "importlib",
+            "inspect",
+            "io",
+            "itertools",
+            "json",
+            "logging",
+            "math",
+            "multiprocessing",
+            "os",
+            "pathlib",
+            "pickle",
+            "platform",
+            "pprint",
+            "queue",
+            "random",
+            "re",
+            "shutil",
+            "signal",
+            "socket",
+            "sqlite3",
+            "statistics",
+            "string",
+            "struct",
+            "subprocess",
+            "sys",
+            "tempfile",
+            "textwrap",
+            "threading",
+            "time",
+            "traceback",
+            "typing",
+            "unittest",
+            "urllib",
+            "uuid",
+            "warnings",
+            "weakref",
+            "xml",
+            "zipfile",
+            "__future__",
         }
 
     third_party_prefixes = {
-        "pytest", "numpy", "scipy", "sklearn", "torch", "tensorflow",
-        "yaml", "jsonschema", "libcst", "mcp",
-        "jedi", "tree_sitter", "tiktoken", "watchdog", "anyio",
-        "sentence_transformers", "sqlite_vec", "sqlparse", "hnswlib",
+        "pytest",
+        "numpy",
+        "scipy",
+        "sklearn",
+        "torch",
+        "tensorflow",
+        "yaml",
+        "jsonschema",
+        "libcst",
+        "mcp",
+        "jedi",
+        "tree_sitter",
+        "tiktoken",
+        "watchdog",
+        "anyio",
+        "sentence_transformers",
+        "sqlite_vec",
+        "sqlparse",
+        "hnswlib",
     }
 
     # ── Step 4: Parse each file and collect intra-project edges ──
@@ -1601,6 +1696,7 @@ def _build_module_adjacency(
     _ts_available = False
     try:
         from ast_tools import ts_backend
+
         _ts_available = True
     except ImportError:
         pass
@@ -1625,8 +1721,11 @@ def _build_module_adjacency(
 
         if lang_code == "python":
             return _extract_python_edges_parallel(
-                src, src_mod, internal_modules,
-                stdlib_modules, third_party_prefixes,
+                src,
+                src_mod,
+                internal_modules,
+                stdlib_modules,
+                third_party_prefixes,
                 edge_weight,
             )
         elif _ts_available:
@@ -1665,7 +1764,9 @@ def _build_module_adjacency(
                 adjacency[(src, tgt)] += w
     else:
         # Parallel for large projects
-        with concurrent.futures.ThreadPoolExecutor(max_workers=min(max_workers_par, file_count)) as executor:
+        with concurrent.futures.ThreadPoolExecutor(
+            max_workers=min(max_workers_par, file_count)
+        ) as executor:
             fut_to_file = {executor.submit(_process_file, f): f for f in source_files}
             for future in concurrent.futures.as_completed(fut_to_file):
                 try:
@@ -1748,6 +1849,7 @@ def _build_call_graph_adjacency(
     # Auto-detect database path
     if database_path is None:
         from ast_tools.database.connection import get_db_path
+
         db_path = get_db_path(project_root=project_root)
         if not db_path.exists():
             logger.info("No semantic database found, falling back to import graph")
@@ -1833,7 +1935,7 @@ def _build_call_graph_adjacency(
                 tgt_candidates = _name_to_modules(target_name, project_path)
                 for tgt_mod in tgt_candidates:
                     if src_mod != tgt_mod:
-                        weight = (EDGE_WEIGHTS.get(etype, 0.5) * edge_weight * 0.5)
+                        weight = EDGE_WEIGHTS.get(etype, 0.5) * edge_weight * 0.5
                         key = (src_mod, tgt_mod)
                         module_pairs[key] = max(module_pairs[key], weight)
 
@@ -1869,9 +1971,13 @@ def _build_call_graph_adjacency(
         {name: i for i, name in enumerate(import_names)}
         for i, src_name in enumerate(import_names):
             for j in range(i + 1, len(import_names)):
-                if import_adj[i, j] > 0 and src_name in internal_modules and import_names[j] in internal_modules:
-                        adjacency[(src_name, import_names[j])] += import_adj[i, j]
-                        adjacency[(import_names[j], src_name)] += import_adj[i, j]
+                if (
+                    import_adj[i, j] > 0
+                    and src_name in internal_modules
+                    and import_names[j] in internal_modules
+                ):
+                    adjacency[(src_name, import_names[j])] += import_adj[i, j]
+                    adjacency[(import_names[j], src_name)] += import_adj[i, j]
 
         # Build matrix
         module_names = sorted(internal_modules)
@@ -1887,8 +1993,9 @@ def _build_call_graph_adjacency(
                 adj[i, j] += w
                 adj[j, i] += w
 
-        logger.info(f"Call graph adjacency: {len(module_names)} modules, "
-                    f"{len(adj.nonzero()[0]) // 2} edges")
+        logger.info(
+            f"Call graph adjacency: {len(module_names)} modules, {len(adj.nonzero()[0]) // 2} edges"
+        )
         return adj, module_names
 
     except (sqlite3.Error, OSError) as e:
@@ -1917,7 +2024,9 @@ def _filepath_to_module(file_path: str, project_path: Path) -> str | None:
 
     name = parts[-1]
     # Strip double extensions like .py, .ts, etc.
-    if name.endswith((".py", ".ts", ".tsx", ".js", ".jsx", ".go", ".rs", ".c", ".h", ".cpp", ".hpp")):
+    if name.endswith(
+        (".py", ".ts", ".tsx", ".js", ".jsx", ".go", ".rs", ".c", ".h", ".cpp", ".hpp")
+    ):
         dot = name.find(".")
         if dot > 0:
             parts[-1] = name[:dot]
@@ -1980,7 +2089,9 @@ class EmbeddingCache:
         self._order: list[tuple[str, str, str]] = []
         self._max_entries = max_entries
 
-    def get(self, file_path: str, content_hash: str, model: str = RUNTIME.embedding_model_minilm) -> list[float] | None:
+    def get(
+        self, file_path: str, content_hash: str, model: str = RUNTIME.embedding_model_minilm
+    ) -> list[float] | None:
         """Get cached embedding. Returns None on miss.
 
         Args:
@@ -2002,7 +2113,13 @@ class EmbeddingCache:
             return val
         return None
 
-    def put(self, file_path: str, content_hash: str, embedding: list[float], model: str = RUNTIME.embedding_model_minilm) -> None:
+    def put(
+        self,
+        file_path: str,
+        content_hash: str,
+        embedding: list[float],
+        model: str = RUNTIME.embedding_model_minilm,
+    ) -> None:
         """Store embedding in cache. Evicts LRU entry if at capacity."""
         key = (file_path, content_hash, model)
         if key in self._cache:
@@ -2115,7 +2232,11 @@ def _build_semantic_adjacency(
             logger.info(f"Loading embedding model for semantic affinity: {model_name}")
             model = SentenceTransformer(model_name)
             logger.info(f"Generating {len(module_docs)} module embeddings...")
-            embeddings_np = model.encode(module_docs, show_progress_bar=False, batch_size=RUNTIME.batch_size_embeddings_standard)
+            embeddings_np = model.encode(
+                module_docs,
+                show_progress_bar=False,
+                batch_size=RUNTIME.batch_size_embeddings_standard,
+            )
             logger.info("Computing cosine similarity matrix...")
         except Exception as e:
             logger.warning(f"Failed to generate semantic embeddings ({e}), skipping")
@@ -2209,7 +2330,11 @@ def _build_cochange_adjacency(
                 break
         else:
             # __init__.py, mod.rs, index.ts patterns
-            for init in (f"{base_path}/__init__.py", f"{base_path}/mod.rs", f"{base_path}/index.ts"):
+            for init in (
+                f"{base_path}/__init__.py",
+                f"{base_path}/mod.rs",
+                f"{base_path}/index.ts",
+            ):
                 if (project_path / init).exists():
                     mod_to_relpath[mod] = init
                     relpath_to_mod[init] = mod
@@ -2224,12 +2349,18 @@ def _build_cochange_adjacency(
     try:
         result = subprocess.run(
             [
-                "git", "log", "--all", "--name-only",
+                "git",
+                "log",
+                "--all",
+                "--name-only",
                 f"--max-count={max_commits}",
                 "--diff-filter=M",
                 "--pretty=format:%H",
             ],
-            capture_output=True, text=True, cwd=project_root, timeout=30,
+            capture_output=True,
+            text=True,
+            cwd=project_root,
+            timeout=30,
         )
     except (subprocess.SubprocessError, FileNotFoundError, OSError) as e:
         logger.warning(f"Git co-change failed ({e}), skipping")
@@ -2300,24 +2431,108 @@ def _build_cochange_adjacency(
 def _tokenize_source(text: str) -> list[str]:
     """Extract identifier-like tokens from source code."""
     import re
-    tokens = re.findall(r'[a-zA-Z_][a-zA-Z0-9_]{2,}', text)
-    STOPWORDS = frozenset({
-        "import", "from", "def", "class", "return", "if", "else", "elif",
-        "for", "while", "try", "except", "finally", "with", "as", "pass",
-        "break", "continue", "and", "or", "not", "in", "is", "None", "True",
-        "False", "self", "cls", "super", "raise", "yield", "lambda",
-        "pub", "fn", "let", "mut", "use", "mod", "struct", "enum", "impl",
-        "const", "static", "var", "func", "type", "interface", "package",
-        "require", "export", "default", "extends", "implements",
-        "public", "private", "protected", "void", "int", "str",
-        "bool", "float", "double", "char", "string", "null", "undefined",
-        "new", "this", "typeof", "instanceof", "assert",
-        "namespace", "include", "define", "ifndef", "endif",
-        "async", "await", "of", "case", "switch", "sizeof", "typedef", "template", "typename",
-        "__init__", "__str__", "__repr__", "__call__",
-        "println", "print", "format", "assert_eq",
-        "Some", "Ok", "Err",
-    })
+
+    tokens = re.findall(r"[a-zA-Z_][a-zA-Z0-9_]{2,}", text)
+    STOPWORDS = frozenset(
+        {
+            "import",
+            "from",
+            "def",
+            "class",
+            "return",
+            "if",
+            "else",
+            "elif",
+            "for",
+            "while",
+            "try",
+            "except",
+            "finally",
+            "with",
+            "as",
+            "pass",
+            "break",
+            "continue",
+            "and",
+            "or",
+            "not",
+            "in",
+            "is",
+            "None",
+            "True",
+            "False",
+            "self",
+            "cls",
+            "super",
+            "raise",
+            "yield",
+            "lambda",
+            "pub",
+            "fn",
+            "let",
+            "mut",
+            "use",
+            "mod",
+            "struct",
+            "enum",
+            "impl",
+            "const",
+            "static",
+            "var",
+            "func",
+            "type",
+            "interface",
+            "package",
+            "require",
+            "export",
+            "default",
+            "extends",
+            "implements",
+            "public",
+            "private",
+            "protected",
+            "void",
+            "int",
+            "str",
+            "bool",
+            "float",
+            "double",
+            "char",
+            "string",
+            "null",
+            "undefined",
+            "new",
+            "this",
+            "typeof",
+            "instanceof",
+            "assert",
+            "namespace",
+            "include",
+            "define",
+            "ifndef",
+            "endif",
+            "async",
+            "await",
+            "of",
+            "case",
+            "switch",
+            "sizeof",
+            "typedef",
+            "template",
+            "typename",
+            "__init__",
+            "__str__",
+            "__repr__",
+            "__call__",
+            "println",
+            "print",
+            "format",
+            "assert_eq",
+            "Some",
+            "Ok",
+            "Err",
+        }
+    )
     return [t for t in tokens if t not in STOPWORDS and len(t) > 2]
 
 
@@ -2351,10 +2566,7 @@ def _extract_tfidf_keywords(module_texts: list[str], top_n: int = 3) -> list[str
     if not term_scores:
         return []
 
-    avg_scores = {
-        term: sum(scores) / len(scores)
-        for term, scores in term_scores.items()
-    }
+    avg_scores = {term: sum(scores) / len(scores) for term, scores in term_scores.items()}
     sorted_terms = sorted(avg_scores, key=avg_scores.__getitem__, reverse=True)
     return sorted_terms[:top_n]
 
@@ -2476,14 +2688,14 @@ def suggest_modules(
 
     # Apply profile if set (overrides any individual params)
     if config is not None and config.profile is not None and config.profile in SPECTRAL_PROFILES:
-            preset = SPECTRAL_PROFILES[config.profile]
-            for k, v in preset.items():
-                if k == "semantic_weight":
-                    semantic_weight = v
-                elif k == "cochange_weight":
-                    cochange_weight = v
-                elif k == "use_call_graph":
-                    use_call_graph = v
+        preset = SPECTRAL_PROFILES[config.profile]
+        for k, v in preset.items():
+            if k == "semantic_weight":
+                semantic_weight = v
+            elif k == "cochange_weight":
+                cochange_weight = v
+            elif k == "use_call_graph":
+                use_call_graph = v
 
     if not project_root:
         raise ValueError("project_root is required")
@@ -2500,7 +2712,9 @@ def suggest_modules(
     # Fuse semantic affinity edges
     if semantic_weight > 0:
         sem_adj = _build_semantic_adjacency(
-            project_root, module_names, semantic_weight=semantic_weight,
+            project_root,
+            module_names,
+            semantic_weight=semantic_weight,
             cache=_EMBEDDING_CACHE,
         )
         if sem_adj.shape == adj.shape:
@@ -2509,16 +2723,16 @@ def suggest_modules(
     # Fuse co-change edges
     if cochange_weight > 0:
         co_adj = _build_cochange_adjacency(
-            project_root, module_names, cochange_weight=cochange_weight,
+            project_root,
+            module_names,
+            cochange_weight=cochange_weight,
         )
         if co_adj.shape == adj.shape:
             adj += co_adj
 
     n = len(module_names)
     if n == 0:
-        return SpectralResult(
-            clusters=[], partition_tree=None, num_modules=0, num_clusters=0
-        )
+        return SpectralResult(clusters=[], partition_tree=None, num_modules=0, num_clusters=0)
 
     # Step 2: Handle isolated modules (no edges)
     degree = np.sum(adj, axis=1)
@@ -2604,16 +2818,12 @@ def suggest_modules(
             cluster_assignments[m] = cid
 
         # Compute cohesion and coupling for this cluster
-        cluster_indices = [
-            i for i, mn in enumerate(connected_names) if mn in leaf.modules
-        ]
+        cluster_indices = [i for i, mn in enumerate(connected_names) if mn in leaf.modules]
         if len(cluster_indices) >= 2:
             sub_adj = connected_adj[np.ix_(cluster_indices, cluster_indices)]
             intra_edges = np.sum(sub_adj) / 2.0
             # All edges from this cluster to outside
-            other_indices = [
-                i for i in range(len(connected_names)) if i not in cluster_indices
-            ]
+            other_indices = [i for i in range(len(connected_names)) if i not in cluster_indices]
             inter_edges = 0.0
             if other_indices:
                 cross = connected_adj[np.ix_(cluster_indices, other_indices)]
@@ -2640,9 +2850,7 @@ def suggest_modules(
     for i, mod in enumerate(isolated_modules):
         cid = len(clusters_out) + i
         cluster_assignments[mod] = cid
-        clusters_out.append(
-            ClusterAssignment(cluster_id=cid, modules=[mod], size=1, name=mod)
-        )
+        clusters_out.append(ClusterAssignment(cluster_id=cid, modules=[mod], size=1, name=mod))
 
     # Collect module source texts for TF-IDF cluster naming
     module_texts: dict[str, str] = {}
@@ -2704,6 +2912,7 @@ def export_tree_json(result: SpectralResult) -> dict[str, Any]:
     Returns:
         JSON-serializable dict.
     """
+
     def _node_to_dict(node: PartitionNode | None) -> dict[str, Any] | None:
         if node is None:
             return None
@@ -2775,8 +2984,8 @@ def export_dot(result: SpectralResult) -> str:
 
     lines = [
         "digraph G {",
-        '  rankdir=TB;',
-        '  splines=ortho;',
+        "  rankdir=TB;",
+        "  splines=ortho;",
         '  node [shape=box, style=rounded, fontname="monospace"];',
     ]
 
@@ -2810,7 +3019,9 @@ def export_dot(result: SpectralResult) -> str:
     return "\n".join(lines)
 
 
-def export_dendrogram_svg(result: SpectralResult, max_width: int = 800, max_height: int = 600) -> str:
+def export_dendrogram_svg(
+    result: SpectralResult, max_width: int = 800, max_height: int = 600
+) -> str:
     """Generate an SVG dendrogram of the partition tree.
 
     Renders the recursive bipartition tree as a dendrogram where each
@@ -2841,7 +3052,7 @@ def export_dendrogram_svg(result: SpectralResult, max_width: int = 800, max_heig
     svg_parts = [
         f'<svg xmlns="http://www.w3.org/2000/svg" width="{max_width}" height="{max_height}" '
         f'viewBox="0 0 {max_width} {max_height}">',
-        '<style>text { font-family: monospace; font-size: 11px; }</style>',
+        "<style>text { font-family: monospace; font-size: 11px; }</style>",
         f'<rect width="{max_width}" height="{max_height}" fill="#fafafa"/>',
     ]
 
@@ -2860,8 +3071,7 @@ def export_dendrogram_svg(result: SpectralResult, max_width: int = 800, max_heig
                 f"cluster_{node.id}",
             )
             svg_parts.append(
-                f'<text x="{x}" y="{y + 15}" text-anchor="middle" '
-                f'font-size="10">{name}</text>'
+                f'<text x="{x}" y="{y + 15}" text-anchor="middle" font-size="10">{name}</text>'
             )
             return x
 
@@ -2876,7 +3086,9 @@ def export_dendrogram_svg(result: SpectralResult, max_width: int = 800, max_heig
         x = int(sum(children_x) / len(children_x))
 
         # Draw vertical line from parent
-        svg_parts.append(f'<line x1="{x}" y1="{y}" x2="{x}" y2="{y + 15}" stroke="#333" stroke-width="1.5"/>')
+        svg_parts.append(
+            f'<line x1="{x}" y1="{y}" x2="{x}" y2="{y + 15}" stroke="#333" stroke-width="1.5"/>'
+        )
 
         # Draw horizontal lines to children
         for cx in children_x:

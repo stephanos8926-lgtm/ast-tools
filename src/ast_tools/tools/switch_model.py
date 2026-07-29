@@ -45,6 +45,7 @@ def _get_registry(project_path: str | None = None) -> EmbeddingModelRegistry:
         root = Path(project_path) if project_path else Path.cwd()
         # Import here to avoid circular imports
         from ast_tools.embeddings.model_registry import EmbeddingModelRegistry
+
         _registry = EmbeddingModelRegistry(project_root=root)
     return _registry
 
@@ -93,11 +94,13 @@ def _tool_switch_embedding_model(args: dict[str, Any]) -> str:
             from .refresh_index import _tool_refresh_index
 
             project_root = Path(project_path) if project_path else Path.cwd()
-            refresh_result = _tool_refresh_index({
-                "project_path": str(project_root),
-                "force": True,
-                "embeddings": True,
-            })
+            refresh_result = _tool_refresh_index(
+                {
+                    "project_path": str(project_root),
+                    "force": True,
+                    "embeddings": True,
+                }
+            )
             try:
                 refresh_data = json.loads(refresh_result)
                 result["auto_reindex"] = refresh_data
@@ -128,7 +131,9 @@ def _tool_list_embedding_models(args: dict[str, Any]) -> str:
 
         result = {
             "current_model": registry.current_model_id,
-            "current_config": registry.current_model_config.to_dict() if registry.current_model_config else None,
+            "current_config": registry.current_model_config.to_dict()
+            if registry.current_model_config
+            else None,
             "needs_reindex": registry.needs_reindex,
             "available_models": {k: v.to_dict() for k, v in models.items()},
         }
@@ -168,7 +173,9 @@ def _tool_get_embedding_model_info(args: dict[str, Any]) -> str:
             "model_id": model_id,
             "config": config.to_dict() if config else None,
             "is_current": model_id == registry.current_model_id,
-            "needs_reindex": registry.needs_reindex if model_id == registry.current_model_id else None,
+            "needs_reindex": registry.needs_reindex
+            if model_id == registry.current_model_id
+            else None,
         }
 
         return json.dumps(result, indent=2, default=str)

@@ -67,7 +67,9 @@ class EmbeddingModelConfig:
             "local_cache_dir": self.local_cache_dir,
             "remote_config": {
                 "base_url": self.remote_config.base_url if self.remote_config else None,
-            } if self.remote_config else None,
+            }
+            if self.remote_config
+            else None,
             "api_base_url": self.api_base_url,
             "description": self.description,
             "max_batch_size": self.max_batch_size,
@@ -158,13 +160,18 @@ class ModelRegistryState:
 
     def to_file(self, path: Path) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(json.dumps({
-            "current_model_id": self.current_model_id,
-            "current_model_config": self.current_model_config,
-            "last_switched": self.last_switched,
-            "index_built_for_model": self.index_built_for_model,
-            "pending_reindex": self.pending_reindex,
-        }, indent=2))
+        path.write_text(
+            json.dumps(
+                {
+                    "current_model_id": self.current_model_id,
+                    "current_model_config": self.current_model_config,
+                    "last_switched": self.last_switched,
+                    "index_built_for_model": self.index_built_for_model,
+                    "pending_reindex": self.pending_reindex,
+                },
+                indent=2,
+            )
+        )
 
     @classmethod
     def from_file(cls, path: Path) -> ModelRegistryState | None:
@@ -221,7 +228,9 @@ class EmbeddingModelRegistry:
                 )
                 self._save_state()
             else:
-                raise ValueError(f"Default model {self.default_model} not found in available models")
+                raise ValueError(
+                    f"Default model {self.default_model} not found in available models"
+                )
 
     def _save_state(self) -> None:
         """Persist registry state to disk."""
@@ -234,7 +243,11 @@ class EmbeddingModelRegistry:
 
     @property
     def current_model_config(self) -> EmbeddingModelConfig:
-        return EmbeddingModelConfig.from_dict(self._state.current_model_config) if self._state else None
+        return (
+            EmbeddingModelConfig.from_dict(self._state.current_model_config)
+            if self._state
+            else None
+        )
 
     @property
     def needs_reindex(self) -> bool:
@@ -244,7 +257,10 @@ class EmbeddingModelRegistry:
         current_config = self.current_model_config
         if not current_config:
             return True
-        return self._state.index_built_for_model != current_config.unique_id or self._state.pending_reindex
+        return (
+            self._state.index_built_for_model != current_config.unique_id
+            or self._state.pending_reindex
+        )
 
     def list_models(self) -> dict[str, EmbeddingModelConfig]:
         """Get all available model configurations."""
@@ -278,7 +294,9 @@ class EmbeddingModelRegistry:
             }
 
         # Check if index needs rebuild
-        reindex_needed = target_config.unique_id != (self._state.index_built_for_model if self._state else "")
+        reindex_needed = target_config.unique_id != (
+            self._state.index_built_for_model if self._state else ""
+        )
 
         # Update state
         old_model_id = self.current_model_id
@@ -334,11 +352,15 @@ class EmbeddingModelRegistry:
                 provider = EmbeddingProvider(backend=EmbeddingBackend.LOCAL)
             elif config.provider == EmbeddingModelProvider.REMOTE:
                 remote_config = config.remote_config or RemoteInferenceConfig.from_env()
-                provider = EmbeddingProvider(backend=EmbeddingBackend.REMOTE, remote_config=remote_config)
+                provider = EmbeddingProvider(
+                    backend=EmbeddingBackend.REMOTE, remote_config=remote_config
+                )
             else:
                 # For API providers, we'd need to implement specific clients
                 # For now, fall back to local
-                logger.warning(f"Provider {config.provider.value} not fully implemented, falling back to local")
+                logger.warning(
+                    f"Provider {config.provider.value} not fully implemented, falling back to local"
+                )
                 provider = EmbeddingProvider(backend=EmbeddingBackend.LOCAL)
 
             self._current_provider = provider

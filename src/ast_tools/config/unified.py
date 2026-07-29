@@ -22,6 +22,7 @@ from .loader import get_config_dir
 # Runtime Constants — MUST be first (referenced by all other dataclasses below)
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 @dataclass
 class RuntimeConstants:
     """Single source of truth for ALL magic numbers, limits, and defaults.
@@ -31,9 +32,9 @@ class RuntimeConstants:
     """
 
     # ── File size limits ──
-    max_file_size_parse: int = 10 * 1024 * 1024     # 10MB — parser.py
-    max_file_size_index: int = 1024 * 1024           # 1MB — indexing
-    max_file_size_fix: int = 10 * 1024 * 1024        # 10MB — fix engine
+    max_file_size_parse: int = 10 * 1024 * 1024  # 10MB — parser.py
+    max_file_size_index: int = 1024 * 1024  # 1MB — indexing
+    max_file_size_fix: int = 10 * 1024 * 1024  # 10MB — fix engine
 
     # ── Database ──
     db_max_retries: int = 3
@@ -41,40 +42,42 @@ class RuntimeConstants:
     db_backoff_multiplier: float = 2.0
 
     # ── Timeouts ──
-    timeout_fixer: int = 120           # fix engine + fixers
-    timeout_git_log: int = 120         # co-change miner
-    timeout_llm: int = 30              # LLM fix refinement
+    timeout_fixer: int = 120  # fix engine + fixers
+    timeout_git_log: int = 120  # co-change miner
+    timeout_llm: int = 30  # LLM fix refinement
 
     # ── Debounce (ms) ──
-    debounce_index: int = 500          # index watcher
-    debounce_diagnostics: int = 300    # LSP diagnostics
-    debounce_watchdog: int = 100       # watchdog daemon
+    debounce_index: int = 500  # index watcher
+    debounce_diagnostics: int = 300  # LSP diagnostics
+    debounce_watchdog: int = 100  # watchdog daemon
 
     # ── Workers / parallelism ──
-    workers_fix: int = 4               # fix pipeline
-    workers_spectral: int = 4          # spectral analysis
-    workers_embeddings: int = 2        # embedding generation workers
+    workers_fix: int = 4  # fix pipeline
+    workers_spectral: int = 4  # spectral analysis
+    workers_embeddings: int = 2  # embedding generation workers
 
     # ── Batch sizes ──
-    batch_size_embeddings_default: int = 16    # safe for 4GB RAM
-    batch_size_embeddings_standard: int = 32   # standard models
-    batch_size_embeddings_large: int = 64      # MiniLM models
-    batch_size_embeddings_api: int = 100       # OpenAI/Cohere APIs
+    batch_size_embeddings_default: int = 16  # safe for 4GB RAM
+    batch_size_embeddings_standard: int = 32  # standard models
+    batch_size_embeddings_large: int = 64  # MiniLM models
+    batch_size_embeddings_api: int = 100  # OpenAI/Cohere APIs
 
     # ── Embedding ──
-    embedding_dim: int = 384           # BGE-small / MiniLM
+    embedding_dim: int = 384  # BGE-small / MiniLM
     embedding_model_default: str = "bge-small-en-v1.5"
     embedding_model_minilm: str = "all-MiniLM-L6-v2"
 
     # ── Reranker models ──
     reranker_model_default: str = "cross-encoder/ms-marco-MiniLM-L-6-v2"
-    reranker_fallback_models: list[str] = field(default_factory=lambda: [
-        "cross-encoder/ms-marco-TinyBERT-L-2",
-        "cross-encoder/ms-marco-MiniLM-L-4",
-    ])
+    reranker_fallback_models: list[str] = field(
+        default_factory=lambda: [
+            "cross-encoder/ms-marco-TinyBERT-L-2",
+            "cross-encoder/ms-marco-MiniLM-L-4",
+        ]
+    )
 
     # ── Cache ──
-    cache_max_size_mb: int = 1024      # 1GB default
+    cache_max_size_mb: int = 1024  # 1GB default
 
     # ── Fixer limits ──
     fix_max_iterations: int = 10
@@ -162,15 +165,14 @@ RUNTIME = RuntimeConstants()
 # Configuration Dataclasses (all can reference RUNTIME above)
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 @dataclass
 class RerankerConfig:
     """Configuration for cross-encoder reranker."""
 
     enabled: bool = True
     model: str = RUNTIME.reranker_model_default
-    fallback_models: list[str] = field(
-        default_factory=lambda: RUNTIME.reranker_fallback_models
-    )
+    fallback_models: list[str] = field(default_factory=lambda: RUNTIME.reranker_fallback_models)
     batch_size: int = RUNTIME.batch_size_embeddings_standard
     max_length: int = 512
     device: str = "auto"  # auto, cpu, cuda, mps
@@ -309,7 +311,9 @@ class LLMConfig:
     # Remote LLM providers
     remote_provider: str = "openrouter"  # "openrouter", "anthropic", "gemini"
     remote_model: str = "qwen/qwen-2.5-coder-32b-instruct"
-    remote_fallback_chain: list[str] = field(default_factory=lambda: ["openrouter", "anthropic", "gemini"])
+    remote_fallback_chain: list[str] = field(
+        default_factory=lambda: ["openrouter", "anthropic", "gemini"]
+    )
     remote_api_key_env: str = "OPENROUTER_API_KEY"
 
     # Prompt template
@@ -354,9 +358,7 @@ class LSPConfig:
     enabled: bool = True
     host: str = "127.0.0.1"
     port: int = 8767
-    code_action_kind: list[str] = field(
-        default_factory=lambda: ["quickfix", "refactor", "source"]
-    )
+    code_action_kind: list[str] = field(default_factory=lambda: ["quickfix", "refactor", "source"])
 
     # Sub-configs
     diagnostics: DiagnosticConfig = field(default_factory=DiagnosticConfig)
@@ -471,7 +473,9 @@ class UnifiedConfig:
             timeout=data.get("timeout", RUNTIME.timeout_fixer),
             max_file_size=data.get("max_file_size", RUNTIME.max_file_size_fix),
             create_backups=data.get("create_backups", True),
-            backup_retention_days=data.get("backup_retention_days", RUNTIME.fix_backup_retention_days),
+            backup_retention_days=data.get(
+                "backup_retention_days", RUNTIME.fix_backup_retention_days
+            ),
             fixers=fixers,
             include_patterns=data.get("include_patterns", ["**/*"]),
             exclude_patterns=data.get(
@@ -503,9 +507,7 @@ class UnifiedConfig:
             device=data.get("device", "auto"),
             cache_dir=data.get("cache_dir"),
             confidence_threshold=data.get("confidence_threshold", 0.0),
-            blend_weights=tuple(
-                data.get("blend_weights", [0.5, 0.3, 0.2])
-            ),
+            blend_weights=tuple(data.get("blend_weights", [0.5, 0.3, 0.2])),
         )
 
     @staticmethod
@@ -571,16 +573,18 @@ class UnifiedConfig:
             enabled=data.get("enabled", True),
             host=data.get("host", "127.0.0.1"),
             port=data.get("port", 8767),
-            code_action_kind=data.get(
-                "code_action_kind", ["quickfix", "refactor", "source"]
-            ),
+            code_action_kind=data.get("code_action_kind", ["quickfix", "refactor", "source"]),
             diagnostics=DiagnosticConfig(
                 enabled=diagnostics_data.get("enabled", True),
                 debounce_ms=diagnostics_data.get("debounce_ms", RUNTIME.debounce_diagnostics),
-                max_diagnostics_per_file=diagnostics_data.get("max_diagnostics_per_file", RUNTIME.lsp_max_diagnostics_per_file),
+                max_diagnostics_per_file=diagnostics_data.get(
+                    "max_diagnostics_per_file", RUNTIME.lsp_max_diagnostics_per_file
+                ),
                 push_diagnostics=diagnostics_data.get("push_diagnostics", True),
                 pull_diagnostics=diagnostics_data.get("pull_diagnostics", False),
-                include_related_information=diagnostics_data.get("include_related_information", True),
+                include_related_information=diagnostics_data.get(
+                    "include_related_information", True
+                ),
             ),
             formatting=FormattingConfig(
                 enabled=formatting_data.get("enabled", True),
@@ -602,7 +606,9 @@ class UnifiedConfig:
                 local_port=llm_data.get("local_port", 11434),
                 remote_provider=llm_data.get("remote_provider", "openrouter"),
                 remote_model=llm_data.get("remote_model", "qwen/qwen-2.5-coder-32b-instruct"),
-                remote_fallback_chain=llm_data.get("remote_fallback_chain", ["openrouter", "anthropic", "gemini"]),
+                remote_fallback_chain=llm_data.get(
+                    "remote_fallback_chain", ["openrouter", "anthropic", "gemini"]
+                ),
                 remote_api_key_env=llm_data.get("remote_api_key_env", "OPENROUTER_API_KEY"),
                 prompt_template=llm_data.get("prompt_template", LLMConfig().prompt_template),
             ),
@@ -615,7 +621,9 @@ class UnifiedConfig:
         return DiagnosticConfig(
             enabled=data.get("enabled", True),
             debounce_ms=data.get("debounce_ms", RUNTIME.debounce_diagnostics),
-            max_diagnostics_per_file=data.get("max_diagnostics_per_file", RUNTIME.lsp_max_diagnostics_per_file),
+            max_diagnostics_per_file=data.get(
+                "max_diagnostics_per_file", RUNTIME.lsp_max_diagnostics_per_file
+            ),
             push_diagnostics=data.get("push_diagnostics", True),
             pull_diagnostics=data.get("pull_diagnostics", False),
             include_related_information=data.get("include_related_information", True),
@@ -646,7 +654,9 @@ class UnifiedConfig:
             local_port=data.get("local_port", 11434),
             remote_provider=data.get("remote_provider", "openrouter"),
             remote_model=data.get("remote_model", "qwen/qwen-2.5-coder-32b-instruct"),
-            remote_fallback_chain=data.get("remote_fallback_chain", ["openrouter", "anthropic", "gemini"]),
+            remote_fallback_chain=data.get(
+                "remote_fallback_chain", ["openrouter", "anthropic", "gemini"]
+            ),
             remote_api_key_env=data.get("remote_api_key_env", "OPENROUTER_API_KEY"),
             prompt_template=data.get("prompt_template", LLMConfig().prompt_template),
         )

@@ -30,7 +30,6 @@ TOOL_CATEGORIES: dict[str, str] = {
     "module_imports": "CODE_ANALYSIS",
     "structural_analysis": "CODE_ANALYSIS",
     "ts_edit": "REFACTOR",
-
     # ── SEARCH ─────────────────────────────────────────────────────────────
     "search_symbols": "SEARCH",
     "semantic_search": "SEARCH",
@@ -42,7 +41,6 @@ TOOL_CATEGORIES: dict[str, str] = {
     "switch_embedding_model": "SEARCH",
     "get_embedding_model_info": "SEARCH",
     "rerank_results": "SEARCH",
-
     # ── REFACTOR ───────────────────────────────────────────────────────────
     "impact_analysis": "CODE_ANALYSIS",
     "blast_radius_v2": "CODE_ANALYSIS",
@@ -57,21 +55,18 @@ TOOL_CATEGORIES: dict[str, str] = {
     "co_change_hotspots": "CODE_ANALYSIS",
     "co_change_predict": "CODE_ANALYSIS",
     "api_surface_diff": "CODE_ANALYSIS",
-
     # ── INDEX ──────────────────────────────────────────────────────────────
     "refresh_index": "INDEX",
     "reindex_path": "INDEX",
     "index_status": "INDEX",
     "watch_add": "WATCH",
     "watch_status": "WATCH",
-
     # ── GRAPH ──────────────────────────────────────────────────────────────
     "kg_query": "GRAPH",
     "kg_neighborhood": "GRAPH",
     "kg_shortest_path": "GRAPH",
     "class_hierarchy": "GRAPH",
     "suggest_modules": "CODE_ANALYSIS",
-
     # ── LSP ────────────────────────────────────────────────────────────────
     "lsp_definition": "LSP",
     "lsp_references": "LSP",
@@ -89,23 +84,19 @@ TOOL_CATEGORIES: dict[str, str] = {
     "lsp_completion_detail": "LSP",
     "lsp_available_languages": "LSP",
     "lsp_check_server": "LSP",
-
     # ── CONTEXT (Hermes integration tools) ────────────────────────────────
     "context_inject": "META",
     "context_status": "META",
     "token_status": "META",
     "validate_usage": "META",
-
     # ── FIX ────────────────────────────────────────────────────────────────
     "fix_code": "FIX",
     "fix_check": "FIX",
     "llm_suggest_fix": "FIX",
-
     # ── CURATOR ────────────────────────────────────────────────────────────
     "curator_audit": "CURATOR",
     "curator_status": "CURATOR",
     "curator_summary": "CURATOR",
-
     # ── META (discovery tools) ─────────────────────────────────────────────
     "search_tools": "META",
     "call_tool": "META",

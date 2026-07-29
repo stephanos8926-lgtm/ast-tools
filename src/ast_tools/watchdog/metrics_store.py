@@ -48,9 +48,11 @@ class MetricsStore:
             self.db_path = Path(db_path)
         elif project_root is not None:
             from ast_tools.database.connection import get_db_path
+
             self.db_path = get_db_path(project_root=project_root)
         else:
             from ast_tools.database.connection import get_db_path
+
             self.db_path = get_db_path()
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self._init_db()

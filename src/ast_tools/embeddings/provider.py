@@ -62,6 +62,7 @@ class EmbeddingProvider:
         try:
             # Just check if we can import - don't load model yet
             import sentence_transformers  # noqa: F401
+
             self._local_available = True
             return True
         except ImportError:

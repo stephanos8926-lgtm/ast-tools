@@ -46,9 +46,7 @@ class PluginManager:
         """Register a plugin by name and module:Class entry point."""
         plugin = FixerPlugin(name=name, entry_point=entry_point)
         if not issubclass(plugin.fixer_class, FixerBase):
-            raise TypeError(
-                f"Plugin '{name}' class '{plugin.entry_point}' must subclass FixerBase"
-            )
+            raise TypeError(f"Plugin '{name}' class '{plugin.entry_point}' must subclass FixerBase")
         self._plugins[name] = plugin
 
     def load_from_config(self, config: dict[str, str] | None) -> None:
@@ -60,7 +58,10 @@ class PluginManager:
                 self.register(name, entry_point)
             except Exception as e:
                 import sys
-                print(f"⚠ Failed to load fixer plugin '{name}' ({entry_point}): {e}", file=sys.stderr)
+
+                print(
+                    f"⚠ Failed to load fixer plugin '{name}' ({entry_point}): {e}", file=sys.stderr
+                )
 
     def get_class(self, name: str) -> type["FixerBase"] | None:
         """Get a plugin's fixer class by name."""

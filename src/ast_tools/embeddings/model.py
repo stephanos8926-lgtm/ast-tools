@@ -130,7 +130,7 @@ def generate_batch_embeddings(
     # Process non-empty texts in batches
     non_empty = [(i, t) for i, t in enumerate(texts) if t and t.strip()]
     for i in range(0, len(non_empty), batch_size):
-        batch = non_empty[i:i + batch_size]
+        batch = non_empty[i : i + batch_size]
         indices = [idx for idx, _ in batch]
         batch_texts = [t for _, t in batch]
 

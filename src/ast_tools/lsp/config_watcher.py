@@ -61,6 +61,7 @@ class ConfigWatcher:
 
         # Also watch user config dir
         from ast_tools.config.loader import get_config_dir
+
         user_config = get_config_dir()
         if user_config.exists() and user_config not in self._watched_paths:
             self.observer.schedule(handler, str(user_config), recursive=False)
@@ -92,21 +93,27 @@ class ConfigWatcher:
 
             # Also check user config dir
             from ast_tools.config.loader import get_config_dir
+
             get_config_dir() / "ast-tools.yaml"
 
             cli_overrides = {"lsp": {"enabled": True}}
             self.server.config = load_unified_config(
-                pyproject_path=pyproject_path if pyproject_path and pyproject_path.exists() else None,
+                pyproject_path=pyproject_path
+                if pyproject_path and pyproject_path.exists()
+                else None,
                 yaml_path=yaml_path if yaml_path and yaml_path.exists() else None,
                 cli_overrides=cli_overrides,
             )
 
             # Reinitialize components that depend on config
             from .language_router import LanguageRouter
+
             self.server.language_router = LanguageRouter(self.server.config)
 
             # Recreate fix engine with new plugin fixers
-            plugin_fixers = self.server.config.plugins.custom_fixers if self.server.config.plugins else {}
+            plugin_fixers = (
+                self.server.config.plugins.custom_fixers if self.server.config.plugins else {}
+            )
             from ast_tools.fix.config import FixConfig
             from ast_tools.fix.engine import FixContext, FixEngine, SafetyLevel
 

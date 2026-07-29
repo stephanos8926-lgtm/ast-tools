@@ -43,6 +43,7 @@ class ASTToolsLanguageServer(LanguageServer):
 
         # 2. Create LanguageRouter
         from .language_router import LanguageRouter
+
         self.language_router = LanguageRouter(self.config)
 
         # 3. Create FixEngine with plugin fixers
@@ -51,14 +52,17 @@ class ASTToolsLanguageServer(LanguageServer):
 
         # 4. Create DocumentStore
         from .document_store import DocumentStore
+
         self.document_store = DocumentStore()
 
         # 5. Create DiagnosticPublisher
         from .diagnostic_publisher import DiagnosticPublisher
+
         self.diagnostic_publisher = DiagnosticPublisher(self)
 
         # 6. Create ConfigWatcher
         from .config_watcher import ConfigWatcher
+
         self.config_watcher = ConfigWatcher(self)
         await self.config_watcher.start()
 
@@ -146,6 +150,7 @@ class ASTToolsLanguageServer(LanguageServer):
 
     def _get_safety_level(self):
         from ast_tools.fix.engine import SafetyLevel
+
         level_map = {
             "safe": SafetyLevel.SAFE,
             "unsafe": SafetyLevel.UNSAFE,
@@ -184,16 +189,22 @@ class ASTToolsLanguageServer(LanguageServer):
 
         # Formatting
         @self.feature(lsp_types.TEXT_DOCUMENT_FORMATTING)
-        async def formatting(params: lsp_types.DocumentFormattingParams) -> list[lsp_types.TextEdit] | None:
+        async def formatting(
+            params: lsp_types.DocumentFormattingParams,
+        ) -> list[lsp_types.TextEdit] | None:
             return await self._on_formatting(params)
 
         @self.feature(lsp_types.TEXT_DOCUMENT_RANGE_FORMATTING)
-        async def range_formatting(params: lsp_types.DocumentRangeFormattingParams) -> list[lsp_types.TextEdit] | None:
+        async def range_formatting(
+            params: lsp_types.DocumentRangeFormattingParams,
+        ) -> list[lsp_types.TextEdit] | None:
             return await self._on_range_formatting(params)
 
         # Diagnostics (pull model)
         @self.feature(lsp_types.TEXT_DOCUMENT_DIAGNOSTIC)
-        async def diagnostic(params: lsp_types.DocumentDiagnosticParams) -> lsp_types.DocumentDiagnosticReport:
+        async def diagnostic(
+            params: lsp_types.DocumentDiagnosticParams,
+        ) -> lsp_types.DocumentDiagnosticReport:
             return await self._on_diagnostic(params)
 
         # Configuration changes
@@ -262,7 +273,9 @@ class ASTToolsLanguageServer(LanguageServer):
         elif self.config.lsp.formatting.format_on_save:
             await self._run_fix_pipeline(uri, text, language, apply=False)
 
-    async def _on_code_action(self, params: lsp_types.CodeActionParams) -> list[lsp_types.CodeAction]:
+    async def _on_code_action(
+        self, params: lsp_types.CodeActionParams
+    ) -> list[lsp_types.CodeAction]:
         """Provide code actions for the given range."""
         from .code_actions import CodeActionHandler
 
@@ -276,7 +289,9 @@ class ASTToolsLanguageServer(LanguageServer):
         handler = CodeActionHandler(self)
         return await handler.resolve_code_action(action)
 
-    async def _on_formatting(self, params: lsp_types.DocumentFormattingParams) -> list[lsp_types.TextEdit] | None:
+    async def _on_formatting(
+        self, params: lsp_types.DocumentFormattingParams
+    ) -> list[lsp_types.TextEdit] | None:
         """Format entire document."""
         uri = params.text_document.uri
         text = self.document_store.get_text(uri)
@@ -286,7 +301,9 @@ class ASTToolsLanguageServer(LanguageServer):
         language = self.language_router.get_language(uri)
         return await self._run_formatting(uri, text, language, range_=None)
 
-    async def _on_range_formatting(self, params: lsp_types.DocumentRangeFormattingParams) -> list[lsp_types.TextEdit] | None:
+    async def _on_range_formatting(
+        self, params: lsp_types.DocumentRangeFormattingParams
+    ) -> list[lsp_types.TextEdit] | None:
         """Format document range."""
         uri = params.text_document.uri
         text = self.document_store.get_text(uri)
@@ -296,7 +313,9 @@ class ASTToolsLanguageServer(LanguageServer):
         language = self.language_router.get_language(uri)
         return await self._run_formatting(uri, text, language, range_=params.range)
 
-    async def _on_diagnostic(self, params: lsp_types.DocumentDiagnosticParams) -> lsp_types.DocumentDiagnosticReport:
+    async def _on_diagnostic(
+        self, params: lsp_types.DocumentDiagnosticParams
+    ) -> lsp_types.DocumentDiagnosticReport:
         """Pull diagnostics for a document."""
         uri = params.text_document.uri
         text = self.document_store.get_text(uri)
@@ -354,13 +373,13 @@ class ASTToolsLanguageServer(LanguageServer):
                 # Compute diff and apply as TextEdits
                 edits = self._compute_text_edits(text, fixed_text)
                 # Apply edits via workspace edit
-                await self.apply_edit(lsp_types.WorkspaceEdit(
-                    changes={uri: edits}
-                ))
+                await self.apply_edit(lsp_types.WorkspaceEdit(changes={uri: edits}))
         finally:
             temp_path.unlink(missing_ok=True)
 
-    async def _run_formatting(self, _uri: str, text: str, language: str, range_: lsp_types.Range | None) -> list[lsp_types.TextEdit] | None:
+    async def _run_formatting(
+        self, _uri: str, text: str, language: str, range_: lsp_types.Range | None
+    ) -> list[lsp_types.TextEdit] | None:
         """Run formatter on document or range."""
         import tempfile
         from pathlib import Path
@@ -384,7 +403,9 @@ class ASTToolsLanguageServer(LanguageServer):
 
         return None
 
-    def _compute_text_edits(self, original: str, fixed: str, range_: lsp_types.Range | None = None) -> list[lsp_types.TextEdit]:
+    def _compute_text_edits(
+        self, original: str, fixed: str, range_: lsp_types.Range | None = None
+    ) -> list[lsp_types.TextEdit]:
         """Compute TextEdits from original and fixed content."""
         import difflib
 
@@ -398,34 +419,44 @@ class ASTToolsLanguageServer(LanguageServer):
             fixed_lines = fixed.splitlines(keepends=True)
             fixed_range = "".join(fixed_lines[start_line:end_line])
 
-            diff = list(difflib.unified_diff(
-                original_range.splitlines(keepends=True),
-                fixed_range.splitlines(keepends=True),
-                n=0,
-            ))
+            diff = list(
+                difflib.unified_diff(
+                    original_range.splitlines(keepends=True),
+                    fixed_range.splitlines(keepends=True),
+                    n=0,
+                )
+            )
         else:
-            diff = list(difflib.unified_diff(
-                original.splitlines(keepends=True),
-                fixed.splitlines(keepends=True),
-                n=0,
-            ))
+            diff = list(
+                difflib.unified_diff(
+                    original.splitlines(keepends=True),
+                    fixed.splitlines(keepends=True),
+                    n=0,
+                )
+            )
 
         # Parse unified diff into TextEdits
         edits = []
         # Simplified: if we have changes, replace the whole range
         if diff and range_:
-            edits.append(lsp_types.TextEdit(
-                range=range_,
-                new_text=fixed if not range_ else "".join(fixed.splitlines(keepends=True)[start_line:end_line])
-            ))
+            edits.append(
+                lsp_types.TextEdit(
+                    range=range_,
+                    new_text=fixed
+                    if not range_
+                    else "".join(fixed.splitlines(keepends=True)[start_line:end_line]),
+                )
+            )
         elif diff and not range_:
-            edits.append(lsp_types.TextEdit(
-                range=lsp_types.Range(
-                    start=lsp_types.Position(line=0, character=0),
-                    end=lsp_types.Position(line=len(original.splitlines()), character=0),
-                ),
-                new_text=fixed,
-            ))
+            edits.append(
+                lsp_types.TextEdit(
+                    range=lsp_types.Range(
+                        start=lsp_types.Position(line=0, character=0),
+                        end=lsp_types.Position(line=len(original.splitlines()), character=0),
+                    ),
+                    new_text=fixed,
+                )
+            )
 
         return edits
 
@@ -444,6 +475,7 @@ class ASTToolsLanguageServer(LanguageServer):
 def main():
     """Start LSP server via stdio."""
     import sys
+
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",

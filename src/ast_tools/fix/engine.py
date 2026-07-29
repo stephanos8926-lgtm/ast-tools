@@ -22,22 +22,28 @@ from .fixers import FixerConfig as FixersFixerConfig
 
 _console = None
 
+
 def _get_console():
     global _console
     if _console is None:
         from rich.console import Console
+
         _console = Console()
     return _console
 
+
 def _create_progress(**kwargs):
     from rich.progress import BarColumn, Progress, SpinnerColumn, TaskProgressColumn, TextColumn
+
     return Progress(
         SpinnerColumn(),
         TextColumn("[progress.description]{task.description}"),
         BarColumn(),
         TaskProgressColumn(),
-        **kwargs
+        **kwargs,
     )
+
+
 logger = logging.getLogger(__name__)
 
 
@@ -124,6 +130,7 @@ class FixEngine:
     def _get_backup_base(self) -> Path:
         """Return the base backup directory under user config dir."""
         from ast_tools.config.loader import get_config_dir
+
         return get_config_dir() / "backups"
 
     def _create_backup_dir(self):
@@ -339,7 +346,9 @@ class FixEngine:
         for fixer in self.fixers:
             if not fixer.is_available():
                 if self.context.verbose:
-                    _get_console().print(f"  [yellow]⚠[/yellow] {fixer.name}: not available, skipping")
+                    _get_console().print(
+                        f"  [yellow]⚠[/yellow] {fixer.name}: not available, skipping"
+                    )
                 continue
 
             # Detect files for this fixer

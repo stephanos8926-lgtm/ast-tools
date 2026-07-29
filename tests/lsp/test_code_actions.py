@@ -1,6 +1,5 @@
 """Tests for the LSP code action handler."""
 
-
 import pytest
 
 from ast_tools.config.unified import UnifiedConfig
@@ -103,8 +102,14 @@ class TestCodeActionHandler:
         """Test safety level to code action kind mapping."""
         assert handler._safety_to_code_action_kind("safe") == lsp_types.CodeActionKind.QuickFix
         assert handler._safety_to_code_action_kind("unsafe") == lsp_types.CodeActionKind.Refactor
-        assert handler._safety_to_code_action_kind("display_only") == lsp_types.CodeActionKind.RefactorInline
-        assert handler._safety_to_code_action_kind("unknown") == lsp_types.CodeActionKind.RefactorInline
+        assert (
+            handler._safety_to_code_action_kind("display_only")
+            == lsp_types.CodeActionKind.RefactorInline
+        )
+        assert (
+            handler._safety_to_code_action_kind("unknown")
+            == lsp_types.CodeActionKind.RefactorInline
+        )
 
     def test_get_extension(self, handler):
         """Test language to file extension mapping."""
@@ -132,7 +137,9 @@ class TestCodeActionIntegration:
     @pytest.mark.asyncio
     async def test_python_import_sorting(self, handler):
         """Test code action for import sorting."""
-        handler.server.document_store.did_open("file:///test.py", "import os\nimport sys\n", "python")
+        handler.server.document_store.did_open(
+            "file:///test.py", "import os\nimport sys\n", "python"
+        )
         handler.server.document_store.did_open("file:///empty.py", "", "python")
 
         code_action_params = lsp_types.CodeActionParams(

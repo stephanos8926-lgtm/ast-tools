@@ -11,13 +11,20 @@ class LanguageRouter:
 
     EXTENSION_MAP = {
         ".py": "python",
-        ".js": "javascript", ".jsx": "javascript",
-        ".ts": "typescript", ".tsx": "typescript",
+        ".js": "javascript",
+        ".jsx": "javascript",
+        ".ts": "typescript",
+        ".tsx": "typescript",
         ".go": "go",
         ".rs": "rust",
-        ".cpp": "cpp", ".cc": "cpp", ".cxx": "cpp",
-        ".c": "c", ".h": "cpp", ".hpp": "cpp",
-        ".md": "markdown", ".mdx": "markdown",
+        ".cpp": "cpp",
+        ".cc": "cpp",
+        ".cxx": "cpp",
+        ".c": "c",
+        ".h": "cpp",
+        ".hpp": "cpp",
+        ".md": "markdown",
+        ".mdx": "markdown",
     }
 
     def __init__(self, config: UnifiedConfig):

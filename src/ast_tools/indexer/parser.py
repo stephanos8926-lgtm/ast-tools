@@ -18,6 +18,7 @@ from ast_tools.config.unified import RUNTIME
 
 logger = logging.getLogger(__name__)
 
+
 class ParseResult:
     """Result of parsing a Python file.
 
@@ -83,7 +84,7 @@ def parse_file(file_path: Path) -> ParseResult:
         file_size = file_path.stat().st_size
         max_size = RUNTIME.max_file_size_parse
         if file_size > max_size:
-            logger.warning(f"File too large (>{max_size // (1024*1024)}MB): {file_path}")
+            logger.warning(f"File too large (>{max_size // (1024 * 1024)}MB): {file_path}")
             return ParseResult(success=False, error=f"File too large: {file_size} bytes")
 
         # Read file content

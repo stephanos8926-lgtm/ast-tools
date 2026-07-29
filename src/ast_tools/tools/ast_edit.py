@@ -72,12 +72,7 @@ def _extract_method_python(
     # Create new function definition
     new_function_def = cst.FunctionDef(
         name=cst.Name(new_method_name),
-        params=cst.Parameters(
-            params=[
-                cst.Param(name=cst.Name(p))
-                for p in new_method_params
-            ]
-        ),
+        params=cst.Parameters(params=[cst.Param(name=cst.Name(p)) for p in new_method_params]),
         body=cst.IndentedBlock(body=re_indented_statements),
     )
 
@@ -113,7 +108,7 @@ def _extract_method_python(
     if call_insert_index >= 0:
         new_body.insert(call_insert_index, new_call)
     else:
-        new_body.append(new_call) # If no statements after, append to end of existing body
+        new_body.append(new_call)  # If no statements after, append to end of existing body
 
     # Insert new function before the first class/func def, or at beginning
     func_insert_index = -1
@@ -263,7 +258,10 @@ def _build_transformer(operation: str, params: dict):
                     pos = self.get_metadata(cst.metadata.PositionProvider, orig)
                     if pos.start.line == self._assign_line:
                         for target in upd.targets:
-                            if isinstance(target.target, cst.Name) and target.target.value == var_name:
+                            if (
+                                isinstance(target.target, cst.Name)
+                                and target.target.value == var_name
+                            ):
                                 self._assigned_expr = upd.value
                                 break
                 except Exception:
@@ -374,7 +372,11 @@ def _tool_ast_edit(args: dict[str, Any]) -> dict[str, Any]:
         is_method = params.get("is_method", False)
         try:
             new_tree = _extract_method_python(
-                tree, start_line, end_line, new_method_name, new_method_params,
+                tree,
+                start_line,
+                end_line,
+                new_method_name,
+                new_method_params,
                 is_method=is_method,
             )
         except ValueError as e:

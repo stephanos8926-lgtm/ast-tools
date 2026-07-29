@@ -119,7 +119,9 @@ class TestDiagnosticPublisher:
             },
         )
 
-        diagnostics = publisher._fix_actions_to_diagnostics([action], "python", "import os\nx = 1\n")
+        diagnostics = publisher._fix_actions_to_diagnostics(
+            [action], "python", "import os\nx = 1\n"
+        )
         assert len(diagnostics) == 1
 
         d = diagnostics[0]
@@ -174,7 +176,10 @@ class TestDiagnosticPublisher:
         publisher = DiagnosticPublisher(mock_server, config)
 
         import asyncio
-        diagnostics = asyncio.run(publisher.compute_diagnostics("file:///test.py", "x = 1", "python"))
+
+        diagnostics = asyncio.run(
+            publisher.compute_diagnostics("file:///test.py", "x = 1", "python")
+        )
         assert diagnostics == []
 
     @pytest.mark.asyncio
@@ -184,7 +189,5 @@ class TestDiagnosticPublisher:
         server = mock_server
         server.language_router.get_fixers_for_language.return_value = []
 
-        result = await publisher.compute_diagnostics(
-            "file:///test.py", "x = 1\n", "python"
-        )
+        result = await publisher.compute_diagnostics("file:///test.py", "x = 1\n", "python")
         assert result == []

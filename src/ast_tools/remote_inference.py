@@ -36,7 +36,9 @@ class RemoteInferenceConfig:
             timeout_seconds=float(os.environ.get("AST_TOOLS_REMOTE_TIMEOUT", "30")),
             max_retries=int(os.environ.get("AST_TOOLS_REMOTE_MAX_RETRIES", "3")),
             retry_delay_seconds=float(os.environ.get("AST_TOOLS_REMOTE_RETRY_DELAY", "1.0")),
-            health_check_interval_seconds=float(os.environ.get("AST_TOOLS_REMOTE_HEALTH_INTERVAL", "60")),
+            health_check_interval_seconds=float(
+                os.environ.get("AST_TOOLS_REMOTE_HEALTH_INTERVAL", "60")
+            ),
             verify_ssl=os.environ.get("AST_TOOLS_REMOTE_VERIFY_SSL", "true").lower() == "true",
         )
 
@@ -88,7 +90,10 @@ class RemoteInferenceClient:
             True if healthy, False otherwise
         """
         now = time.time()
-        if not force and (now - self._last_health_check) < self.config.health_check_interval_seconds:
+        if (
+            not force
+            and (now - self._last_health_check) < self.config.health_check_interval_seconds
+        ):
             return self._is_healthy
 
         try:
@@ -106,9 +111,7 @@ class RemoteInferenceClient:
             logger.warning(f"Remote inference health check error: {e}")
         return self._is_healthy
 
-    async def _request_with_retry(
-        self, method: str, path: str, **kwargs
-    ) -> httpx.Response:
+    async def _request_with_retry(self, method: str, path: str, **kwargs) -> httpx.Response:
         """Make HTTP request with retry logic."""
         last_error = None
         for attempt in range(self.config.max_retries + 1):
@@ -120,7 +123,9 @@ class RemoteInferenceClient:
             except (httpx.TimeoutException, httpx.ConnectError) as e:
                 last_error = e
                 if attempt < self.config.max_retries:
-                    logger.warning(f"Remote inference request failed (attempt {attempt + 1}), retrying...")
+                    logger.warning(
+                        f"Remote inference request failed (attempt {attempt + 1}), retrying..."
+                    )
                     await asyncio.sleep(self.config.retry_delay_seconds * (attempt + 1))
                 else:
                     break
@@ -133,7 +138,9 @@ class RemoteInferenceClient:
                     await asyncio.sleep(self.config.retry_delay_seconds * (attempt + 1))
                 else:
                     break
-        raise RemoteInferenceError(f"Remote inference failed after {self.config.max_retries + 1} attempts: {last_error}")
+        raise RemoteInferenceError(
+            f"Remote inference failed after {self.config.max_retries + 1} attempts: {last_error}"
+        )
 
     async def embed(self, text: str) -> list[float]:
         """Generate embedding for a single text.

@@ -73,7 +73,6 @@ def _tool_fix_code(name: str, params: dict[str, Any]) -> dict[str, Any]:
     if not languages:
         languages = {"python"}  # Default fallback
 
-
     config = FixConfigData(
         max_iterations=max_iterations,
         safety_level=safety,

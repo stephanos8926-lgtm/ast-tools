@@ -172,6 +172,7 @@ def _check_environment() -> tuple[bool, list[str]]:
 def _init_database(config_dir: Path) -> Path:
     """Initialize SQLite database with schema."""
     from ast_tools.database.connection import get_db_path
+
     db_path = get_db_path()
     data_dir = config_dir / "cache"
     data_dir.mkdir(parents=True, exist_ok=True)
@@ -300,6 +301,7 @@ def _run_health_check(config_dir: Path) -> dict:
 
     # DB exists
     from ast_tools.database.connection import get_db_path
+
     db_path = get_db_path()
     if db_path.exists():
         checks.append({"check": "database", "status": "ok", "score": 30})

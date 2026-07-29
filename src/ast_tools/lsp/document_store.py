@@ -23,7 +23,7 @@ class TextDocument:
         if isinstance(change, TextDocumentContentChangeWholeDocument):
             # Full document replacement
             self.text = change.text
-        elif hasattr(change, 'range') and change.range is not None:
+        elif hasattr(change, "range") and change.range is not None:
             # Range-based change
             range_ = change.range
             start_offset = self._position_to_offset(range_.start)

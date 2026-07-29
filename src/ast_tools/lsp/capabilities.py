@@ -19,14 +19,14 @@ def get_server_capabilities() -> lsp_types.ServerCapabilities:
                 lsp_types.CodeActionKind.Refactor,
                 lsp_types.CodeActionKind.RefactorExtract,
                 lsp_types.CodeActionKind.RefactorInline,
-                "ast-tools.llmFix", # Custom LLM-assisted fix
+                "ast-tools.llmFix",  # Custom LLM-assisted fix
             ],
-            resolve_provider=True, # For lazy computation of edits
+            resolve_provider=True,  # For lazy computation of edits
         ),
         diagnostic_provider=lsp_types.DiagnosticOptions(
             identifier="ast-tools",
-            inter_file_dependencies=True, # Diagnostics can depend on other files
-            workspace_diagnostics=True, # Can provide diagnostics for entire workspace
+            inter_file_dependencies=True,  # Diagnostics can depend on other files
+            workspace_diagnostics=True,  # Can provide diagnostics for entire workspace
             # We are using push diagnostics, so no need for DocumentDiagnosticReport.full / inter_file_dependencies
             # Workaround for pygls typing issue where DiagnosticOptions requires full/workspace_diagnostics
             # This is effectively push diagnostics

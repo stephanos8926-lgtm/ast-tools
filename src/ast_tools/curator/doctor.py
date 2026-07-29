@@ -69,6 +69,7 @@ def run(
 
     # 1. Database existence
     from ast_tools.database.connection import get_db_path
+
     db_path = get_db_path()
     if db_path.exists():
         checks.append(

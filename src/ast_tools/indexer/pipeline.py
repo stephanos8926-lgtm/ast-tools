@@ -61,7 +61,10 @@ def reindex_all(
     """
     root = Path(project_path).resolve()
     if not root.exists() or not root.is_dir():
-        return {"error": f"Project path does not exist: {project_path}", "error_code": "PATH_NOT_FOUND"}
+        return {
+            "error": f"Project path does not exist: {project_path}",
+            "error_code": "PATH_NOT_FOUND",
+        }
 
     db_path = get_db_path(project_root=root)
     db_path.parent.mkdir(parents=True, exist_ok=True)
@@ -146,7 +149,9 @@ def reindex_all(
                         for sym in diff["modified"]:
                             insert_symbols_batch(conn, [sym])  # upsert preserves ID
                             stats["layers"]["symbols_edges"]["symbols_modified"] += 1
-                        stats["layers"]["symbols_edges"]["symbols_unchanged"] += len(diff["unchanged"])
+                        stats["layers"]["symbols_edges"]["symbols_unchanged"] += len(
+                            diff["unchanged"]
+                        )
 
                         symbols_to_embed.extend(diff["added"] + diff["modified"])
                     else:
@@ -179,6 +184,7 @@ def reindex_all(
                 stats["layers"]["embeddings"] = {"generated": 0, "skipped": 0}
                 # Import here to avoid circular
                 from ..embeddings.model import get_embedding_model
+
                 model = get_embedding_model()
 
                 for sym in symbols_to_embed:
@@ -203,6 +209,7 @@ def reindex_all(
             stats["layers"]["knn_graph"] = {"built": False}
             try:
                 from ..tools.knn_graph import build_knn_graph
+
                 build_knn_graph(db_path)
                 stats["layers"]["knn_graph"]["built"] = True
             except Exception as e:
@@ -214,17 +221,21 @@ def reindex_all(
             stats["layers"]["dependency_metrics"] = {"computed": False}
             try:
                 from ..tools.dependency_metrics import compute_dependency_metrics
+
                 compute_dependency_metrics(db_path)
                 stats["layers"]["dependency_metrics"]["computed"] = True
             except Exception as e:
                 stats["errors"].append(f"dependency_metrics: {e}")
-            stats["layers"]["dependency_metrics"]["time_ms"] = int((time.time() - layer_start) * 1000)
+            stats["layers"]["dependency_metrics"]["time_ms"] = int(
+                (time.time() - layer_start) * 1000
+            )
 
             # LAYER 5: Co-change mining
             layer_start = time.time()
             stats["layers"]["co_change"] = {"pairs_stored": 0}
             try:
                 from ..cochange.git_miner import GitMiner
+
                 miner = GitMiner(str(root))
                 pairs = miner.mine_pairs(db_path)
                 stats["layers"]["co_change"]["pairs_stored"] = pairs
@@ -238,10 +249,16 @@ def reindex_all(
             stats["layers"]["snapshot"] = {"recorded": False}
             try:
                 # Gather current stats
-                file_count = conn.execute("SELECT COUNT(DISTINCT file_path) FROM symbols").fetchone()[0]
+                file_count = conn.execute(
+                    "SELECT COUNT(DISTINCT file_path) FROM symbols"
+                ).fetchone()[0]
                 loc = conn.execute("SELECT COUNT(*) FROM symbols").fetchone()[0]  # approximate
-                func_count = conn.execute("SELECT COUNT(*) FROM symbols WHERE kind='function'").fetchone()[0]
-                class_count = conn.execute("SELECT COUNT(*) FROM symbols WHERE kind='class'").fetchone()[0]
+                func_count = conn.execute(
+                    "SELECT COUNT(*) FROM symbols WHERE kind='function'"
+                ).fetchone()[0]
+                class_count = conn.execute(
+                    "SELECT COUNT(*) FROM symbols WHERE kind='class'"
+                ).fetchone()[0]
                 edge_count = conn.execute("SELECT COUNT(*) FROM edges").fetchone()[0]
 
                 conn.execute(
@@ -250,7 +267,15 @@ def reindex_all(
                     (codebase_id, files, loc, functions, classes, deps, size_bytes)
                     VALUES (?, ?, ?, ?, ?, ?, ?)
                     """,
-                    (str(root), file_count, loc, func_count, class_count, edge_count, db_path.stat().st_size),
+                    (
+                        str(root),
+                        file_count,
+                        loc,
+                        func_count,
+                        class_count,
+                        edge_count,
+                        db_path.stat().st_size,
+                    ),
                 )
                 stats["layers"]["snapshot"]["recorded"] = True
             except Exception as e:
@@ -261,7 +286,6 @@ def reindex_all(
             layer_start = time.time()
             stats["layers"]["project_registry"] = {"updated": False}
             try:
-
                 from ..tools.project_registry import _get_or_create_project_id
 
                 project_id = _get_or_create_project_id(str(root), root.name)

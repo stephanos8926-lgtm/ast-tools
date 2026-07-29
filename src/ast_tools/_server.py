@@ -71,6 +71,7 @@ SERVER_VERSION = "0.2.0"
 
 server = Server(SERVER_NAME)
 
+
 # Log all incoming requests
 async def _log_request(request):
     logger.debug("Incoming request: %s", request.method)
@@ -270,7 +271,11 @@ async def _run_daemon_mode(config: dict[str, Any]) -> None:
                         "id": req_id,
                         "result": {
                             "tools": [
-                                {"name": t.name, "description": t.description, "inputSchema": getattr(t, "inputSchema", {})}
+                                {
+                                    "name": t.name,
+                                    "description": t.description,
+                                    "inputSchema": getattr(t, "inputSchema", {}),
+                                }
                                 for t in tools
                             ]
                         },
@@ -381,8 +386,10 @@ async def _run_remote_mode(config: dict[str, Any]) -> None:
         # (Mistral, Cursor, etc. often omit Accept headers)
         try:
             from mcp.server.streamable_http import StreamableHTTPServerTransport
+
             async def lenient_validate(self, _request, _scope, _send):  # noqa: ARG001
                 return True
+
             StreamableHTTPServerTransport._validate_accept_header = lenient_validate
         except Exception:
             pass
@@ -506,6 +513,8 @@ def main_sync() -> int:
 
 if __name__ == "__main__":
     sys.exit(main_sync())
+
+
 # Export for backward compatibility with tests
 async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
     """Test-compatible wrapper for handle_call_tool."""

@@ -41,11 +41,14 @@ if TYPE_CHECKING:
 @pytest.fixture
 def simple_adj() -> np.ndarray:
     """3-node chain: 0-1-2. Natural split: {0, 1} and {2} or {0} and {1, 2}."""
-    adj = np.array([
-        [0, 1, 0],
-        [1, 0, 1],
-        [0, 1, 0],
-    ], dtype=np.float64)
+    adj = np.array(
+        [
+            [0, 1, 0],
+            [1, 0, 1],
+            [0, 1, 0],
+        ],
+        dtype=np.float64,
+    )
     return adj
 
 
@@ -146,11 +149,14 @@ class TestLaplacian:
 
     def test_laplacian_isolated_node(self) -> None:
         """Laplacian handles isolated nodes (zero degree) without division by zero."""
-        adj = np.array([
-            [0, 1, 0],
-            [1, 0, 0],
-            [0, 0, 0],
-        ], dtype=np.float64)
+        adj = np.array(
+            [
+                [0, 1, 0],
+                [1, 0, 0],
+                [0, 0, 0],
+            ],
+            dtype=np.float64,
+        )
         L = _normalized_laplacian(adj)
         assert L.shape == (3, 3)
         # The isolated node (index 2) should have 0 on diagonal and off-diagonals
@@ -261,6 +267,7 @@ class TestFiedlerBipartition:
         assert root.right is not None
         # Collect leaf modules
         from ast_tools.tools.spectral import _collect_leaves
+
         leaves = _collect_leaves(root)
         # Should have 2+ leaves
         assert len(leaves) >= 2
@@ -360,10 +367,12 @@ class TestSuggestModules:
     def test_tool_function_min_size(self, synthetic_project: Path) -> None:
         """Larger min_cluster_size reduces number of clusters."""
         _tool_suggest_modules({"project_root": str(synthetic_project)})
-        result_large = _tool_suggest_modules({
-            "project_root": str(synthetic_project),
-            "min_cluster_size": 3,
-        })
+        result_large = _tool_suggest_modules(
+            {
+                "project_root": str(synthetic_project),
+                "min_cluster_size": 3,
+            }
+        )
         assert result_large["num_clusters"] > 0
 
 
@@ -403,9 +412,7 @@ class TestMultiLanguage:
         pkg = tmp_path / "internal" / "db"
         pkg.mkdir(parents=True)
         (pkg / "db.go").write_text("package db\n")
-        (tmp_path / "main.go").write_text(
-            'package main\nimport "testproj/internal/db"\n'
-        )
+        (tmp_path / "main.go").write_text('package main\nimport "testproj/internal/db"\n')
         adj, names = _build_module_adjacency(str(tmp_path))
         pm = [n for n in names if "main" in n]
         assert len(pm) >= 1, f"No main module in {names}"
@@ -434,8 +441,7 @@ class TestMultiLanguage:
         # Rust use crate:: → edge weight >= 1.0 (via containing edge from containment)
         # Or at least the mod.rs containment edge
         assert adj[mi, di] > 0 or any(
-            adj[mi, names.index(n)] > 0
-            for n in names if n.startswith("src.db")
+            adj[mi, names.index(n)] > 0 for n in names if n.startswith("src.db")
         ), f"No edge from {main_name} to db modules"
 
     def test_c_include(self, tmp_path: Path) -> None:
@@ -512,7 +518,9 @@ class TestSemanticAndCochange:
         lib.mkdir()
         (lib / "__init__.py").write_text("X = 1\n")
         result = suggest_modules(
-            str(tmp_path), semantic_weight=0.3, min_cluster_size=2,
+            str(tmp_path),
+            semantic_weight=0.3,
+            min_cluster_size=2,
         )
         assert result.num_modules >= 2
         assert result.num_clusters >= 1
@@ -534,15 +542,18 @@ class TestSemanticAndCochange:
     def test_cochange_with_git_repo(self, tmp_path: Path) -> None:
         """With a git repo and commits, co-change finds edges."""
         import subprocess
+
         # Init git repo
         subprocess.run(["git", "init"], cwd=tmp_path, capture_output=True)
         subprocess.run(
             ["git", "config", "user.email", "test@test.com"],
-            cwd=tmp_path, capture_output=True,
+            cwd=tmp_path,
+            capture_output=True,
         )
         subprocess.run(
             ["git", "config", "user.name", "Test"],
-            cwd=tmp_path, capture_output=True,
+            cwd=tmp_path,
+            capture_output=True,
         )
 
         # Create files and make commits that change them together
@@ -553,7 +564,8 @@ class TestSemanticAndCochange:
         subprocess.run(["git", "add", "."], cwd=tmp_path, capture_output=True)
         subprocess.run(
             ["git", "commit", "-m", "init"],
-            cwd=tmp_path, capture_output=True,
+            cwd=tmp_path,
+            capture_output=True,
         )
 
         # Change a and b together
@@ -562,7 +574,8 @@ class TestSemanticAndCochange:
         subprocess.run(["git", "add", "."], cwd=tmp_path, capture_output=True)
         subprocess.run(
             ["git", "commit", "-m", "change ab"],
-            cwd=tmp_path, capture_output=True,
+            cwd=tmp_path,
+            capture_output=True,
         )
 
         # Change a and c together
@@ -571,13 +584,17 @@ class TestSemanticAndCochange:
         subprocess.run(["git", "add", "."], cwd=tmp_path, capture_output=True)
         subprocess.run(
             ["git", "commit", "-m", "change ac"],
-            cwd=tmp_path, capture_output=True,
+            cwd=tmp_path,
+            capture_output=True,
         )
 
         # Now test co-change analysis
         adj, names = _build_module_adjacency(str(tmp_path))
         co_adj = _build_cochange_adjacency(
-            str(tmp_path), names, cochange_weight=0.4, max_commits=100,
+            str(tmp_path),
+            names,
+            cochange_weight=0.4,
+            max_commits=100,
         )
         assert co_adj.shape == adj.shape
         # Should have found at least one co-change edge
@@ -598,14 +615,17 @@ class TestSemanticAndCochange:
     def test_fusion_with_cochange_and_semantic(self, tmp_path: Path) -> None:
         """Both optional sources gracefully fall back when unavailable."""
         import subprocess
+
         subprocess.run(["git", "init"], cwd=tmp_path, capture_output=True)
         subprocess.run(
             ["git", "config", "user.email", "t@t.com"],
-            cwd=tmp_path, capture_output=True,
+            cwd=tmp_path,
+            capture_output=True,
         )
         subprocess.run(
             ["git", "config", "user.name", "T"],
-            cwd=tmp_path, capture_output=True,
+            cwd=tmp_path,
+            capture_output=True,
         )
 
         (tmp_path / "main.py").write_text("import helper\n")
@@ -613,23 +633,28 @@ class TestSemanticAndCochange:
         subprocess.run(["git", "add", "."], cwd=tmp_path, capture_output=True)
         subprocess.run(
             ["git", "commit", "-m", "init"],
-            cwd=tmp_path, capture_output=True,
+            cwd=tmp_path,
+            capture_output=True,
         )
 
         # semantic_weight > 0 triggers ~10s model load; test with 0 here
         result = suggest_modules(
-            str(tmp_path), min_cluster_size=2,
-            semantic_weight=0.0, cochange_weight=0.4,
+            str(tmp_path),
+            min_cluster_size=2,
+            semantic_weight=0.0,
+            cochange_weight=0.4,
         )
         assert result.num_modules >= 2
 
     def test_tool_function_new_params(self, synthetic_project: Path) -> None:
         """MCP tool accepts the new params without error."""
-        result = _tool_suggest_modules({
-            "project_root": str(synthetic_project),
-            "semantic_weight": 0.0,  # 0.0 = off; >0 triggers model loading (~10s)
-            "cochange_weight": 0.0,  # 0.0 = off; >0 needs git repo
-        })
+        result = _tool_suggest_modules(
+            {
+                "project_root": str(synthetic_project),
+                "semantic_weight": 0.0,  # 0.0 = off; >0 triggers model loading (~10s)
+                "cochange_weight": 0.0,  # 0.0 = off; >0 needs git repo
+            }
+        )
         assert "clusters" in result
         assert result["num_modules"] > 0
 
@@ -646,12 +671,14 @@ class TestSemanticAndCochange:
 
     def test_config_from_dict(self) -> None:
         """SpectralConfig.from_dict builds correctly from MCP args."""
-        config = SpectralConfig.from_dict({
-            "project_root": "/tmp/proj",
-            "min_cluster_size": 5,
-            "use_call_graph": True,
-            "nonexistent_param": "ignored",
-        })
+        config = SpectralConfig.from_dict(
+            {
+                "project_root": "/tmp/proj",
+                "min_cluster_size": 5,
+                "use_call_graph": True,
+                "nonexistent_param": "ignored",
+            }
+        )
         assert config.project_root == "/tmp/proj"
         assert config.min_cluster_size == 5
         assert config.use_call_graph is True
@@ -698,6 +725,7 @@ class TestNystrom:
 
     def test_nystrom_sample_indices(self) -> None:
         from ast_tools.tools.spectral import _nystrom_sample_indices
+
         rng = np.random.default_rng(42)
         idx = _nystrom_sample_indices(100, 10, rng)
         assert len(idx) == 10
@@ -706,6 +734,7 @@ class TestNystrom:
 
     def test_nystrom_full_sample(self) -> None:
         from ast_tools.tools.spectral import _nystrom_sample_indices
+
         rng = np.random.default_rng(42)
         idx = _nystrom_sample_indices(50, 100, rng)
         assert len(idx) == 50
@@ -713,6 +742,7 @@ class TestNystrom:
 
     def test_nystrom_small_graph(self) -> None:
         from ast_tools.tools.spectral import _fiedler_vector_nystrom
+
         adj = np.array([[0, 1, 0], [1, 0, 1], [0, 1, 0]], dtype=np.float64)
         v, val = _fiedler_vector_nystrom(adj, 3, sample_size=2)
         assert val >= 0.0
@@ -722,13 +752,17 @@ class TestNystrom:
     def test_nystrom_two_clusters(self) -> None:
         import numpy as np
         from ast_tools.tools.spectral import _fiedler_vector_nystrom
-        adj = np.array([
-            [0, 1, 1, 0, 0],
-            [1, 0, 1, 0, 0],
-            [1, 1, 0, 0, 0],
-            [0, 0, 0, 0, 1],
-            [0, 0, 0, 1, 0],
-        ], dtype=np.float64)
+
+        adj = np.array(
+            [
+                [0, 1, 1, 0, 0],
+                [1, 0, 1, 0, 0],
+                [1, 1, 0, 0, 0],
+                [0, 0, 0, 0, 1],
+                [0, 0, 0, 1, 0],
+            ],
+            dtype=np.float64,
+        )
         v, val = _fiedler_vector_nystrom(adj, 5, sample_size=3)
         assert len(v) == 5
         assert val >= 0.0
@@ -742,6 +776,7 @@ class TestExports:
 
     def test_export_json_basic(self, tmp_path: Path) -> None:
         from ast_tools.tools.spectral import export_tree_json
+
         project = tmp_path / "json_test"
         project.mkdir()
         (project / "main.py").write_text("import helper\n")
@@ -755,6 +790,7 @@ class TestExports:
 
     def test_export_json_clusters(self, tmp_path: Path) -> None:
         from ast_tools.tools.spectral import export_tree_json
+
         project = tmp_path / "json_clusters"
         project.mkdir()
         (project / "a.py").write_text("import b\n")
@@ -769,6 +805,7 @@ class TestExports:
 
     def test_export_dot_basic(self, tmp_path: Path) -> None:
         from ast_tools.tools.spectral import export_dot
+
         project = tmp_path / "dot_test"
         project.mkdir()
         (project / "main.py").write_text("import helper\n")
@@ -780,14 +817,19 @@ class TestExports:
 
     def test_export_dot_empty_tree(self) -> None:
         from ast_tools.tools.spectral import export_dot
+
         result = SpectralResult(
-            clusters=[], partition_tree=None, num_modules=0, num_clusters=0,
+            clusters=[],
+            partition_tree=None,
+            num_modules=0,
+            num_clusters=0,
         )
         dot = export_dot(result)
         assert "graph G {" in dot or "digraph G {" in dot
 
     def test_export_svg_basic(self, tmp_path: Path) -> None:
         from ast_tools.tools.spectral import export_dendrogram_svg
+
         project = tmp_path / "svg_test"
         project.mkdir()
         (project / "main.py").write_text("import helper\n")
@@ -799,8 +841,12 @@ class TestExports:
 
     def test_export_svg_no_tree(self) -> None:
         from ast_tools.tools.spectral import export_dendrogram_svg
+
         result = SpectralResult(
-            clusters=[], partition_tree=None, num_modules=0, num_clusters=0,
+            clusters=[],
+            partition_tree=None,
+            num_modules=0,
+            num_clusters=0,
         )
         svg = export_dendrogram_svg(result)
         assert "No partition tree" in svg

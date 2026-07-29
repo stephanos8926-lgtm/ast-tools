@@ -48,7 +48,9 @@ class DiagnosticPublisher:
 
         self._debounce_timers[uri] = asyncio.create_task(_delayed_publish())
 
-    async def compute_diagnostics(self, _uri: str, text: str, language: str) -> list[lsp_types.Diagnostic]:
+    async def compute_diagnostics(
+        self, _uri: str, text: str, language: str
+    ) -> list[lsp_types.Diagnostic]:
         """Run fixers in check-only mode and convert to LSP diagnostics."""
         if not self.config.enabled:
             return []
@@ -88,7 +90,9 @@ class DiagnosticPublisher:
             )
 
             # Create fix engine with plugin fixers
-            plugin_fixers = self.server.config.plugins.custom_fixers if self.server.config.plugins else {}
+            plugin_fixers = (
+                self.server.config.plugins.custom_fixers if self.server.config.plugins else {}
+            )
 
             engine = FixEngine(context, plugin_fixers=plugin_fixers)
             result = engine.run()
@@ -98,14 +102,16 @@ class DiagnosticPublisher:
 
             # Limit diagnostics per file
             if len(diagnostics) > self.config.max_diagnostics_per_file:
-                diagnostics = diagnostics[:self.config.max_diagnostics_per_file]
+                diagnostics = diagnostics[: self.config.max_diagnostics_per_file]
 
             return diagnostics
 
         finally:
             temp_path.unlink(missing_ok=True)
 
-    def _fix_actions_to_diagnostics(self, actions: list, _language: str, source_text: str) -> list[lsp_types.Diagnostic]:
+    def _fix_actions_to_diagnostics(
+        self, actions: list, _language: str, source_text: str
+    ) -> list[lsp_types.Diagnostic]:
         """Convert FixAction list to LSP Diagnostic objects."""
         from ast_tools.fix.fixers import FixAction
 
@@ -122,7 +128,9 @@ class DiagnosticPublisher:
             # If no position metadata, try to find the change in source
             if start_pos == (0, 0) and end_pos == (0, 0):
                 # Try to locate the change
-                start_pos, end_pos = self._locate_change(source_text, action.original_content, action.fixed_content)
+                start_pos, end_pos = self._locate_change(
+                    source_text, action.original_content, action.fixed_content
+                )
 
             diagnostic = lsp_types.Diagnostic(
                 range=lsp_types.Range(
@@ -133,10 +141,14 @@ class DiagnosticPublisher:
                 code=action.metadata.get("rule_code", action.tool),
                 code_description=lsp_types.CodeDescription(
                     href=f"https://github.com/astral-sh/ruff/blob/main/docs/rules/{action.metadata.get('rule_code', '').lower()}.md"
-                ) if action.metadata.get("rule_code") else None,
+                )
+                if action.metadata.get("rule_code")
+                else None,
                 source=f"ast-tools.{action.tool}",
                 message=action.description,
-                tags=[lsp_types.DiagnosticTag.Unnecessary] if "unused" in action.description.lower() else None,
+                tags=[lsp_types.DiagnosticTag.Unnecessary]
+                if "unused" in action.description.lower()
+                else None,
                 related_information=None,
                 data={
                     "fixer": action.tool,
@@ -149,7 +161,9 @@ class DiagnosticPublisher:
 
         return diagnostics
 
-    def _locate_change(self, source: str, original: str, _fixed: str) -> tuple[tuple[int, int], tuple[int, int]]:
+    def _locate_change(
+        self, source: str, original: str, _fixed: str
+    ) -> tuple[tuple[int, int], tuple[int, int]]:
         """Find the position of a change in source text."""
         # Find the first differing line
         source_lines = source.splitlines(keepends=True)
@@ -194,5 +208,7 @@ class DiagnosticPublisher:
         # Create a deterministic string representation
         parts = []
         for d in diagnostics:
-            parts.append(f"{d.range.start.line}:{d.range.start.character}-{d.range.end.line}:{d.range.end.character}:{d.message}")
+            parts.append(
+                f"{d.range.start.line}:{d.range.start.character}-{d.range.end.line}:{d.range.end.character}:{d.message}"
+            )
         return hashlib.md5("|".join(parts).encode()).hexdigest()
