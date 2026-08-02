@@ -67,7 +67,7 @@ def _get_last_activity():
 
 
 SERVER_NAME = "rw-ast-tools"
-SERVER_VERSION = "0.2.0"
+SERVER_VERSION = "0.2.3"
 
 server = Server(SERVER_NAME)
 
