@@ -6,6 +6,28 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
+## [Unreleased]
+
+### ✨ New Features
+- **Code-Mode Config Support**: Added `discovery.mode` configuration option to enable Cloudflare-inspired tool discovery pattern
+- **Environment Variable Support**: `AST_TOOLS_DISCOVERY_MODE=true` to enable code-mode without config file changes
+- **Context Optimization**: Code-mode reduces exposed tools from 80 to 4 meta-tools, saving ~19,200 tokens per LLM call (96% reduction)
+
+### 🐛 Bug Fixes
+- **Daemon Mode Tool List**: Fixed hardcoded `tools/list` handler in daemon mode to respect `discovery.mode` config. Previously bypassed the decorated `handle_list_tools()` function, always exposing all 80 tools even when code-mode was enabled.
+- **Config Priority**: Proper three-tier resolution: CLI flags > env vars > config file > defaults
+
+### 🔧 Improvements
+- **Tool Discovery Layer**: All 80 tools remain accessible via `search_tools` + `call_tool` even in code-mode
+- **Usage Analytics**: `tool_usage_stats` meta-tool provides call counts, error rates, latency tracking
+- **Documentation**: Updated README, CHANGELOG, and skill docs to reflect 80 tools and code-mode feature
+
+### 📚 Documentation
+- Added `docs/specs/tool-discovery-v1.md` with full code-mode specification
+- Updated `README.md` with code-mode usage examples
+- Updated skill documentation with code-mode section
+
+---
 ## [v0.2.2] — 2026-07-19
 
 ### ✨ New Features
