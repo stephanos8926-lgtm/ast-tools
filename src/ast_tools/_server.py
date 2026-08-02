@@ -267,9 +267,8 @@ async def _run_daemon_mode(config: dict[str, Any]) -> None:
                         },
                     }
                 elif method == "tools/list":
-                    from ast_tools.tools import list_tools
-
-                    tools = list_tools()
+                    # Use the decorated handler to respect discovery mode config
+                    tools = await handle_list_tools()
                     response = {
                         "jsonrpc": "2.0",
                         "id": req_id,
