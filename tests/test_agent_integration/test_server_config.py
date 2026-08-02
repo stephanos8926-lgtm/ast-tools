@@ -1,15 +1,18 @@
 """Tests for ast_tools.server_config module."""
 
 import os
+from pathlib import Path
+from tempfile import TemporaryDirectory
 
 from ast_tools.server_config import DEFAULT_CONFIG, load_server_config
 
 
 class TestLoadServerConfig:
     def test_default_config(self):
-        cfg = load_server_config()
-        assert cfg["server"]["mode"] == "timeout"
-        assert cfg["server"]["timeout_seconds"] == 900
+        with TemporaryDirectory() as tmpdir:
+            cfg = load_server_config(config_path=Path(tmpdir) / "nonexistent.yaml")
+            assert cfg["server"]["mode"] == "timeout"
+            assert cfg["server"]["timeout_seconds"] == 900
 
     def test_cli_mode_override(self):
         cfg = load_server_config(cli_mode="daemon")
