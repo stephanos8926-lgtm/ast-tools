@@ -1,6 +1,6 @@
 # rw-ast-tools
 
-**Structural Code Analysis & Editing MCP Server** — 77 tools for AST-based code intelligence, semantic search, and surgical Python/TypeScript editing.
+**Structural Code Analysis & Editing MCP Server** — 80 tools for AST-based code intelligence, semantic search, and surgical Python/TypeScript editing.
 
 [![Tests](https://img.shields.io/badge/tests-943%20passing-brightgreen)](https://github.com/rapidwebs/rw-ast-tools/actions)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
@@ -77,7 +77,7 @@ The daemon auto-starts via systemd and Hermes connects via socat bridge. No per-
 
 ---
 
-## 🧰 All 77 Tools
+## 🧰 All 80 Tools
 
 ### Core AST (8)
 | Tool | Description |
@@ -154,7 +154,7 @@ The daemon auto-starts via systemd and Hermes connects via socat bridge. No per-
 ### Meta & Discovery (5)
 | Tool | Description |
 |------|-------------|
-| `search_tools` | Semantic search across all 77 tool descriptions |
+| `search_tools` | Semantic search across all 80 tool descriptions |
 | `call_tool` | Execute tool by name with validated params |
 | `tool_info` | Full schema, category, usage stats for any tool |
 | `tool_usage_stats` | Call counts, error rates, latency, ranking boosts |
@@ -294,7 +294,7 @@ rw-ast-tools/
 │   ├── _server.py              # MCP server entry (3 modes)
 │   ├── server_config.py        # Unified config: CLI > env > file > defaults
 │   ├── config/unified.py       # Pydantic config with validation
-│   ├── tools/                  # 77 MCP tools (auto-registered)
+│   ├── tools/                  # 80 MCP tools (auto-registered)
 │   │   ├── semantic_search.py  # Hybrid vector + FTS5 (6-factor RRF)
 │   │   ├── ast_edit.py         # libcst surgical editing
 │   │   ├── ast_grep.py         # Tree-sitter structural search
@@ -339,7 +339,7 @@ rw-ast-tools/
 
 | Metric | Value |
 |--------|-------|
-| **MCP Tools** | 77 |
+| **MCP Tools** | 80 |
 | **Source Files** | 134 |
 | **Test Files** | 71 |
 | **Test Lines** | 8,946 |
