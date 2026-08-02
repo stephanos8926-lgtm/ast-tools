@@ -45,6 +45,9 @@ DEFAULT_CONFIG: dict[str, Any] = {
         "auto_index": True,
         "metrics_ttl_hours": 168,
     },
+    "discovery": {
+        "mode": False,  # True = code-mode (4 meta-tools), False = all tools (default)
+    },
 }
 
 CONFIG_FILE_PATHS = [
@@ -65,6 +68,7 @@ ENV_MAP: dict[str, tuple[str, ...]] = {
     "AST_TOOLS_TLS_KEY": ("remote", "tls_key"),
     "AST_TOOLS_WATCHDOG_ENABLED": ("watchdog", "enabled"),
     "AST_TOOLS_WATCHDOG_DEBOUNCE": ("watchdog", "debounce_ms"),
+    "AST_TOOLS_DISCOVERY_MODE": ("discovery", "mode"),  # NEW: code-mode enable
 }
 
 

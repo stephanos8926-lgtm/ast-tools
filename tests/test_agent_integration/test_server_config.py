@@ -72,3 +72,17 @@ class TestLoadServerConfig:
             assert cfg["server"]["timeout_seconds"] == 900  # unchanged
         finally:
             del os.environ["AST_TOOLS_TIMEOUT"]
+
+    def test_discovery_mode_env_var(self):
+        """Test AST_TOOLS_DISCOVERY_MODE env var enables code-mode."""
+        os.environ["AST_TOOLS_DISCOVERY_MODE"] = "true"
+        try:
+            cfg = load_server_config(config_path=Path(__file__).parent / "nonexistent.yaml")
+            assert cfg["discovery"]["mode"] is True
+        finally:
+            del os.environ["AST_TOOLS_DISCOVERY_MODE"]
+
+    def test_discovery_mode_default_false(self):
+        """Test discovery mode defaults to False (all tools visible)."""
+        cfg = load_server_config(config_path=Path(__file__).parent / "nonexistent.yaml")
+        assert cfg["discovery"]["mode"] is False

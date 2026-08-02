@@ -99,7 +99,11 @@ server.notification_handlers[InitializedNotification] = _handle_initialized
 async def handle_list_tools() -> list[Tool]:
     """Return list of all available tools."""
     all_tools = list_tools()
-    if os.environ.get("AST_TOOLS_DISCOVERY_MODE", "").lower() in ("true", "1", "yes"):
+    # Check code-mode: config > env var > default False
+    from ast_tools.server_config import load_server_config
+    cfg = load_server_config()
+    discovery_mode = cfg.get("discovery", {}).get("mode", False)
+    if discovery_mode:
         meta_tools = {"search_tools", "call_tool", "tool_info", "tool_usage_stats"}
         return [t for t in all_tools if t.name in meta_tools]
     return all_tools
