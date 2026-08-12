@@ -255,3 +255,16 @@ def provider_generate_embedding_sync(text: str) -> list[float]:
     """
     loop = _get_sync_loop()
     return loop.run_until_complete(provider_generate_embedding(text))
+
+
+def provider_generate_batch_embeddings_sync(texts: list[str], batch_size: int = 16) -> list[list[float]]:
+    """Sync wrapper around provider_generate_batch_embeddings.
+
+    Routes through the unified provider (remote RW InferenceEngine when
+    configured, local sentence-transformers otherwise) from sync contexts
+    such as MCP tool handlers. Mirrors provider_generate_embedding_sync.
+    """
+    loop = _get_sync_loop()
+    return loop.run_until_complete(
+        provider_generate_batch_embeddings(texts, batch_size=batch_size)
+    )

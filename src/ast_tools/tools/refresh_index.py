@@ -341,7 +341,15 @@ def _generate_embeddings(conn) -> int:
         Number of embeddings generated
     """
     try:
-        from ..embeddings import generate_batch_embeddings, insert_embeddings_batch
+        # Use the unified provider's SYNC bridge (routes to remote RW
+        # InferenceEngine when configured, local sentence-transformers
+        # otherwise). Calling the local model.generate_batch_embeddings
+        # directly bypassed the provider and always tried sentence_transformers
+        # → ModuleNotFoundError when the heavy dep is absent. Root-caused 2026-08-11.
+        from ..embeddings import (
+            insert_embeddings_batch,
+            provider_generate_batch_embeddings_sync,
+        )
     except ImportError:
         logger.warning(
             "Embedding dependencies not installed. Run: pip install sentence-transformers sqlite-vec"
@@ -381,7 +389,9 @@ def _generate_embeddings(conn) -> int:
         batch_ids = symbol_ids[i : i + batch_size]
 
         try:
-            embeddings = generate_batch_embeddings(batch_texts, batch_size=batch_size)
+            embeddings = provider_generate_batch_embeddings_sync(
+                batch_texts, batch_size=batch_size
+            )
 
             # Insert embeddings
             symbol_embeddings = list(zip(batch_ids, embeddings, strict=False))

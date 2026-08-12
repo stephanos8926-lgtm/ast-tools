@@ -8,19 +8,30 @@ Type=simple
 ExecStart=/home/sysop/Workspaces/ast-tools/.venv/bin/ast-tools-server --mode daemon --foreground
 Restart=on-failure
 RestartSec=5
-WatchdogSec=120
+# NOTE: No WatchdogSec. The ast-tools daemon does NOT call sd_notify(WATCHDOG=1),
+# so systemd's service watchdog would SIGABRT it every 2min (guaranteed crash
+# loop). Root-caused 2026-08-11. Remove until the server implements sd_notify.
 StartLimitBurst=5
-StartLimitIntervalSec=300
 MemoryMax=1G
 Environment=AST_TOOLS_MODE=daemon
 Environment=AST_TOOLS_LOG_LEVEL=info
+# RW InferenceEngine (embeddings + rerank) endpoint. Live target is the infra VM
+# (100.64.255.48:8300). Verified 2026-08-11. Old defaults (100.109.15.31,
+# 10.67.0.10, 100.126.48.57) are stale and unreachable.
+Environment=AST_TOOLS_REMOTE_INFERENCE_URL=http://100.64.255.48:8300
+# Ensure the daemon can find ~/.local/bin (ast-grep structural-search binary).
+Environment=PATH=/home/sysop/.local/bin:/usr/local/bin:/usr/bin:/bin
 
 # Security hardening
+# NOTE: ProtectHome=read-only is NOT used. The daemon's core function is writing
+# the semantic index + backups into $HOME (~/.cache/ast-tools, ~/.ast-tools,
+# project .ast-tools dirs). Read-only home breaks refresh_index with
+# "[Errno 30] Read-only file system" (root-caused 2026-08-11). Single-user local
+# workstation daemon — the sandbox tradeoff favors index write access.
 NoNewPrivileges=true
-ProtectHome=read-only
-ProtectSystem=strict
+ProtectSystem=full
 PrivateTmp=true
-ReadWritePaths=/home/sysop/.cache/rw-ast-tools /home/sysop/.config/rw-ast-tools /home/sysop/Workspaces /tmp
+ReadWritePaths=/home/sysop/.cache/rw-ast-tools /home/sysop/.cache/ast-tools /home/sysop/.config/rw-ast-tools /home/sysop/.ast-tools /home/sysop/Workspaces /tmp
 
 [Install]
 WantedBy=default.target

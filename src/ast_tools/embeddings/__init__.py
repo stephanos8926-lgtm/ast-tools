@@ -28,6 +28,7 @@ from .provider import (
 )
 from .provider import (
     generate_batch_embeddings as provider_generate_batch_embeddings,
+    provider_generate_batch_embeddings_sync,
 )
 from .provider import (
     generate_embedding as provider_generate_embedding,
