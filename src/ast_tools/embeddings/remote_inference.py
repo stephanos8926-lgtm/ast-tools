@@ -32,7 +32,7 @@ def _get_aiohttp():
 class RemoteInferenceConfig:
     """Configuration for remote inference client."""
 
-    base_url: str = "http://100.109.15.31:8300"
+    base_url: str = "http://100.64.255.48:8300"
     # Connection pooling
     connector_limit: int = 10
     connector_limit_per_host: int = 5
@@ -51,7 +51,7 @@ class RemoteInferenceConfig:
     def from_env(cls) -> RemoteInferenceConfig:
         """Create config from environment variables."""
         return cls(
-            base_url=os.environ.get("AST_TOOLS_REMOTE_INFERENCE_URL", "http://100.109.15.31:8300"),
+            base_url=os.environ.get("AST_TOOLS_REMOTE_INFERENCE_URL", "http://100.64.255.48:8300"),
             connector_limit=int(os.environ.get("AST_TOOLS_REMOTE_CONNECTOR_LIMIT", "10")),
             request_timeout=float(os.environ.get("AST_TOOLS_REMOTE_TIMEOUT", "30.0")),
             max_retries=int(os.environ.get("AST_TOOLS_REMOTE_MAX_RETRIES", "3")),
@@ -189,7 +189,16 @@ class RemoteInferenceClient:
             self.config.embeddings_url,
             json={"input": text},
         )
-        return data["embedding"]
+        # Support OpenAI-compatible response format (RW InferenceEngine):
+        # {"data": [{"embedding": [...], "index": 0}], ...}
+        # and legacy flat format: {"embedding": [...]}.
+        # Root-caused 2026-08-11: client expected flat, server returned OpenAI
+        # shape → KeyError: 'embedding' broke semantic_search embeddings.
+        if isinstance(data, dict) and "embedding" in data:
+            return data["embedding"]
+        if isinstance(data, dict) and isinstance(data.get("data"), list):
+            return data["data"][0]["embedding"]
+        raise RuntimeError(f"Unexpected embedding response shape: {type(data)}")
 
     async def embed_batch(self, texts: list[str]) -> list[list[float]]:
         """Generate embeddings for multiple texts."""

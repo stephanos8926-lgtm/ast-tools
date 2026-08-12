@@ -238,23 +238,26 @@ def hybrid_search_with_context(
 
             from ..embeddings import provider_rerank
 
+            # This tool is dispatched via anyio.to_thread.run_sync into a worker
+            # thread. NEVER use asyncio.get_event_loop() here — it returns (or
+            # conflicts with) the daemon's main event loop that is already
+            # running, causing "This event loop is already running". Create a
+            # fresh, thread-local loop, run the coroutine on it, then close it.
+            loop = asyncio.new_event_loop()
             try:
-                loop = asyncio.get_event_loop()
-            except RuntimeError:
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-
-            # Convert to candidate format for reranker
-            candidates = [
-                {
-                    "content": f"{r.get('name', '')} {r.get('signature', '')} {r.get('docstring', '')}",
-                    **r,
-                }
-                for r in results
-            ]
-            reranker_scores = loop.run_until_complete(
-                provider_rerank(query, candidates, top_k=min(k, 15))
-            )
+                # Convert to candidate format for reranker
+                candidates = [
+                    {
+                        "content": f"{r.get('name', '')} {r.get('signature', '')} {r.get('docstring', '')}",
+                        **r,
+                    }
+                    for r in results
+                ]
+                reranker_scores = loop.run_until_complete(
+                    provider_rerank(query, candidates, top_k=min(k, 15))
+                )
+            finally:
+                loop.close()
 
             # Apply reranker scores
             for i, r in enumerate(results):

@@ -25,6 +25,7 @@ import logging
 import os
 import signal
 import sys
+import threading
 import time
 from typing import Any
 
@@ -218,19 +219,42 @@ async def _run_daemon_mode(config: dict[str, Any]) -> None:
 
     logger.info("Daemon listening on %s", socket_path)
 
-    # Start watchdog AFTER socket is live (watchdog scan can block)
-    from ast_tools.watchdog.monitor import CodebaseWatcher
+    # Start watchdog AFTER socket is live (watchdog scan can block).
+    # Use the FUNCTIONAL WatcherDaemon (watcher/daemon.py) with the real
+    # reindex_file callback — NOT the stub CodebaseWatcher whose
+    # _schedule_reindex() only logs and never updates the index.
+    from ast_tools.watcher.daemon import WatcherDaemon, reindex_file
 
-    watcher = CodebaseWatcher(config)
-    if watcher.enabled:
+    _watcher = None
+    _watcher_thread = None
+    if config.get("watchdog", {}).get("enabled", False):
         try:
             watch_paths = config["daemon"].get("watch_paths", [])
             if not watch_paths:
                 watch_paths = [os.getcwd()]
                 logger.info("No watch_paths configured, using CWD: %s", watch_paths[0])
-            for path in watch_paths:
-                msg = watcher.start(path)
-                logger.info("Watchdog: %s", msg)
+
+            _watcher = WatcherDaemon(
+                watch_paths,
+                debounce_ms=config.get("watchdog", {}).get("debounce_ms", 100),
+            )
+            _watcher.start()
+            logger.info("Watchdog started, monitoring %d paths", len(watch_paths))
+
+            # Drain the debounced reindex queue in a background thread (the
+            # WatcherDaemon.run() blocking loop does not fit an async server).
+            def _drain():
+                while _watcher.running:
+                    time.sleep(0.25)
+                    try:
+                        for path in _watcher.queue.get_ready():
+                            logger.info("Watchdog reindexing: %s", path)
+                            reindex_file(path)
+                    except Exception as e:  # noqa: BLE001
+                        logger.warning("Watchdog reindex error: %s", e)
+
+            _watcher_thread = threading.Thread(target=_drain, daemon=True)
+            _watcher_thread.start()
         except Exception as e:
             logger.warning("Watchdog failed to start: %s", e)
 
