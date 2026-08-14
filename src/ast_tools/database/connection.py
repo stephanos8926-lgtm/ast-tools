@@ -182,18 +182,30 @@ def database_context(db_path: Path | None = None):
             conn.execute("SELECT * FROM symbols")
 
     Args:
-        db_path: Custom database path (default: ~/.cache/ast-tools/codebase.db)
+        db_path: Custom database path (default: ~/.ast-tools/cache/codebase.db)
 
     Yields:
         Configured sqlite3.Connection
 
-    Note:
-        Does NOT automatically commit transactions. Call conn.commit() explicitly
-        or wrap in a transaction context for atomic operations.
+    Transaction semantics — COMMITS ON SUCCESS, ROLLS BACK ON ERROR.
+    This matches Python's idiomatic ``with sqlite3.Connection`` behaviour, so
+    writes performed inside the block are persisted when the block exits
+    normally and discarded if it raises. Callers may still call
+    ``conn.commit()`` explicitly inside the block (a no-op on exit if already
+    committed) — e.g. long multi-step writes like the reindex path.
+
+    NOTE: prior behaviour NOT committing on exit silently LOST writes —
+    a connection closed with uncommitted changes rolls them back. This was
+    the root cause of intermittent "database is locked" data-loss reports.
+    Fixed 2026-08-14.
     """
     conn = get_connection(db_path)
     try:
         yield conn
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
     finally:
         conn.close()
 

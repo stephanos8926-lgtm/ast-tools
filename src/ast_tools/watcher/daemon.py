@@ -22,9 +22,10 @@ from watchdog.events import (
 )
 from watchdog.observers import Observer
 
-from ..database.connection import get_connection
+from ..database.connection import get_connection, retry_on_locked
 from ..indexer.extractor import extract_symbols
 from ..indexer.parser import parse_source
+from ..watcher.validate import validate_watch_paths
 
 logger = logging.getLogger(__name__)
 
@@ -199,6 +200,10 @@ class WatcherDaemon:
             exclude_patterns: Patterns to exclude (default: common build/cache dirs).
             debounce_ms: Debounce window in milliseconds.
         """
+        ok, errors = validate_watch_paths(watch_paths)
+        if not ok:
+            raise ValueError("Invalid watch paths:\n" + "\n".join(errors))
+
         self.watch_paths = [str(Path(p).resolve()) for p in watch_paths]
         self.include_extensions = include_extensions or [
             ".py",
@@ -319,41 +324,46 @@ def reindex_file(file_path: str) -> dict:
         # Extract symbols
         symbols, _edges = extract_symbols(result.tree, file_path)
 
-        # Update database
-        with get_connection() as conn:
-            cursor = conn.cursor()
+        # Update database — wrapped in retry_on_locked so a transient
+        # "database is locked" (concurrent search/watchdog write) does not
+        # fail the reindex. The DELETE+INSERTs run inside a single
+        # `with conn:` block so they commit atomically.
+        @retry_on_locked(max_attempts=5, initial_delay=0.05)
+        def _write():
+            with get_connection() as conn:
+                cursor = conn.cursor()
 
-            # Delete old symbols for this file
-            cursor.execute("DELETE FROM symbols WHERE file_path = ?", (file_path,))
+                # Delete old symbols for this file
+                cursor.execute("DELETE FROM symbols WHERE file_path = ?", (file_path,))
 
-            # Insert new symbols
-            for symbol in symbols:
-                cursor.execute(
-                    """
-                    INSERT INTO symbols (
-                        id, name, qualified_name, kind, file_path,
-                        start_line, end_line, signature, docstring,
-                        is_public, content_hash, indexed_at, lang
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """,
-                    (
-                        symbol.id,
-                        symbol.name,
-                        symbol.qualified_name,
-                        symbol.kind.value if hasattr(symbol.kind, "value") else str(symbol.kind),
-                        symbol.file_path,
-                        symbol.start_line,
-                        symbol.end_line,
-                        symbol.signature,
-                        symbol.docstring,
-                        1 if symbol.is_public else 0,
-                        symbol.content_hash or "",
-                        int(datetime.now().timestamp()),
-                        symbol.lang if hasattr(symbol, "lang") and symbol.lang else "python",
-                    ),
-                )
+                # Insert new symbols
+                for symbol in symbols:
+                    cursor.execute(
+                        """
+                        INSERT INTO symbols (
+                            id, name, qualified_name, kind, file_path,
+                            start_line, end_line, signature, docstring,
+                            is_public, content_hash, indexed_at, lang
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                        (
+                            symbol.id,
+                            symbol.name,
+                            symbol.qualified_name,
+                            symbol.kind.value if hasattr(symbol.kind, "value") else str(symbol.kind),
+                            symbol.file_path,
+                            symbol.start_line,
+                            symbol.end_line,
+                            symbol.signature,
+                            symbol.docstring,
+                            1 if symbol.is_public else 0,
+                            symbol.content_hash or "",
+                            int(datetime.now().timestamp()),
+                            symbol.lang if hasattr(symbol, "lang") and symbol.lang else "python",
+                        ),
+                    )
 
-            conn.commit()
+        _write()
 
         logger.info(f"✓ Reindexed {file_path} ({len(symbols)} symbols)")
         return {"status": "success", "path": file_path, "symbol_count": len(symbols)}

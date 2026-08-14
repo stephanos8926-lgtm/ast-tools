@@ -1,6 +1,7 @@
 """MCP tools for watcher daemon management."""
 
 from ..watcher.daemon import WatcherDaemon, reindex_file
+from ..watcher.validate import validate_watch_paths
 
 # Global daemon instance
 _active_daemon: WatcherDaemon | None = None
@@ -41,6 +42,13 @@ def watch_add(paths: list[str]) -> dict:
         Status dict with added paths.
     """
     global _active_daemon
+
+    ok, errors = validate_watch_paths(paths)
+    if not ok:
+        return {
+            "status": "error",
+            "message": "Invalid watch paths:\n" + "\n".join(errors),
+        }
 
     if _active_daemon is None:
         _active_daemon = WatcherDaemon(paths)

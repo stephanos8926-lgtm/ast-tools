@@ -78,7 +78,29 @@ uv pip install -e ".[local-reranker]"
 > injection, semantic search, and symbol indexing all work without it via the
 > remote inference transport.
 
-### Run MCP Server
+### Watchdog Auto-Reindexing
+
+The daemon can watch your projects and automatically reindex changed files.
+Enable it in `~/.config/rw-ast-tools/config.yaml`:
+
+```yaml
+watchdog:
+  enabled: true
+  watch_paths:
+    - "/home/sysop/Workspaces/myproject"
+    - "/home/sysop/Workspaces/otherproject"
+```
+
+**Safety guards:** The watcher refuses to start if any `watch_path` would
+recursively watch a dangerous scope:
+- The filesystem root `/`
+- Your home directory (e.g. `/home/sysop`) — this would recurse the entire
+  home tree and exhaust inotify watches (the 2026-08-11 incident).
+- Any parent of your home (e.g. `/home`)
+- Obvious build/cache/venv dirs (`node_modules`, `.venv`, `build`, etc.)
+
+Use a **project subdirectory** as your watch path (e.g. `/home/user/Workspaces/myproject`),
+not the parent or home directory itself.
 
 ```bash
 # Daemon mode (persistent, systemd-managed) — RECOMMENDED
