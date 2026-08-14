@@ -22,6 +22,10 @@ from ast_tools.agent_integration.error_correction import (
     correct_tool_error,
     get_error_correction,
 )
+from ast_tools.agent_integration.project_context import (
+    build_project_context,
+    detect_project_query,
+)
 from ast_tools.agent_integration.session_intel import (
     call_codebase_summary,
     extract_modified_files,

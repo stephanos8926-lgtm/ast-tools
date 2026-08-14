@@ -1,6 +1,19 @@
 """Tests for embeddings model."""
 
+import importlib.util
 import pytest
+
+# Skip all tests in this module if sentence-transformers is not available
+# (local embedding backend is optional — RapidWebs users use remote RW_InferenceEngine)
+HAS_SENTENCE_TRANSFORMERS = importlib.util.find_spec("sentence_transformers") is not None
+
+pytestmark = [
+    pytest.mark.slow,
+    pytest.mark.skipif(
+        not HAS_SENTENCE_TRANSFORMERS,
+        reason="sentence-transformers not installed (local-reranker extra required)"
+    ),
+]
 
 from ast_tools.embeddings import (
     EMBEDDING_DIM,
@@ -10,8 +23,6 @@ from ast_tools.embeddings import (
     get_model,
     unload_model,
 )
-
-pytestmark = pytest.mark.slow
 
 
 class TestModelLoading:

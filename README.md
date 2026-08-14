@@ -34,11 +34,49 @@ rw-ast-tools is an MCP (Model Context Protocol) server that gives LLMs **structu
 ### Install
 
 ```bash
-git clone https://github.com/rapidwebs/rw-ast-tools
-cd rw-ast-tools
+git clone https://github.com/stephanos8926-lgtm/ast-tools
+cd ast-tools
 uv venv && source .venv/bin/activate
 uv pip install -e .
 ```
+
+### Optional Extras
+
+Core install (`uv pip install -e .`) covers the full MCP server. Optional
+extras add language grammars, LSP support, and local ML:
+
+| Extra | What it adds | Needed for |
+|-------|-------------|------------|
+| `all` | Everything below (one command) | Full dev/test setup |
+| `dev` | pytest, ruff, pre-commit, hnswlib, rich, scipy, multi-language tree-sitter grammars | Running the test suite + tools |
+| `spectral` | scipy + multi-language grammars | Spectral analysis tools |
+| `tree-sitter` | Multi-language grammar bindings | Cross-language AST parsing |
+| `local-reranker` | `sentence-transformers` (~large) | **Local** embedding/reranking |
+| `lsp` | lsprotocol, pygls, websocket-client, pynvim | LSP server features + tests |
+
+**Quick reference — recommended installs:**
+
+```bash
+# Just the MCP server (everything essential) — sufficient for remote RW_IE users
+uv pip install -e .
+
+# Full development setup (test suite + all feature extras) — ONE command
+uv pip install -e ".[all]"
+
+# Remote/WR_InferenceEngine user who NEVER runs local embeddings
+# (no sentence-transformers — saves ~500MB of torch deps):
+uv pip install -e ".[dev,spectral,lsp]"
+
+# User who wants LOCAL embedding/reranking instead of remote RW_IE:
+uv pip install -e ".[local-reranker]"
+```
+
+> **Why `local-reranker` is separate:** `sentence-transformers` pulls torch +
+> ~500MB of model dependencies. If you use the remote `RW_InferenceEngine`
+> transport (the RapidWebs default), embeddings/reranking run server-side and
+> you do **not** need it — skip that extra to keep your install lean. Context
+> injection, semantic search, and symbol indexing all work without it via the
+> remote inference transport.
 
 ### Run MCP Server
 
